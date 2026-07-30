@@ -1,0 +1,27 @@
+{
+    "name": "Backrooms.Gameplay.Tests",
+    "rootNamespace": "Backrooms.Gameplay.Tests",
+    "references": [
+        "Backrooms.Gameplay",
+        "Backrooms.MazeManager",
+        "Backrooms.PlayerManager",
+        "MooseRunner",
+        "MooseRunner.helper",
+        "UniTask",
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
