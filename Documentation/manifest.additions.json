@@ -1,0 +1,21 @@
+{
+  "_comment": "Merge these into Packages/manifest.json after creating the Universal 3D project. Add the scopedRegistries array (or merge scopes) and the two dependencies.",
+  "scopedRegistries": [
+    {
+      "name": "Valectric",
+      "url": "https://registry.npmjs.org",
+      "scopes": ["com.valectric"]
+    },
+    {
+      "name": "OpenUPM",
+      "url": "https://package.openupm.com",
+      "scopes": ["com.cysharp"]
+    }
+  ],
+  "dependencies": {
+    "com.valectric.mooserunner": "2.2.5",
+    "com.cysharp.unitask": "2.5.10",
+    "com.unity.recorder": "5.1.6",
+    "com.unity.ai.navigation": "2.0.12"
+  }
+}

@@ -5,13 +5,13 @@ A small, single-player, **first-person Backrooms** game that **showcases MooseRu
 build on GitHub Pages**. Sister project to *Knuckle Drift*.
 
 Read `PLAN.md` for the design, architecture, milestones, and hosting strategy.
-Read `docs/DEPLOYMENT.md` before touching the WebGL build (the GitHub Pages compression gotcha).
+Read `Documentation/DEPLOYMENT.md` before touching the WebGL build (the GitHub Pages compression gotcha).
 
 ## Hard constraints (do not break)
 
 - **Mobile WebGL, non-VR.** Touch-first controls; keep the build small; no XR.
 - **GitHub Pages deploy** requires **Decompression Fallback ON** (or Compression = Disabled) —
-  see `docs/DEPLOYMENT.md`.
+  see `Documentation/DEPLOYMENT.md`.
 - **Deterministic everything** — seeded maze, fixed game-clock sanity, rule-based entity. No
   unseeded `Random`, no wall-clock timing in logic.
 

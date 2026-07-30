@@ -29,7 +29,7 @@ entity roams the endless yellow rooms. Almond water restores sanity.
 - Unity `6000.3.17f1` + URP · MooseRunner `2.2.5` · UniTask
 - Architecture + testing doctrine: see `ArchitectureGuidelines.md`, `TestingGuidelines.md`, `CLAUDE.md`
 - Plan & milestones: see `PLAN.md`
-- Hosting runbook: see `docs/DEPLOYMENT.md`
+- Hosting runbook: see `Documentation/DEPLOYMENT.md`
 
 ## Credits
 

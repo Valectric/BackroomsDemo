@@ -42,7 +42,7 @@ hits zero, or the entity catches you = game over.
 | Constraint | Consequence for design |
 |---|---|
 | **Mobile WebGL** | No VR. Touch controls. Keep the `.data` file small (GitHub Pages has a 100 MB/file limit and phones have limited memory). Procedural geometry + tiny textures, not big art. |
-| **GitHub Pages hosting** | Pages cannot send `Content-Encoding: br/gzip` headers. Unity WebGL build **must** use *Decompression Fallback* ON (or Compression = Disabled) or the loader fails. See `docs/DEPLOYMENT.md`. |
+| **GitHub Pages hosting** | Pages cannot send `Content-Encoding: br/gzip` headers. Unity WebGL build **must** use *Decompression Fallback* ON (or Compression = Disabled) or the loader fails. See `Documentation/DEPLOYMENT.md`. |
 | **Deterministic tests** | Seeded maze, fixed-clock sanity, rule-based entity. No `Random` without a seed, no wall-clock timing in logic. |
 | **MooseRunner doctrine** | Application→Module hierarchy, concrete classes (zero-interface), Facade/Router, module-owned TestFacade seams, ≤400 lines/file. See `ArchitectureGuidelines.md`. |
 
@@ -128,7 +128,7 @@ This directly demonstrates the "an agent can *see* whether the game looks right"
 ## 5. Hosting & the "incremental build" flow (GitHub Pages)
 
 Goal: a URL you open on your phone that updates as the demo grows. Full runbook in
-`docs/DEPLOYMENT.md`. Summary:
+`Documentation/DEPLOYMENT.md`. Summary:
 
 **Phase A — manual (start here, zero secrets):**
 1. Build WebGL from the editor with **Decompression Fallback ON** into `docs/` (repo root).
@@ -150,9 +150,9 @@ is required; GitHub Pages is it.
 
 | # | Milestone | Done when |
 |---|---|---|
-| **M0** | **Project + repo + CI skeleton** | Unity 6 URP project created in this folder; MooseRunner + UniTask in manifest; `mooserunnerCli ping` green; git repo pushed to GitHub; empty scene builds to WebGL and loads on phone via Pages. |
-| **M1** | **Walk the rooms** | MazeManager generates Level 0; PlayerManager first-person move+look works on desktop; PlayMode tests for maze determinism/connectivity green. First "real" WebGL build on Pages. |
-| **M2** | **Touch controls + HUD** | On-screen stick/look/buttons; UIManager menu + HUD; playable on phone. `screenshot`-validated. |
+| **M0** ✅ | **Project + repo skeleton** | Unity 6 URP project created; MooseRunner + UniTask in manifest; `mooserunnerCli ping` green; repo pushed to `Valectric/BackroomsDemo`. |
+| **M1** ▶ | **Walk the rooms** | MazeManager generates Level 0 ✅; geometry (walls/floor/ceiling/lights) ✅; PlayerManager first-person move+look, desktop **and touch** ✅; gameplay scene authored ✅; 19 PlayMode tests + 4-step escape E2E green ✅. **Remaining: WebGL build on Pages** (blocked on the WebGL module). |
+| **M2** | **HUD + menu** | UIManager start screen, run timer, escape screen; replay without reloading. `screenshot`-validated. |
 | **M3** | **Sanity + almond water + win/exit** | SanityManager drains, pickups restore, exit ends the run with a win screen; GameManager state machine; PlayMode tests green. |
 | **M4** | **The entity** | EntityManager patrol/chase/catch; game-over on catch; PlayMode tests green. |
 | **M5** | **E2E + visual validation** | Full E2E suites (playthrough / sanity-loss / entity-catch) green; SessionRecorder visual check passes. |
