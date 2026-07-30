@@ -47,8 +47,9 @@ Thumbs.db
 # Claude Code local (machine-specific permissions)
 .claude/settings.local.json
 
-# ---- MooseRunner secrets ----
-MooseRunner/.env
-MooseRunner/daemon.json
+# ---- MooseRunner (package-generated binaries + secrets + data; not source) ----
+/MooseRunner/
+/Assets/MooseRunnerMultiplayTestData/
+/Assets/MooseRunnerMultiplayTestData.meta
 
 # NOTE: docs/ is intentionally NOT ignored — it holds the WebGL build served by GitHub Pages.
