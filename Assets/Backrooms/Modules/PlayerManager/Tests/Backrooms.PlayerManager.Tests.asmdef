@@ -1,0 +1,25 @@
+{
+    "name": "Backrooms.PlayerManager.Tests",
+    "rootNamespace": "Backrooms.PlayerManager.Tests",
+    "references": [
+        "Backrooms.PlayerManager",
+        "MooseRunner",
+        "MooseRunner.helper",
+        "UniTask",
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

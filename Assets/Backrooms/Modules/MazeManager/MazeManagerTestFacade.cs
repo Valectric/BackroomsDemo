@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Backrooms.MazeManager.Internal;
 
 namespace Backrooms.MazeManager
@@ -28,5 +29,14 @@ namespace Backrooms.MazeManager
         /// <param name="settings">Grid size and seed.</param>
         /// <returns>The generated layout.</returns>
         public MazeLayout Generate(MazeSettings settings) => _router.Generate(settings);
+
+        /// <summary>
+        /// Plans the wall segments for a layout without building any scene geometry, so tests can
+        /// assert wall placement directly.
+        /// </summary>
+        /// <param name="layout">The layout to plan walls for.</param>
+        /// <returns>The planned wall segments.</returns>
+        public List<WallSegment> PlanWalls(MazeLayout layout)
+            => _router.PlanWalls(layout, layout.CellSize);
     }
 }
