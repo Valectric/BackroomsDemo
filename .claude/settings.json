@@ -1,0 +1,43 @@
+{
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  },
+  "permissions": {
+    "allow": [
+      "Read",
+      "Edit",
+      "Write",
+      "Glob",
+      "Grep",
+      "Bash",
+      "PowerShell",
+      "WebFetch",
+      "WebSearch",
+      "Task",
+      "TodoWrite",
+      "NotebookEdit",
+      "Skill(*)",
+      "mcp__ide__getDiagnostics",
+      "mcp__unity-mcp__*",
+      "mcp__UnityMCP__*",
+      "mcp__coplay-mcp__*",
+      "Bash(git commit:*)",
+      "mcp__linear-server__*"
+    ],
+    "deny": [
+      "Bash(git reset --hard:*)",
+      "Bash(git push --force:*)",
+      "Bash(git push -f:*)",
+      "Bash(git clean -f:*)",
+      "Bash(rm -rf:*)",
+      "Bash(del /s:*)",
+      "Bash(rmdir /s:*)",
+      "mcp__unity-mcp__batch_execute",
+      "mcp__unity-mcp__run_tests",
+      "mcp__unity-mcp__get_test_job",
+      "mcp__unity-mcp__script_apply_edits"
+    ]
+  },
+  "enabledPlugins": {
+  }
+}

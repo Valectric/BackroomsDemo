@@ -44,6 +44,9 @@ crashlytics-build.properties
 .DS_Store
 Thumbs.db
 
+# Claude Code local (machine-specific permissions)
+.claude/settings.local.json
+
 # ---- MooseRunner secrets ----
 MooseRunner/.env
 MooseRunner/daemon.json
