@@ -70,7 +70,7 @@ namespace Backrooms.MazeManager.Internal.Generation
                 stack.Push(next);
             }
 
-            return new MazeLayout(w, h, cells, spawn, exit);
+            return new MazeLayout(w, h, cells, spawn, exit, settings.CellSize);
         }
 
         /// <summary>

@@ -24,6 +24,9 @@ namespace Backrooms.MazeManager
         /// <summary>The cell that ends the run (the exit) when reached.</summary>
         public Vector2Int Exit { get; }
 
+        /// <summary>World size of one cell in metres, as used when building geometry.</summary>
+        public float CellSize { get; }
+
         /// <summary>
         /// Builds a layout from a flat cell array in row-major order (index = y * width + x).
         /// Internal: only <see cref="Backrooms.MazeManager.Internal.Generation.MazeGenerator"/>
@@ -34,13 +37,40 @@ namespace Backrooms.MazeManager
         /// <param name="cells">Row-major cell array of length width*height.</param>
         /// <param name="spawn">Spawn cell coordinate.</param>
         /// <param name="exit">Exit cell coordinate.</param>
-        internal MazeLayout(int width, int height, MazeCell[] cells, Vector2Int spawn, Vector2Int exit)
+        /// <param name="cellSize">World size of one cell in metres.</param>
+        internal MazeLayout(int width, int height, MazeCell[] cells, Vector2Int spawn, Vector2Int exit,
+            float cellSize)
         {
             Width = width;
             Height = height;
             _cells = cells;
             Spawn = spawn;
             Exit = exit;
+            CellSize = cellSize;
+        }
+
+        /// <summary>
+        /// World-space centre of a cell at floor level. The grid maps to the world XZ plane
+        /// (grid X → world X, grid Y → world Z).
+        /// </summary>
+        /// <param name="cell">Cell coordinate.</param>
+        /// <returns>World position at floor level.</returns>
+        public Vector3 CellCenterToWorld(Vector2Int cell)
+        {
+            float half = CellSize * 0.5f;
+            return new Vector3(cell.x * CellSize + half, 0f, cell.y * CellSize + half);
+        }
+
+        /// <summary>
+        /// The grid cell containing a world position, clamped into the grid.
+        /// </summary>
+        /// <param name="world">World-space position.</param>
+        /// <returns>The containing cell coordinate.</returns>
+        public Vector2Int WorldToCell(Vector3 world)
+        {
+            int x = Mathf.Clamp(Mathf.FloorToInt(world.x / CellSize), 0, Width - 1);
+            int y = Mathf.Clamp(Mathf.FloorToInt(world.z / CellSize), 0, Height - 1);
+            return new Vector2Int(x, y);
         }
 
         /// <summary>
