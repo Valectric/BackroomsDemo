@@ -14,17 +14,17 @@ namespace Backrooms.MazeManager.Internal.Geometry
     /// </remarks>
     internal sealed class MazeGeometryBuilder
     {
-        /// <summary>Backrooms wallpaper yellow.</summary>
-        private static readonly Color WallColor = new Color(0.84f, 0.78f, 0.48f);
+        /// <summary>Backrooms wallpaper yellow — deliberately bright, this is a mono-yellow space.</summary>
+        private static readonly Color WallColor = new Color(0.91f, 0.85f, 0.55f);
 
-        /// <summary>Damp mustard carpet.</summary>
-        private static readonly Color FloorColor = new Color(0.42f, 0.36f, 0.21f);
+        /// <summary>Damp mustard carpet, darker than the walls but still lit.</summary>
+        private static readonly Color FloorColor = new Color(0.62f, 0.55f, 0.33f);
 
-        /// <summary>Pale ceiling tile.</summary>
-        private static readonly Color CeilingColor = new Color(0.80f, 0.78f, 0.67f);
+        /// <summary>Pale ceiling tile, close to off-white.</summary>
+        private static readonly Color CeilingColor = new Color(0.88f, 0.86f, 0.75f);
 
         /// <summary>Warm fluorescent tint.</summary>
-        private static readonly Color LightColor = new Color(1f, 0.96f, 0.78f);
+        private static readonly Color LightColor = new Color(1f, 0.97f, 0.82f);
 
         private readonly MazeWallPlanner _planner = new MazeWallPlanner();
         private readonly MazeMeshBuilder _meshBuilder = new MazeMeshBuilder();
@@ -61,8 +61,47 @@ namespace Backrooms.MazeManager.Internal.Geometry
                 CeilingColor, addCollider: false);
 
             CreateLights(layout, cellSize, wallHeight, lightSpacingCells, root.transform);
+            CreateExitMarker(layout, wallHeight, root.transform);
 
             return root;
+        }
+
+        /// <summary>
+        /// Places a glowing green marker in the exit cell so the player has something to find. The
+        /// marker is a trigger-free visual only; reaching the exit is decided by distance in the
+        /// gameplay layer.
+        /// </summary>
+        /// <param name="layout">The maze, used to locate the exit cell.</param>
+        /// <param name="wallHeight">Wall height in metres.</param>
+        /// <param name="parent">Parent transform for the marker.</param>
+        private static void CreateExitMarker(MazeLayout layout, float wallHeight, Transform parent)
+        {
+            Vector3 pos = layout.CellCenterToWorld(layout.Exit);
+
+            var marker = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            marker.name = "ExitMarker";
+            Object.Destroy(marker.GetComponent<BoxCollider>());
+            marker.transform.SetParent(parent, worldPositionStays: false);
+            marker.transform.position = new Vector3(pos.x, wallHeight * 0.5f, pos.z);
+            marker.transform.localScale = new Vector3(0.6f, wallHeight * 0.9f, 0.6f);
+
+            var exitColor = new Color(0.35f, 1f, 0.45f);
+            Shader shader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
+            var mat = new Material(shader);
+            if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", exitColor);
+            if (mat.HasProperty("_Color")) mat.SetColor("_Color", exitColor);
+            mat.EnableKeyword("_EMISSION");
+            if (mat.HasProperty("_EmissionColor")) mat.SetColor("_EmissionColor", exitColor * 2.5f);
+            marker.GetComponent<MeshRenderer>().sharedMaterial = mat;
+
+            var glow = new GameObject("ExitGlow");
+            glow.transform.SetParent(marker.transform, worldPositionStays: false);
+            var light = glow.AddComponent<Light>();
+            light.type = LightType.Point;
+            light.color = exitColor;
+            light.intensity = 3f;
+            light.range = 12f;
+            light.shadows = LightShadows.None;
         }
 
         /// <summary>
@@ -131,11 +170,40 @@ namespace Backrooms.MazeManager.Internal.Geometry
                     var light = go.AddComponent<Light>();
                     light.type = LightType.Point;
                     light.color = LightColor;
-                    light.intensity = 1.6f;
-                    light.range = spacing * cellSize * 1.35f;
+                    light.intensity = 3.2f;
+                    light.range = spacing * cellSize * 2f;
                     light.shadows = LightShadows.None;
+
+                    CreateLightPanel(go.transform, cellSize);
                 }
             }
+        }
+
+        /// <summary>
+        /// Adds the visible fluorescent fixture under a ceiling light: a flat emissive panel, so the
+        /// player sees where the buzzing light is coming from rather than an unexplained glow.
+        /// </summary>
+        /// <param name="lightTransform">Transform of the point light to attach the panel to.</param>
+        /// <param name="cellSize">World size of one cell in metres.</param>
+        private static void CreateLightPanel(Transform lightTransform, float cellSize)
+        {
+            var panel = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            panel.name = "LightPanel";
+            Object.Destroy(panel.GetComponent<MeshCollider>());
+            panel.transform.SetParent(lightTransform, worldPositionStays: false);
+            panel.transform.localPosition = new Vector3(0f, 0.14f, 0f);
+            panel.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            panel.transform.localScale = new Vector3(cellSize * 0.55f, cellSize * 0.28f, 1f);
+
+            Shader shader = Shader.Find("Universal Render Pipeline/Unlit")
+                            ?? Shader.Find("Universal Render Pipeline/Lit")
+                            ?? Shader.Find("Standard");
+            var mat = new Material(shader);
+            if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", LightColor);
+            if (mat.HasProperty("_Color")) mat.SetColor("_Color", LightColor);
+            mat.EnableKeyword("_EMISSION");
+            if (mat.HasProperty("_EmissionColor")) mat.SetColor("_EmissionColor", LightColor * 2f);
+            panel.GetComponent<MeshRenderer>().sharedMaterial = mat;
         }
     }
 }
