@@ -34,6 +34,7 @@ namespace Backrooms.MazeManager.Tests
         /// <param name="ct">Cancellation token supplied by the runner.</param>
         private static async UniTask BuildAndPhotograph(int floor, CancellationToken ct)
         {
+            const string tag = "";
             FloorTheme theme = FloorThemes.ForFloor(floor);
 
             RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
@@ -66,7 +67,7 @@ namespace Backrooms.MazeManager.Tests
                 string dir = Path.Combine(UnityEngine.Application.dataPath, "..", "Screenshots");
                 Directory.CreateDirectory(dir);
                 string path = Path.GetFullPath(
-                    Path.Combine(dir, $"floor-{floor}-{theme.Name.Replace(' ', '-')}.png"));
+                    Path.Combine(dir, $"floor-{floor}{tag}-{theme.Name.Replace(' ', '-')}.png"));
                 File.WriteAllBytes(path, shot.EncodeToPNG());
                 MooseRunnerFacade.Log($"photographed floor {floor} ({theme.Name}) -> {path}");
             }
@@ -90,7 +91,7 @@ namespace Backrooms.MazeManager.Tests
             {
                 string dir = Path.Combine(UnityEngine.Application.dataPath, "..", "Screenshots");
                 string path = Path.GetFullPath(
-                    Path.Combine(dir, $"eye-{floor}-{theme.Name.Replace(' ', '-')}.png"));
+                    Path.Combine(dir, $"eye-{floor}{tag}-{theme.Name.Replace(' ', '-')}.png"));
                 File.WriteAllBytes(path, eyeShot.EncodeToPNG());
                 MooseRunnerFacade.Log($"eye-level floor {floor} at cell {room} -> {path}");
             }
