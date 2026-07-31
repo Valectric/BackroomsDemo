@@ -32,6 +32,7 @@ namespace Backrooms.MazeManager.Internal.Geometry
         /// <param name="wallHeight">Wall height in metres.</param>
         /// <param name="lightSpacingCells">Place a ceiling light every N cells on both axes.</param>
         /// <param name="parent">Transform to parent the generated root under, may be <c>null</c>.</param>
+        /// <param name="theme">Palette for the floor being built.</param>
         /// <returns>The root GameObject containing all generated geometry.</returns>
         public GameObject Build(MazeLayout layout, float cellSize, float wallHeight,
             int lightSpacingCells, Transform parent, FloorTheme theme)
@@ -61,8 +62,8 @@ namespace Backrooms.MazeManager.Internal.Geometry
 
             CreateLights(layout, cellSize, wallHeight, lightSpacingCells, root.transform);
             CreateExitMarker(layout, wallHeight, root.transform);
-            _decorator.Decorate(layout, _theme, layout.Width * 31 + layout.Height, root.transform,
-                wallHeight);
+            CreateColumns(layout, cellSize, wallHeight, root.transform);
+            _decorator.Decorate(layout, _theme, layout.Width * 31 + layout.Height, root.transform);
 
             return root;
         }
@@ -103,6 +104,87 @@ namespace Backrooms.MazeManager.Internal.Geometry
             light.intensity = 3f;
             light.range = 12f;
             light.shadows = LightShadows.None;
+        }
+
+        /// <summary>
+        /// Raises structural columns through the larger open spaces. These are architecture rather
+        /// than furniture: a hall several cells wide with an unbroken ceiling reads as a void, and a
+        /// regular grid of columns gives it scale and something to navigate by.
+        /// </summary>
+        /// <param name="layout">The floor being built.</param>
+        /// <param name="cellSize">World size of one cell in metres.</param>
+        /// <param name="wallHeight">Floor-to-ceiling height in metres.</param>
+        /// <param name="parent">Parent transform for the columns.</param>
+        private void CreateColumns(MazeLayout layout, float cellSize, float wallHeight, Transform parent)
+        {
+            var root = new GameObject("Columns");
+            root.transform.SetParent(parent, worldPositionStays: false);
+
+            Material shaft = CreateMaterial(_theme.Wall);
+            Material trim = CreateMaterial(_theme.Trim);
+            const float width = 0.42f;
+
+            // Every third cell, and only where the space is open on all sides, so columns land in
+            // halls rather than blocking a corridor.
+            for (int y = 1; y < layout.Height - 1; y += 3)
+            {
+                for (int x = 1; x < layout.Width - 1; x += 3)
+                {
+                    if (new Vector2Int(x, y) == layout.Spawn) continue;
+                    if (new Vector2Int(x, y) == layout.Exit) continue;
+
+                    bool openAllRound = true;
+                    foreach (Direction dir in Directions.All)
+                    {
+                        if (!layout.CanMove(x, y, dir)) openAllRound = false;
+                    }
+
+                    if (!openAllRound) continue;
+
+                    Vector3 pos = layout.CellCenterToWorld(new Vector2Int(x, y));
+                    Column(root.transform, pos, width, wallHeight, shaft, trim);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Builds one column: a full-height shaft with a base and capital.
+        /// </summary>
+        /// <param name="parent">Parent transform.</param>
+        /// <param name="pos">Floor-level position.</param>
+        /// <param name="width">Shaft width in metres.</param>
+        /// <param name="height">Floor-to-ceiling height in metres.</param>
+        /// <param name="shaft">Material for the shaft.</param>
+        /// <param name="trim">Material for base and capital.</param>
+        private static void Column(Transform parent, Vector3 pos, float width, float height,
+            Material shaft, Material trim)
+        {
+            Cube(parent, "Column", pos + Vector3.up * height * 0.5f,
+                new Vector3(width, height, width), shaft);
+            Cube(parent, "ColumnBase", pos + Vector3.up * 0.16f,
+                new Vector3(width * 1.4f, 0.32f, width * 1.4f), trim);
+            Cube(parent, "ColumnCapital", pos + Vector3.up * (height - 0.16f),
+                new Vector3(width * 1.4f, 0.32f, width * 1.4f), trim);
+        }
+
+        /// <summary>
+        /// Creates a collider-free cube with the given material.
+        /// </summary>
+        /// <param name="parent">Parent transform.</param>
+        /// <param name="name">Object name.</param>
+        /// <param name="centre">World centre.</param>
+        /// <param name="size">Full size on each axis.</param>
+        /// <param name="material">Material to render with.</param>
+        private static void Cube(Transform parent, string name, Vector3 centre, Vector3 size,
+            Material material)
+        {
+            var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            go.name = name;
+            Object.Destroy(go.GetComponent<BoxCollider>());
+            go.transform.SetParent(parent, worldPositionStays: false);
+            go.transform.position = centre;
+            go.transform.localScale = size;
+            go.GetComponent<MeshRenderer>().sharedMaterial = material;
         }
 
         /// <summary>
