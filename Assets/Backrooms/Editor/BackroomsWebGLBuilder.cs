@@ -30,6 +30,10 @@ namespace Backrooms.Editor
                 return;
             }
 
+            // Procedural materials resolve their shaders at runtime, so those shaders must be
+            // force-included or the whole level renders magenta in the player.
+            AlwaysIncludedShaders.Ensure();
+
             ApplyWebGLPlayerSettings();
 
             string output = Path.GetFullPath(OutputFolder);
@@ -73,13 +77,20 @@ namespace Backrooms.Editor
             PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Gzip;
             PlayerSettings.WebGL.decompressionFallback = true;
             PlayerSettings.WebGL.dataCaching = true;
-            PlayerSettings.WebGL.exceptionSupport = WebGLExceptionSupport.None;
             PlayerSettings.WebGL.template = "APPLICATION:Minimal";
 
-            PlayerSettings.stripEngineCode = true;
+            // Exceptions must stay on. With them disabled the player reports every failure as the
+            // literally useless "The error was: undefined", which hides real crashes.
+            PlayerSettings.WebGL.exceptionSupport = WebGLExceptionSupport.ExplicitlyThrownExceptionsOnly;
+
+            // Conservative stripping. Aggressive stripping removes code reached only by reflection
+            // (the Input System and URP both rely on it) and shows up at runtime as unsupported
+            // shaders or a frozen player rather than as a build error. Size can be tuned back down
+            // once the build is known good.
+            PlayerSettings.stripEngineCode = false;
             PlayerSettings.runInBackground = false;
             PlayerSettings.SetManagedStrippingLevel(
-                UnityEditor.Build.NamedBuildTarget.WebGL, ManagedStrippingLevel.High);
+                UnityEditor.Build.NamedBuildTarget.WebGL, ManagedStrippingLevel.Minimal);
 
             PlayerSettings.companyName = "Valectric";
             PlayerSettings.productName = "Backrooms Demo";
