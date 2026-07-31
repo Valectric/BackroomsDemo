@@ -57,6 +57,77 @@ namespace Backrooms.MazeManager.Internal.Geometry
         }
 
         /// <summary>
+        /// Builds one mesh of low boxes running along every wall, used as skirting. A solid box
+        /// stands proud of the wall on both sides, so it reads as trim instead of z-fighting with the
+        /// wall plane, and it gives the flat surfaces a floor line to sit on.
+        /// </summary>
+        /// <param name="walls">Planned wall segments.</param>
+        /// <param name="height">Trim height in metres.</param>
+        /// <param name="thickness">Total trim thickness in metres.</param>
+        /// <returns>A combined trim mesh.</returns>
+        public Mesh BuildTrim(List<WallSegment> walls, float height, float thickness)
+        {
+            var verts = new List<Vector3>(walls.Count * 24);
+            var tris = new List<int>(walls.Count * 36);
+
+            foreach (WallSegment w in walls)
+            {
+                float halfLen = w.Length * 0.5f;
+                float halfThick = thickness * 0.5f;
+
+                Vector3 size = w.AlongX
+                    ? new Vector3(halfLen, height * 0.5f, halfThick)
+                    : new Vector3(halfThick, height * 0.5f, halfLen);
+                var centre = new Vector3(w.Center.x, height * 0.5f, w.Center.z);
+
+                AddBox(verts, tris, centre, size);
+            }
+
+            var mesh = new Mesh { name = "MazeTrim" };
+            mesh.indexFormat = verts.Count > 65000
+                ? UnityEngine.Rendering.IndexFormat.UInt32
+                : UnityEngine.Rendering.IndexFormat.UInt16;
+            mesh.SetVertices(verts);
+            mesh.SetTriangles(tris, 0);
+            mesh.RecalculateNormals();
+            mesh.RecalculateBounds();
+            return mesh;
+        }
+
+        /// <summary>
+        /// Appends an axis-aligned box to a mesh under construction.
+        /// </summary>
+        /// <param name="verts">Vertex accumulator.</param>
+        /// <param name="tris">Triangle-index accumulator.</param>
+        /// <param name="centre">Box centre.</param>
+        /// <param name="half">Half-extents on each axis.</param>
+        private static void AddBox(List<Vector3> verts, List<int> tris, Vector3 centre, Vector3 half)
+        {
+            int b = verts.Count;
+
+            verts.Add(centre + new Vector3(-half.x, -half.y, -half.z));
+            verts.Add(centre + new Vector3(half.x, -half.y, -half.z));
+            verts.Add(centre + new Vector3(half.x, -half.y, half.z));
+            verts.Add(centre + new Vector3(-half.x, -half.y, half.z));
+            verts.Add(centre + new Vector3(-half.x, half.y, -half.z));
+            verts.Add(centre + new Vector3(half.x, half.y, -half.z));
+            verts.Add(centre + new Vector3(half.x, half.y, half.z));
+            verts.Add(centre + new Vector3(-half.x, half.y, half.z));
+
+            int[] faces =
+            {
+                4, 6, 5, 4, 7, 6, // top
+                0, 1, 2, 0, 2, 3, // bottom
+                0, 5, 1, 0, 4, 5, // -z
+                3, 2, 6, 3, 6, 7, // +z
+                1, 6, 2, 1, 5, 6, // +x
+                0, 3, 7, 0, 7, 4  // -x
+            };
+
+            foreach (int f in faces) tris.Add(b + f);
+        }
+
+        /// <summary>
         /// Builds a single horizontal quad covering the whole grid, facing up (floor) or down
         /// (ceiling).
         /// </summary>
