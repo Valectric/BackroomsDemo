@@ -42,6 +42,28 @@ Set the build **output folder to `docs/`** at the repo root so Pages can serve i
 
 ---
 
+## Gotchas already hit and fixed (do not re-learn these)
+
+- **`.gitignore` swallows the build.** The standard Unity `.gitignore` has `[Bb]uild/`, which also
+  matches `docs/Build/` — the WebGL payload. Without the `!docs/Build/` exception you push an
+  `index.html` with no game behind it and Pages serves a broken page.
+- **MooseRunner assemblies break player builds.** `MooseRunner.Helpers.Runtime.dll` references
+  nunit and ships as a *Runtime* assembly, and `MooseRunner.Internal.dll` references it in turn, so
+  the IL2CPP linker dies with `Failed to resolve assembly: 'nunit.framework'`.
+  `Assets/Backrooms/Editor/BuildAssemblyFilter.cs` strips the whole MooseRunner family from player
+  builds. Delete that filter if the package ever gates those behind `UNITY_INCLUDE_TESTS`.
+- **WebGL builds can exhaust Windows commit memory.** Bee spawns roughly one `clang++` per logical
+  core (24 on this machine), each committing GBs, and the build dies with
+  `The paging file is too small` / `LLVM ERROR: out of memory`. Fix without admin rights: set the
+  Unity process's CPU affinity to ~4 logical cores
+  (`(Get-Process -Id <pid>).ProcessorAffinity = [IntPtr]0xF`) so the child compilers inherit it;
+  restore it afterwards. A bigger page file is the permanent fix.
+- **Build the scene and the player headlessly** with the sentinel files
+  (`touch .backrooms-build-scene` / `.backrooms-build-webgl`); an editor-update poller picks them
+  up within ~30s. Menu equivalents live under **Backrooms/** in the menu bar.
+
+---
+
 ## Phase A — manual deploy (start here, no secrets)
 
 1. In Unity: **File → Build Settings → WebGL → Build**, output to `docs/` in the repo root.
