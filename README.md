@@ -4,7 +4,7 @@ A small, single-player, first-person **Backrooms** game — built and tested end
 agent using **[MooseRunner](https://mooserunner.com)**, and playable in your phone browser via
 **WebGL on GitHub Pages**.
 
-> ▶️ **Play:** `https://<user>.github.io/BackroomsDemo/` *(added once the first build is live)*
+> ▶️ **Play it now:** **https://valectric.github.io/BackroomsDemo/** — works in a phone browser.
 
 ## What it demonstrates
 
