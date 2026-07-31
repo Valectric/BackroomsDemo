@@ -17,8 +17,18 @@ namespace Backrooms.MazeManager.Internal.Geometry
     /// </remarks>
     internal sealed class PropDecorator
     {
-        /// <summary>Gap left between a wall-hugging piece and the wall itself, in metres.</summary>
-        private const float WallGap = 0.06f;
+        /// <summary>
+        /// Clearance from the wall plane for a wall-hugging piece, in metres. The skirting is a box
+        /// straddling the wall plane, so it stands 0.11m proud into the room; anything less than that
+        /// buries the bottom of every cabinet and bookcase inside the trim.
+        /// </summary>
+        private const float WallGap = 0.14f;
+
+        /// <summary>Cells occupied by a structural column, which must stay clear of furniture.</summary>
+        private HashSet<Vector2Int> _columnCells = new HashSet<Vector2Int>();
+
+        /// <summary>World-space footprints of everything already placed on this floor.</summary>
+        private readonly List<Bounds> _placed = new List<Bounds>();
 
         /// <summary>Chance an open floor cell gets an island piece of furniture.</summary>
         private const double OpenCellChance = 0.5;
@@ -40,10 +50,14 @@ namespace Backrooms.MazeManager.Internal.Geometry
         /// <param name="theme">Palette and prop style for this floor.</param>
         /// <param name="seed">Seed for deterministic placement.</param>
         /// <param name="parent">Transform to parent the furniture under.</param>
-        public void Decorate(MazeLayout layout, FloorTheme theme, int seed, Transform parent)
+        /// <param name="columnCells">Cells already taken by structural columns.</param>
+        public void Decorate(MazeLayout layout, FloorTheme theme, int seed, Transform parent,
+            HashSet<Vector2Int> columnCells = null)
         {
             _cellSize = layout.CellSize;
             _catalog = PropCatalog.LoadOrNull();
+            _columnCells = columnCells ?? new HashSet<Vector2Int>();
+            _placed.Clear();
 
             var root = new GameObject("Props");
             root.transform.SetParent(parent, worldPositionStays: false);
@@ -57,6 +71,9 @@ namespace Backrooms.MazeManager.Internal.Geometry
                 {
                     var cell = new Vector2Int(x, y);
                     if (cell == layout.Spawn || cell == layout.Exit) continue;
+
+                    // A column occupies the middle of its cell; furniture there grows through it.
+                    if (_columnCells.Contains(cell)) continue;
 
                     List<Direction> walls = ClosedSides(layout, x, y);
                     bool isOpenCell = walls.Count == 0;
@@ -135,6 +152,37 @@ namespace Backrooms.MazeManager.Internal.Geometry
             }
 
             if (wall.HasValue) SeatAgainstWall(instance, centre, wall.Value);
+            SeatOnFloor(instance, centre.y);
+
+            // Reject anything that landed on top of a neighbouring cell's furniture. Seating only
+            // ever clamped the wall axis, so wide pieces in adjacent cells used to interpenetrate.
+            if (!TryGetWorldBounds(instance, out Bounds footprint))
+            {
+                return;
+            }
+
+            footprint.Expand(0.12f);
+            foreach (Bounds other in _placed)
+            {
+                if (!other.Intersects(footprint)) continue;
+                Object.Destroy(instance);
+                return;
+            }
+
+            _placed.Add(footprint);
+        }
+
+        /// <summary>
+        /// Drops a piece so it rests exactly on the floor. Models in the pack are pivoted variously
+        /// at their base, centre or top, so instantiating at floor level alone sinks some of them
+        /// halfway into the ground and leaves others hovering.
+        /// </summary>
+        /// <param name="instance">The placed object.</param>
+        /// <param name="floorY">World height of the floor.</param>
+        private static void SeatOnFloor(GameObject instance, float floorY)
+        {
+            if (!TryGetWorldBounds(instance, out Bounds bounds)) return;
+            instance.transform.position += Vector3.up * (floorY - bounds.min.y);
         }
 
         /// <summary>
@@ -146,20 +194,49 @@ namespace Backrooms.MazeManager.Internal.Geometry
         /// <param name="wall">Wall to back onto.</param>
         private void SeatAgainstWall(GameObject instance, Vector3 cellCentre, Direction wall)
         {
-            var renderers = instance.GetComponentsInChildren<Renderer>();
-            if (renderers.Length == 0) return;
-
-            Bounds bounds = renderers[0].bounds;
-            for (int i = 1; i < renderers.Length; i++) bounds.Encapsulate(renderers[i].bounds);
+            if (!TryGetWorldBounds(instance, out Bounds bounds)) return;
 
             Vector3 into = IntoRoom(wall);
-            Vector3 size = bounds.size;
-            float depth = Mathf.Abs(into.x) > 0.5f ? size.x : size.z;
+            Vector3 back = -into;
 
-            float shift = _cellSize * 0.5f - depth * 0.5f - WallGap;
-            if (shift < 0f) shift = 0f;
+            // Work in the axis pointing from the room towards the wall, and measure where the piece
+            // actually ends rather than assuming its pivot sits at its centre. Several models in the
+            // pack are pivoted at an edge or a corner, and assuming otherwise buries them in the wall.
+            float wallFace = Vector3.Dot(cellCentre + back * (_cellSize * 0.5f), back);
+            float pieceBack = Vector3.Dot(bounds.center, back)
+                              + Vector3.Dot(bounds.extents, new Vector3(
+                                  Mathf.Abs(back.x), Mathf.Abs(back.y), Mathf.Abs(back.z)));
 
-            instance.transform.position = cellCentre - into * shift;
+            float overshoot = pieceBack - (wallFace - WallGap);
+            instance.transform.position -= back * overshoot;
+
+            // Never leave a piece hanging outside the cell on the opposite side.
+            if (!TryGetWorldBounds(instance, out Bounds after)) return;
+            float frontFace = Vector3.Dot(cellCentre + into * (_cellSize * 0.5f), into);
+            float pieceFront = Vector3.Dot(after.center, into)
+                               + Vector3.Dot(after.extents, new Vector3(
+                                   Mathf.Abs(into.x), Mathf.Abs(into.y), Mathf.Abs(into.z)));
+            if (pieceFront > frontFace) instance.transform.position -= into * (pieceFront - frontFace);
+        }
+
+        /// <summary>
+        /// Combined world-space bounds of every renderer on an object.
+        /// </summary>
+        /// <param name="instance">Object to measure.</param>
+        /// <param name="bounds">Receives the combined bounds.</param>
+        /// <returns><c>true</c> if the object has any renderers.</returns>
+        private static bool TryGetWorldBounds(GameObject instance, out Bounds bounds)
+        {
+            var renderers = instance.GetComponentsInChildren<Renderer>();
+            if (renderers.Length == 0)
+            {
+                bounds = default;
+                return false;
+            }
+
+            bounds = renderers[0].bounds;
+            for (int i = 1; i < renderers.Length; i++) bounds.Encapsulate(renderers[i].bounds);
+            return true;
         }
     }
 }

@@ -62,8 +62,9 @@ namespace Backrooms.MazeManager.Internal.Geometry
 
             CreateLights(layout, cellSize, wallHeight, lightSpacingCells, root.transform);
             CreateExitMarker(layout, wallHeight, root.transform);
-            CreateColumns(layout, cellSize, wallHeight, root.transform);
-            _decorator.Decorate(layout, _theme, layout.Width * 31 + layout.Height, root.transform);
+            HashSet<Vector2Int> columnCells = CreateColumns(layout, cellSize, wallHeight, root.transform);
+            _decorator.Decorate(layout, _theme, layout.Width * 31 + layout.Height, root.transform,
+                columnCells);
 
             return root;
         }
@@ -115,8 +116,11 @@ namespace Backrooms.MazeManager.Internal.Geometry
         /// <param name="cellSize">World size of one cell in metres.</param>
         /// <param name="wallHeight">Floor-to-ceiling height in metres.</param>
         /// <param name="parent">Parent transform for the columns.</param>
-        private void CreateColumns(MazeLayout layout, float cellSize, float wallHeight, Transform parent)
+        /// <returns>The cells a column now occupies, so nothing else is placed in them.</returns>
+        private HashSet<Vector2Int> CreateColumns(MazeLayout layout, float cellSize, float wallHeight,
+            Transform parent)
         {
+            var occupied = new HashSet<Vector2Int>();
             var root = new GameObject("Columns");
             root.transform.SetParent(parent, worldPositionStays: false);
 
@@ -126,9 +130,12 @@ namespace Backrooms.MazeManager.Internal.Geometry
 
             // Every third cell, and only where the space is open on all sides, so columns land in
             // halls rather than blocking a corridor.
-            for (int y = 1; y < layout.Height - 1; y += 3)
+            // Offset from the ceiling-light lattice (which starts at spacing/2 = 1 and also steps
+            // by 3). Sharing it put a point light inside every column capital, which then rendered
+            // black because its faces were near-coplanar with the light origin.
+            for (int y = 2; y < layout.Height - 1; y += 3)
             {
-                for (int x = 1; x < layout.Width - 1; x += 3)
+                for (int x = 2; x < layout.Width - 1; x += 3)
                 {
                     if (new Vector2Int(x, y) == layout.Spawn) continue;
                     if (new Vector2Int(x, y) == layout.Exit) continue;
@@ -141,10 +148,14 @@ namespace Backrooms.MazeManager.Internal.Geometry
 
                     if (!openAllRound) continue;
 
-                    Vector3 pos = layout.CellCenterToWorld(new Vector2Int(x, y));
+                    var cell = new Vector2Int(x, y);
+                    Vector3 pos = layout.CellCenterToWorld(cell);
                     Column(root.transform, pos, width, wallHeight, shaft, trim);
+                    occupied.Add(cell);
                 }
             }
+
+            return occupied;
         }
 
         /// <summary>
@@ -350,8 +361,11 @@ namespace Backrooms.MazeManager.Internal.Geometry
                     var light = go.AddComponent<Light>();
                     light.type = LightType.Point;
                     light.color = _theme.Light;
-                    light.intensity = 3.2f;
-                    light.range = spacing * cellSize * 2f;
+                    light.intensity = 4.2f;
+
+                    // Range was twice the fixture spacing, so every light reached six cells through
+                    // solid walls and nowhere was ever dark. Keep it just past the neighbouring cell.
+                    light.range = cellSize * 1.9f;
                     light.shadows = LightShadows.None;
 
                     CreateLightPanel(go.transform, cellSize);
@@ -371,9 +385,13 @@ namespace Backrooms.MazeManager.Internal.Geometry
             panel.name = "LightPanel";
             Object.Destroy(panel.GetComponent<MeshCollider>());
             panel.transform.SetParent(lightTransform, worldPositionStays: false);
-            panel.transform.localPosition = new Vector3(0f, 0.14f, 0f);
-            panel.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
-            panel.transform.localScale = new Vector3(cellSize * 0.55f, cellSize * 0.28f, 1f);
+            // A Unity quad's normal is -Z. Euler(90) aimed it at the ceiling, so the fixture was
+            // backface-culled for anyone standing under it and only visible from outside the level.
+            panel.transform.localPosition = new Vector3(0f, 0.10f, 0f);
+            panel.transform.localRotation = Quaternion.Euler(-90f, 0f, 0f);
+
+            // A real fluorescent troffer is 1.2m x 0.6m; the panels were nearly twice that.
+            panel.transform.localScale = new Vector3(1.2f, 0.6f, 1f);
 
             Shader shader = Shader.Find("Universal Render Pipeline/Unlit")
                             ?? Shader.Find("Universal Render Pipeline/Lit")
