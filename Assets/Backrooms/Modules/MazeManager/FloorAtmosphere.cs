@@ -19,7 +19,13 @@ namespace Backrooms.MazeManager
         /// omnidirectional, so a high value flattens everything; keeping it low lets the ceiling
         /// lights create actual pools of light and dark between them.
         /// </summary>
-        private const float AmbientFromFog = 0.30f;
+        private const float AmbientLevel = 0.20f;
+
+        /// <summary>
+        /// Target luminance of fully-fogged distance. Fog must not be brighter than the surfaces near
+        /// the camera or depth inverts: corridors end in a glowing wall while your feet are black.
+        /// </summary>
+        private const float FogLevel = 0.45f;
 
         /// <summary>
         /// Sets ambient light and fog for a floor.
@@ -30,15 +36,37 @@ namespace Backrooms.MazeManager
             if (theme == null) return;
 
             RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
-            RenderSettings.ambientLight = theme.Fog * AmbientFromFog;
+
+            // Take only the HUE from the palette and set the LEVEL explicitly. Scaling the fog colour
+            // directly coupled brightness to a hue choice, so floors with dark fog were lit six times
+            // more dimly than the entry floor — nobody chose that, it fell out of the palette.
+            RenderSettings.ambientLight = Normalised(theme.Fog) * AmbientLevel;
 
             RenderSettings.fog = true;
             RenderSettings.fogMode = FogMode.ExponentialSquared;
 
             // Distance should read as glow rather than sludge, so lift the fog towards the floor's
             // own light colour instead of using the raw palette value.
-            RenderSettings.fogColor = Color.Lerp(theme.Fog, theme.Light, 0.15f);
-            RenderSettings.fogDensity = 0.045f;
+            RenderSettings.fogColor = Normalised(Color.Lerp(theme.Fog, theme.Light, 0.15f)) * FogLevel;
+            RenderSettings.fogDensity = 0.038f;
+
+            // Keep every camera's clear colour matching the fog, so the far plane is invisible.
+            foreach (Camera cam in Camera.allCameras)
+            {
+                if (cam.clearFlags != CameraClearFlags.SolidColor) continue;
+                cam.backgroundColor = RenderSettings.fogColor;
+            }
+        }
+
+        /// <summary>
+        /// Strips brightness from a colour, keeping its hue at unit luminance.
+        /// </summary>
+        /// <param name="colour">Colour to normalise.</param>
+        /// <returns>The same hue at luminance 1, or white if the input is black.</returns>
+        private static Color Normalised(Color colour)
+        {
+            float luminance = colour.r * 0.2126f + colour.g * 0.7152f + colour.b * 0.0722f;
+            return luminance > 0.001f ? colour / luminance : Color.white;
         }
     }
 }

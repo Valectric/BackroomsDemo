@@ -85,7 +85,7 @@ namespace Backrooms.MazeManager.Internal.Geometry
             marker.name = "ExitMarker";
             Object.Destroy(marker.GetComponent<BoxCollider>());
             marker.transform.SetParent(parent, worldPositionStays: false);
-            marker.transform.position = new Vector3(pos.x, wallHeight * 0.5f, pos.z);
+            marker.transform.position = new Vector3(pos.x, wallHeight * 0.45f, pos.z);
             marker.transform.localScale = new Vector3(0.6f, wallHeight * 0.9f, 0.6f);
 
             var exitColor = new Color(0.35f, 1f, 0.45f);
@@ -102,8 +102,9 @@ namespace Backrooms.MazeManager.Internal.Geometry
             var light = glow.AddComponent<Light>();
             light.type = LightType.Point;
             light.color = exitColor;
-            light.intensity = 3f;
-            light.range = 12f;
+            // A 12m range washed green through three cells of solid wall and gave the exit away.
+            light.intensity = 2.5f;
+            light.range = 5f;
             light.shadows = LightShadows.None;
         }
 
@@ -353,19 +354,22 @@ namespace Backrooms.MazeManager.Internal.Geometry
                 {
                     var go = new GameObject($"CeilingLight_{x}_{y}");
                     go.transform.SetParent(lightsRoot.transform, worldPositionStays: false);
+                    // Hung 15cm below the ceiling, N.L collapsed to 0.15 a metre out and the
+                    // ceiling — the signature Backrooms surface — was the darkest thing in frame.
                     go.transform.position = new Vector3(
                         x * cellSize + cellSize * 0.5f,
-                        wallHeight - 0.15f,
+                        wallHeight - 0.45f,
                         y * cellSize + cellSize * 0.5f);
 
                     var light = go.AddComponent<Light>();
                     light.type = LightType.Point;
                     light.color = _theme.Light;
-                    light.intensity = 4.2f;
+                    light.intensity = 7.5f;
 
-                    // Range was twice the fixture spacing, so every light reached six cells through
-                    // solid walls and nowhere was ever dark. Keep it just past the neighbouring cell.
-                    light.range = cellSize * 1.9f;
+                    // Range must cover at least three quarters of the fixture pitch or pools cannot
+                    // meet: at 7.6m range on a 12m pitch, the point between four fixtures received no
+                    // direct light at all. Overshooting the other way lights through walls.
+                    light.range = cellSize * spacing * 0.92f;
                     light.shadows = LightShadows.None;
 
                     CreateLightPanel(go.transform, cellSize);
@@ -387,7 +391,7 @@ namespace Backrooms.MazeManager.Internal.Geometry
             panel.transform.SetParent(lightTransform, worldPositionStays: false);
             // A Unity quad's normal is -Z. Euler(90) aimed it at the ceiling, so the fixture was
             // backface-culled for anyone standing under it and only visible from outside the level.
-            panel.transform.localPosition = new Vector3(0f, 0.10f, 0f);
+            panel.transform.localPosition = new Vector3(0f, 0.40f, 0f);
             panel.transform.localRotation = Quaternion.Euler(-90f, 0f, 0f);
 
             // A real fluorescent troffer is 1.2m x 0.6m; the panels were nearly twice that.
@@ -397,10 +401,10 @@ namespace Backrooms.MazeManager.Internal.Geometry
                             ?? Shader.Find("Universal Render Pipeline/Lit")
                             ?? Shader.Find("Standard");
             var mat = new Material(shader);
-            if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", _theme.Light);
-            if (mat.HasProperty("_Color")) mat.SetColor("_Color", _theme.Light);
-            mat.EnableKeyword("_EMISSION");
-            if (mat.HasProperty("_EmissionColor")) mat.SetColor("_EmissionColor", _theme.Light * 2f);
+            // Unlit has no emission, so the panel's brightness has to come from its base colour.
+            // Pushing it past 1 gives the fixture HDR headroom to read as a light source.
+            if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", _theme.Light * 3.5f);
+            if (mat.HasProperty("_Color")) mat.SetColor("_Color", _theme.Light * 3.5f);
             panel.GetComponent<MeshRenderer>().sharedMaterial = mat;
         }
     }

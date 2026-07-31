@@ -75,14 +75,15 @@ namespace Backrooms.MazeManager.Internal.Geometry
                 float halfLen = w.Length * 0.5f;
                 float halfThick = thickness * 0.5f;
 
-                // Let the X-aligned runs own every junction. Without this the two runs overlap in a
-                // square at each corner with exactly coplanar top faces, which z-fights.
-                if (!w.AlongX) halfLen -= halfThick;
-
+                // Segments are emitted per cell and never merged, so shortening every Z-run left a
+                // 22cm hole in the skirting at each cell join. Keep full length and drop the Z-runs a
+                // hair instead: they still overlap at junctions, but no faces are coplanar so nothing
+                // z-fights.
                 Vector3 size = w.AlongX
                     ? new Vector3(halfLen, height * 0.5f, halfThick)
                     : new Vector3(halfThick, height * 0.5f, halfLen);
-                var centre = new Vector3(w.Center.x, height * 0.5f, w.Center.z);
+                float drop = w.AlongX ? 0f : 0.004f;
+                var centre = new Vector3(w.Center.x, height * 0.5f - drop, w.Center.z);
 
                 AddBox(verts, tris, centre, size);
             }

@@ -48,12 +48,24 @@ namespace Backrooms.MazeManager.Tests
             MazeLayout layout = maze.CurrentLayout;
             float span = layout.Width * layout.CellSize;
 
+            // A perspective view through runtime fog photographed haze, not a layout. Plan view with
+            // fog off and the ceiling hidden is the only way to actually audit walls, rooms and where
+            // the furniture ended up.
+            float depth = layout.Height * layout.CellSize;
+            GameObject ceiling = GameObject.Find("Ceiling");
+            if (ceiling != null) ceiling.SetActive(false);
+            bool fogWas = RenderSettings.fog;
+            RenderSettings.fog = false;
+
             var camGo = new GameObject("InspectionCamera");
             var cam = camGo.AddComponent<Camera>();
-            camGo.transform.position = new Vector3(-span * 0.10f, 9.5f, -span * 0.10f);
-            camGo.transform.rotation = Quaternion.Euler(28f, 42f, 0f);
-            cam.fieldOfView = 70f;
+            cam.orthographic = true;
+            cam.orthographicSize = Mathf.Max(span, depth) * 0.5f + 2f;
             cam.farClipPlane = 200f;
+            cam.clearFlags = CameraClearFlags.SolidColor;
+            cam.backgroundColor = Color.black;
+            camGo.transform.position = new Vector3(span * 0.5f, 40f, depth * 0.5f);
+            camGo.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
 
             for (int i = 0; i < 4; i++) await UniTask.Yield(ct);
             await UniTask.WaitForEndOfFrame(ct);
@@ -73,7 +85,14 @@ namespace Backrooms.MazeManager.Tests
                 Object.Destroy(shot);
             }
 
-            // The overhead view proves props exist; this is the view a player actually gets.
+            if (ceiling != null) ceiling.SetActive(true);
+            RenderSettings.fog = fogWas;
+            cam.orthographic = false;
+            cam.clearFlags = CameraClearFlags.SolidColor;
+            cam.backgroundColor = RenderSettings.fogColor;
+            cam.farClipPlane = 45f;
+
+            // The plan view proves the layout; this is the view a player actually gets.
             Vector2Int room = FindOpenRoomCell(layout);
             Vector3 eye = layout.CellCenterToWorld(room) + Vector3.up * 1.7f;
             camGo.transform.position = eye;
