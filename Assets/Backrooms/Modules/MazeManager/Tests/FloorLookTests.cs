@@ -37,12 +37,9 @@ namespace Backrooms.MazeManager.Tests
             const string tag = "";
             FloorTheme theme = FloorThemes.ForFloor(floor);
 
-            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
-            RenderSettings.ambientLight = new Color(0.55f, 0.53f, 0.45f);
-            RenderSettings.fog = true;
-            RenderSettings.fogMode = FogMode.Exponential;
-            RenderSettings.fogColor = theme.Fog;
-            RenderSettings.fogDensity = 0.012f;
+            // Use the production atmosphere path, not a copy of it: photographing settings the game
+            // never applies makes these screenshots lie about what ships.
+            FloorAtmosphere.Apply(theme);
 
             var mazeGo = new GameObject("MazeManager");
             MazeFacade maze = mazeGo.AddComponent<MazeFacade>();
@@ -136,8 +133,7 @@ namespace Backrooms.MazeManager.Tests
         public async UniTask Furniture_FacesIntoTheRoom(CancellationToken ct)
         {
             FloorTheme theme = FloorThemes.ForFloor(1);
-            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
-            RenderSettings.ambientLight = new Color(0.7f, 0.68f, 0.6f);
+            FloorAtmosphere.Apply(theme);
             RenderSettings.fog = false;
 
             var mazeGo = new GameObject("MazeManager");
@@ -203,6 +199,20 @@ namespace Backrooms.MazeManager.Tests
         [Test]
         public async UniTask Floor2_Mall_LooksFurnished(CancellationToken ct)
             => await BuildAndPhotograph(2, ct);
+
+        /// <summary>
+        /// Photographs the laundromat floor, which should show washers and dryers.
+        /// </summary>
+        [Test]
+        public async UniTask Floor3_Laundromat_LooksFurnished(CancellationToken ct)
+            => await BuildAndPhotograph(3, ct);
+
+        /// <summary>
+        /// Photographs the asylum floor, the darkest of the set.
+        /// </summary>
+        [Test]
+        public async UniTask Floor5_Asylum_LooksFurnished(CancellationToken ct)
+            => await BuildAndPhotograph(5, ct);
 
         /// <summary>
         /// Photographs the carnival floor, the most colourful of the set.

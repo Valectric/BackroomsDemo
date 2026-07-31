@@ -75,6 +75,10 @@ namespace Backrooms.MazeManager.Internal.Geometry
                 float halfLen = w.Length * 0.5f;
                 float halfThick = thickness * 0.5f;
 
+                // Let the X-aligned runs own every junction. Without this the two runs overlap in a
+                // square at each corner with exactly coplanar top faces, which z-fights.
+                if (!w.AlongX) halfLen -= halfThick;
+
                 Vector3 size = w.AlongX
                     ? new Vector3(halfLen, height * 0.5f, halfThick)
                     : new Vector3(halfThick, height * 0.5f, halfLen);
@@ -185,7 +189,11 @@ namespace Backrooms.MazeManager.Internal.Geometry
         {
             Vector3 up = new Vector3(0f, height, 0f);
             float u = length / UvScale;
-            float v = height / UvScale;
+
+            // One texture height per wall. The wall texture bakes a floor-to-ceiling grime gradient,
+            // which is height-anchored content rather than tiling content: repeating it vertically
+            // snapped brightness back by 14% partway up every wall in the game.
+            const float v = 1f;
 
             int start = verts.Count;
 

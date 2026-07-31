@@ -114,7 +114,7 @@ namespace Backrooms.Gameplay
             FloorTheme theme = FloorThemes.ForFloor(CurrentFloor);
             maze.GenerateAndBuild(seed + CurrentFloor * 977, theme);
             player.SpawnAt(maze.GetSpawnPosition());
-            ApplyFog(theme);
+            FloorAtmosphere.Apply(theme);
 
             PlaceDweller();
 
@@ -142,16 +142,6 @@ namespace Backrooms.Gameplay
 
             float speed = dwellerBaseSpeed + (CurrentFloor - 1) * dwellerSpeedPerFloor;
             dweller.Place(layout, start, player.transform, speed, seed + CurrentFloor);
-        }
-
-        /// <summary>
-        /// Tints the scene fog to match the floor, so distance reads as part of the same space.
-        /// </summary>
-        /// <param name="theme">Palette of the floor just entered.</param>
-        private static void ApplyFog(FloorTheme theme)
-        {
-            RenderSettings.fog = true;
-            RenderSettings.fogColor = theme.Fog;
         }
 
         /// <summary>
