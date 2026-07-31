@@ -23,6 +23,9 @@ namespace Backrooms.MazeManager.Internal.Geometry
         /// <summary>Floor-to-ceiling height of the current floor.</summary>
         private float _wallHeight = 3f;
 
+        /// <summary>Furniture models, or <c>null</c> when the project has none.</summary>
+        private PropCatalog _catalog;
+
         /// <summary>
         /// Furnishes a floor.
         /// </summary>
@@ -36,6 +39,7 @@ namespace Backrooms.MazeManager.Internal.Geometry
         {
             _wallHeight = wallHeight;
             _materials.Clear();
+            _catalog = PropCatalog.LoadOrNull();
 
             var root = new GameObject("Props");
             root.transform.SetParent(parent, worldPositionStays: false);
@@ -57,7 +61,10 @@ namespace Backrooms.MazeManager.Internal.Geometry
                     if (isRoomCell && rng.NextDouble() > 0.45) continue;
 
                     Vector3 centre = layout.CellCenterToWorld(new Vector2Int(x, y));
-                    PlaceProp(theme, root.transform, centre, cell, isRoomCell, rng);
+                    if (!TryPlaceModel(theme, root.transform, centre, cell, isRoomCell, rng))
+                    {
+                        PlaceProp(theme, root.transform, centre, cell, isRoomCell, rng);
+                    }
                 }
             }
         }
@@ -91,6 +98,49 @@ namespace Backrooms.MazeManager.Internal.Geometry
             }
 
             return open;
+        }
+
+        /// <summary>
+        /// Places a real furniture model if the catalogue has one for this floor style.
+        /// </summary>
+        /// <param name="theme">Floor palette and style.</param>
+        /// <param name="parent">Parent transform.</param>
+        /// <param name="centre">World centre of the cell.</param>
+        /// <param name="cell">Cell size in metres.</param>
+        /// <param name="isRoomCell">Whether this is an open room rather than a corridor.</param>
+        /// <param name="rng">Seeded generator.</param>
+        /// <returns><c>true</c> when a model was placed, <c>false</c> to fall back to primitives.</returns>
+        private bool TryPlaceModel(FloorTheme theme, Transform parent, Vector3 centre, float cell,
+            bool isRoomCell, System.Random rng)
+        {
+            if (_catalog == null) return false;
+
+            GameObject[] choices = isRoomCell
+                ? _catalog.FreestandingFor(theme.Props)
+                : _catalog.AgainstWallFor(theme.Props);
+            if (choices == null || choices.Length == 0) return false;
+
+            GameObject model = choices[rng.Next(choices.Length)];
+            if (model == null) return false;
+
+            // Keep furniture off the centre line so it never plugs a corridor.
+            float offset = cell * 0.28f;
+            var pos = new Vector3(
+                centre.x + (float)(rng.NextDouble() - 0.5) * offset * 2f,
+                0f,
+                centre.z + (float)(rng.NextDouble() - 0.5) * offset * 2f);
+
+            GameObject instance = Object.Instantiate(model, pos,
+                Quaternion.Euler(0f, rng.Next(4) * 90f, 0f), parent);
+            instance.name = model.name;
+
+            // Furniture is scenery: strip colliders so it decorates without snagging movement.
+            foreach (Collider collider in instance.GetComponentsInChildren<Collider>())
+            {
+                Object.Destroy(collider);
+            }
+
+            return true;
         }
 
         /// <summary>

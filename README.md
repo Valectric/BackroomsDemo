@@ -33,4 +33,16 @@ entity roams the endless yellow rooms. Almond water restores sanity.
 
 ## Credits
 
+**3D furniture models:** [Furniture Kit](https://kenney.nl/assets/furniture-kit) by
+[Kenney](https://kenney.nl), licensed **CC0 1.0 (public domain)**. The licence requires no
+attribution; it is given because Kenney's free assets are worth supporting. The pack lives in
+`Assets/ThirdParty/Kenney/FurnitureKit/` with its original `License.txt` intact, so this repository
+stays clonable and buildable by anyone.
+
+Everything else is generated procedurally in code with no imported art: the level geometry,
+wallpaper / carpet / ceiling-tile textures, skirting, columns, and the Dweller.
+
+Setting inspired by *Discount Dan: A LitRPG Adventure* by James A. Hunter. This is an unofficial
+fan demo, not affiliated with or endorsed by the author.
+
 Sister project to *Knuckle Drift*. Built with Claude Code + MooseRunner.

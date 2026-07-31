@@ -1,0 +1,87 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 18bc056202372b049a35790700039053, type: 3}
+  m_Name: BackroomsPropCatalog
+  m_EditorClassIdentifier: Backrooms.MazeManager::Backrooms.MazeManager.PropCatalog
+  entries:
+  - Style: 0
+    Freestanding:
+    - {fileID: 919132149155446097, guid: 896d8057598fcb24da87eb46c64ecba4, type: 3}
+    - {fileID: 919132149155446097, guid: b606293b72b67dc44bf04ac37ba64d2e, type: 3}
+    - {fileID: 919132149155446097, guid: 6a7703bf7ed77544d9e3082accffc736, type: 3}
+    - {fileID: 919132149155446097, guid: 70010b0ecad4b4d419230edabdbeb5dd, type: 3}
+    - {fileID: 919132149155446097, guid: 64c88653d795b2044872d0a987a9a81f, type: 3}
+    - {fileID: 919132149155446097, guid: 8573425a32dfed240b94284cdd81c7ac, type: 3}
+    - {fileID: 919132149155446097, guid: 4a653ed60a56d1b4094f3a67b4249640, type: 3}
+    AgainstWall:
+    - {fileID: 919132149155446097, guid: c0680726860856649895818953a1a3f6, type: 3}
+    - {fileID: 919132149155446097, guid: 26b1d305f49823842ad7acffe5694c8e, type: 3}
+    - {fileID: 919132149155446097, guid: 79d03c99f078a7b46ae1819db0041741, type: 3}
+    - {fileID: 919132149155446097, guid: 12d8ee193b5f17f4ead5dca8c1a96310, type: 3}
+    - {fileID: 919132149155446097, guid: 88a3ff6b55cc9764eac45c63da316bcb, type: 3}
+    - {fileID: 919132149155446097, guid: 97aacb02489d91343a12be7052b729ef, type: 3}
+    - {fileID: 919132149155446097, guid: 8afd2d1995c98f14ca609adcfd93c4bb, type: 3}
+  - Style: 1
+    Freestanding:
+    - {fileID: 919132149155446097, guid: aeca27adad5ffd544a5ac6881cf0eedf, type: 3}
+    - {fileID: 919132149155446097, guid: 072839f710728774086bf73dc9e5927b, type: 3}
+    - {fileID: 919132149155446097, guid: 6930ff95a2cc08948bcd231c54be3c36, type: 3}
+    - {fileID: 919132149155446097, guid: 17124e83a2cd8cc498144852b867d964, type: 3}
+    - {fileID: 919132149155446097, guid: 28e663bc6db751b4fb4f91653fc253c2, type: 3}
+    - {fileID: 919132149155446097, guid: 29fc8604d5b066d45845c90cc545d21c, type: 3}
+    - {fileID: 919132149155446097, guid: a76a427ebb9e1014ca25ecdc4565a4bd, type: 3}
+    - {fileID: 919132149155446097, guid: 93663251585c17341bda6aa12a5ed55f, type: 3}
+    AgainstWall:
+    - {fileID: 919132149155446097, guid: 774cc2f4db779f14489ee6b1d3b73ed2, type: 3}
+    - {fileID: 919132149155446097, guid: 9d948feeb638d454a9cc20a35f6046ab, type: 3}
+    - {fileID: 919132149155446097, guid: 3f35d0d5f6ddfe641ad23cc4c4c2801e, type: 3}
+    - {fileID: 919132149155446097, guid: 97aacb02489d91343a12be7052b729ef, type: 3}
+    - {fileID: 919132149155446097, guid: e8f1b146218e5c54c97bd4a171ad4996, type: 3}
+  - Style: 2
+    Freestanding:
+    - {fileID: 919132149155446097, guid: 226ce7af579f65044be0722d89e78ff1, type: 3}
+    - {fileID: 919132149155446097, guid: aeca27adad5ffd544a5ac6881cf0eedf, type: 3}
+    - {fileID: 919132149155446097, guid: 6930ff95a2cc08948bcd231c54be3c36, type: 3}
+    - {fileID: 919132149155446097, guid: 50819e25a808782439ee7f84e4ec3c2c, type: 3}
+    - {fileID: 919132149155446097, guid: 4a653ed60a56d1b4094f3a67b4249640, type: 3}
+    AgainstWall:
+    - {fileID: 919132149155446097, guid: d95f69c54cb89e84a97c82415a302670, type: 3}
+    - {fileID: 919132149155446097, guid: 6eca497c048406247bc100eb30af8291, type: 3}
+    - {fileID: 919132149155446097, guid: 934366d9adb626841ab1ae8732f8abc5, type: 3}
+    - {fileID: 919132149155446097, guid: c91ad9bd747d11c438e851f9b32cb30f, type: 3}
+    - {fileID: 919132149155446097, guid: 97aacb02489d91343a12be7052b729ef, type: 3}
+  - Style: 3
+    Freestanding:
+    - {fileID: 919132149155446097, guid: 93663251585c17341bda6aa12a5ed55f, type: 3}
+    - {fileID: 919132149155446097, guid: e7d7e6e9f94c4844ebaaff68d56c7f24, type: 3}
+    - {fileID: 919132149155446097, guid: c3841d2c99e01f9488810cb86b8b433b, type: 3}
+    - {fileID: 919132149155446097, guid: adf3e1a7e9915aa41aa7d0ed0a042691, type: 3}
+    - {fileID: 919132149155446097, guid: 0b50d1b01fc26574f93962ecaa45775f, type: 3}
+    - {fileID: 919132149155446097, guid: 76fd89d4ec0faa64f9da83206a8d1e13, type: 3}
+    AgainstWall:
+    - {fileID: 919132149155446097, guid: 774cc2f4db779f14489ee6b1d3b73ed2, type: 3}
+    - {fileID: 919132149155446097, guid: 17d32fd99e621bd45bab6b576f7cdac5, type: 3}
+    - {fileID: 919132149155446097, guid: f98eaa0fcb29b4d4fa68228c21cc42a0, type: 3}
+    - {fileID: 919132149155446097, guid: 88a3ff6b55cc9764eac45c63da316bcb, type: 3}
+  - Style: 4
+    Freestanding:
+    - {fileID: 919132149155446097, guid: a09c413dc4c659548ae8017aa7f0ba98, type: 3}
+    - {fileID: 919132149155446097, guid: 02d0ad4045c112f4cadcb23cfe11a150, type: 3}
+    - {fileID: 919132149155446097, guid: 4a653ed60a56d1b4094f3a67b4249640, type: 3}
+    - {fileID: 919132149155446097, guid: 930570de73c0f1f4a993a06f44e25d7a, type: 3}
+    - {fileID: 919132149155446097, guid: 265775353b0e36b40bbffa2a6f2c00ee, type: 3}
+    AgainstWall:
+    - {fileID: 919132149155446097, guid: 8d038aa5e3877cf4590b0c7570193937, type: 3}
+    - {fileID: 919132149155446097, guid: 8ffd6f29efb302543bd8eb1ff613a6fa, type: 3}
+    - {fileID: 919132149155446097, guid: 96445b7e8f017e04792387ade764409d, type: 3}
+    - {fileID: 919132149155446097, guid: 97aacb02489d91343a12be7052b729ef, type: 3}
+    - {fileID: 919132149155446097, guid: eac247a98a3a1b441ac4bd13fe9d0897, type: 3}

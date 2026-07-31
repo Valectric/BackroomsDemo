@@ -24,6 +24,12 @@ namespace Backrooms.Editor
         /// <summary>Creating this file builds the WebGL player into <c>docs/</c>.</summary>
         private const string WebGLSentinel = ".backrooms-build-webgl";
 
+        /// <summary>Creating this file reimports the Kenney pack with URP materials.</summary>
+        private const string KenneySentinel = ".backrooms-reimport-kenney";
+
+        /// <summary>Creating this file regenerates the furniture catalogue.</summary>
+        private const string CatalogSentinel = ".backrooms-build-catalog";
+
         /// <summary>Editor updates between sentinel checks, to keep polling cheap.</summary>
         private const int PollInterval = 30;
 
@@ -51,6 +57,8 @@ namespace Backrooms.Editor
 
             TryRun(SceneSentinel, BackroomsSceneBuilder.BuildScene);
             TryRun(WebGLSentinel, BackroomsWebGLBuilder.BuildWebGL);
+            TryRun(KenneySentinel, KenneyModelPostprocessor.ReimportPack);
+            TryRun(CatalogSentinel, PropCatalogBuilder.BuildCatalog);
         }
 
         /// <summary>
