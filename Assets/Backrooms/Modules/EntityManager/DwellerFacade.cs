@@ -13,8 +13,8 @@ namespace Backrooms.EntityManager
     public sealed class DwellerFacade : MonoBehaviour
     {
         [Header("Movement")]
-        [Tooltip("Cells travelled per second. The gameplay layer raises this on deeper floors.")]
-        [SerializeField] private float cellsPerSecond = 1.4f;
+        [Tooltip("Metres per second. Compare directly against the player's walk and sprint speeds.")]
+        [SerializeField] private float metresPerSecond = 2.2f;
 
         [Tooltip("How many cells away the Dweller notices the player.")]
         [SerializeField] private int senseRangeCells = 5;
@@ -42,15 +42,15 @@ namespace Backrooms.EntityManager
         /// <param name="layout">The maze it roams.</param>
         /// <param name="startCell">Cell to start in.</param>
         /// <param name="target">The player transform to hunt.</param>
-        /// <param name="speedCellsPerSecond">Movement speed for this floor.</param>
+        /// <param name="speedMetresPerSecond">Movement speed for this floor, in metres per second.</param>
         /// <param name="seed">Seed for deterministic wandering.</param>
         public void Place(MazeLayout layout, Vector2Int startCell, Transform target,
-            float speedCellsPerSecond, int seed)
+            float speedMetresPerSecond, int seed)
         {
             _router.SenseRangeCells = senseRangeCells;
             _router.Place(layout, startCell, seed);
             _target = target;
-            cellsPerSecond = speedCellsPerSecond;
+            metresPerSecond = speedMetresPerSecond;
 
             EnsureBody();
             transform.position = layout.CellCenterToWorld(startCell);
@@ -78,7 +78,7 @@ namespace Backrooms.EntityManager
 
             Vector3 targetPos = _router.Layout.CellCenterToWorld(_router.TargetCell);
             Vector3 here = transform.position;
-            float step = cellsPerSecond * _router.Layout.CellSize * Time.fixedDeltaTime;
+            float step = metresPerSecond * Time.fixedDeltaTime;
 
             if (Vector3.Distance(new Vector3(here.x, 0f, here.z), targetPos) <= step)
             {

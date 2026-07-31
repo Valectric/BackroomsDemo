@@ -20,6 +20,24 @@ namespace Backrooms.MazeManager
         public float CellSize { get; }
 
         /// <summary>
+        /// How many open rooms to carve into the grid. Rooms break up the corridors so a floor is not
+        /// wall-to-wall passages.
+        /// </summary>
+        public int RoomCount { get; set; } = 4;
+
+        /// <summary>Smallest room side, in cells.</summary>
+        public int RoomMinSize { get; set; } = 3;
+
+        /// <summary>Largest room side, in cells.</summary>
+        public int RoomMaxSize { get; set; } = 6;
+
+        /// <summary>
+        /// Fraction of dead ends to open into a loop, from 0 (a perfect maze, every route unique) to
+        /// 1 (no dead ends at all). Loops make a floor feel navigable instead of a guessing game.
+        /// </summary>
+        public float BraidChance { get; set; } = 0.8f;
+
+        /// <summary>
         /// Creates maze settings, clamping <paramref name="width"/> and <paramref name="height"/> to
         /// a minimum of 2 cells and <paramref name="cellSize"/> to a small positive value so
         /// generation always has a valid grid to work on.

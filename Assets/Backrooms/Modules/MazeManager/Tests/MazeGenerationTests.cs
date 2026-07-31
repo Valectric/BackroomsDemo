@@ -172,6 +172,111 @@ namespace Backrooms.MazeManager.Tests
         }
 
         /// <summary>
+        /// A floor must be a network with loops, not a tree of one-way corridors. Dead ends are what
+        /// make a maze tedious — every wrong turn forces you to retrace it — so only a small share of
+        /// cells may be dead ends.
+        /// </summary>
+        [Test]
+        public void Floors_HaveFewDeadEnds()
+        {
+            for (int seed = 0; seed < 10; seed++)
+            {
+                MazeLayout layout = NewMaze().Generate(new MazeSettings(12, 12, seed));
+
+                int deadEnds = 0;
+                for (int y = 0; y < layout.Height; y++)
+                {
+                    for (int x = 0; x < layout.Width; x++)
+                    {
+                        int open = 0;
+                        foreach (Direction dir in Directions.All)
+                        {
+                            if (layout.CanMove(x, y, dir)) open++;
+                        }
+
+                        if (open == 1) deadEnds++;
+                    }
+                }
+
+                float fraction = deadEnds / (float)(layout.Width * layout.Height);
+                MooseRunnerFacade.Log($"seed {seed}: {deadEnds} dead ends ({fraction:P0})");
+                Assert.Less(fraction, 0.12f, $"seed {seed}: too many dead ends for a braided floor");
+            }
+        }
+
+        /// <summary>
+        /// Loops exist: a braided floor has more passages than the cell count minus one, which is the
+        /// exact number a tree would have. More passages than that means at least one cycle.
+        /// </summary>
+        [Test]
+        public void Floors_ContainLoops()
+        {
+            for (int seed = 0; seed < 10; seed++)
+            {
+                MazeLayout layout = NewMaze().Generate(new MazeSettings(12, 12, seed));
+
+                int passages = 0;
+                for (int y = 0; y < layout.Height; y++)
+                {
+                    for (int x = 0; x < layout.Width; x++)
+                    {
+                        if (layout.CanMove(x, y, Direction.North)) passages++;
+                        if (layout.CanMove(x, y, Direction.East)) passages++;
+                    }
+                }
+
+                int treePassages = layout.Width * layout.Height - 1;
+                Assert.Greater(passages, treePassages,
+                    $"seed {seed}: a floor with no extra passages has no loops at all");
+            }
+        }
+
+        /// <summary>
+        /// Open rooms exist, so a floor is not wall-to-wall corridor. Verified by finding at least one
+        /// 3×3 block of cells with no walls between any of them.
+        /// </summary>
+        [Test]
+        public void Floors_ContainOpenRooms()
+        {
+            for (int seed = 0; seed < 10; seed++)
+            {
+                MazeLayout layout = NewMaze().Generate(new MazeSettings(14, 14, seed));
+                Assert.IsTrue(HasOpenBlock(layout, 3), $"seed {seed}: no 3x3 open room found");
+            }
+        }
+
+        /// <summary>
+        /// Whether the layout contains a square block of the given size with every internal wall open.
+        /// </summary>
+        /// <param name="layout">Layout to search.</param>
+        /// <param name="size">Block side length in cells.</param>
+        /// <returns><c>true</c> if such a block exists.</returns>
+        private static bool HasOpenBlock(MazeLayout layout, int size)
+        {
+            for (int y = 0; y + size <= layout.Height; y++)
+            {
+                for (int x = 0; x + size <= layout.Width; x++)
+                {
+                    bool allOpen = true;
+                    for (int dy = 0; dy < size && allOpen; dy++)
+                    {
+                        for (int dx = 0; dx < size && allOpen; dx++)
+                        {
+                            if (dx + 1 < size && !layout.CanMove(x + dx, y + dy, Direction.East))
+                                allOpen = false;
+                            if (dy + 1 < size && !layout.CanMove(x + dx, y + dy, Direction.North))
+                                allOpen = false;
+                        }
+                    }
+
+                    if (allOpen) return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
         /// Undersized settings are clamped to a minimum 2×2 grid rather than producing an empty maze.
         /// </summary>
         [Test]

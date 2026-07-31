@@ -94,6 +94,12 @@ namespace Backrooms.Editor
 
             PlayerSettings.companyName = "Valectric";
             PlayerSettings.productName = "Backrooms Demo";
+
+            // Data caching keys the browser's stored copy by build version. Without bumping this,
+            // a returning player keeps loading the previously cached build from IndexedDB and never
+            // sees the update, however many times the site is redeployed.
+            PlayerSettings.bundleVersion = $"0.1.{System.DateTime.UtcNow:yyMMddHHmm}";
+            Debug.Log($"[Backrooms] Build version {PlayerSettings.bundleVersion} (busts WebGL cache)");
         }
 
     }

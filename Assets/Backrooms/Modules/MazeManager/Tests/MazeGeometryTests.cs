@@ -34,12 +34,13 @@ namespace Backrooms.MazeManager.Tests
         }
 
         /// <summary>
-        /// A perfect maze of W×H cells has exactly W*H - 1 carved passages, so the number of wall
-        /// panels is fixed: W*H + W + H + 1. Verifying that exact count proves the planner emits
-        /// every wall once and never duplicates a shared edge.
+        /// A perfect maze of W×H cells would have exactly W*H + W + H + 1 wall panels. Rooms and
+        /// braiding only ever remove walls, so the real count must sit at or below that ceiling while
+        /// staying above the bare outer boundary — proving the extra passages were carved and that
+        /// the planner never invents walls.
         /// </summary>
         [Test]
-        public void WallCount_MatchesPerfectMazeInvariant()
+        public void WallCount_StaysBetweenBoundaryAndPerfectMaze()
         {
             var facade = NewMaze();
             for (int seed = 0; seed < 10; seed++)
@@ -48,8 +49,15 @@ namespace Backrooms.MazeManager.Tests
                 MazeLayout layout = facade.Generate(settings);
                 List<WallSegment> walls = facade.PlanWalls(layout);
 
-                int expected = layout.Width * layout.Height + layout.Width + layout.Height + 1;
-                Assert.AreEqual(expected, walls.Count, $"unexpected wall count for seed {seed}");
+                int perfectMaze = layout.Width * layout.Height + layout.Width + layout.Height + 1;
+                int boundaryOnly = 2 * layout.Width + 2 * layout.Height;
+
+                Assert.LessOrEqual(walls.Count, perfectMaze,
+                    $"seed {seed}: carving may only remove walls, never add them");
+                Assert.Greater(walls.Count, boundaryOnly,
+                    $"seed {seed}: the floor should still have interior walls");
+                Assert.Less(walls.Count, perfectMaze,
+                    $"seed {seed}: rooms and loops should have opened some walls");
             }
         }
 
