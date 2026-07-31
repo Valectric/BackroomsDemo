@@ -1,4 +1,3 @@
-using System;
 using System.IO;
 using UnityEditor;
 using UnityEditor.Build.Reporting;
@@ -16,12 +15,6 @@ namespace Backrooms.Editor
     {
         /// <summary>Output folder, relative to the project root. GitHub Pages serves this.</summary>
         private const string OutputFolder = "docs";
-
-        /// <summary>
-        /// Sentinel file at the project root. When present on domain reload the WebGL build runs and
-        /// the file is deleted — the headless trigger for the build.
-        /// </summary>
-        private const string SentinelFile = ".backrooms-build-webgl";
 
         /// <summary>
         /// Applies the required player settings and builds the WebGL player into <c>docs/</c>.
@@ -92,27 +85,5 @@ namespace Backrooms.Editor
             PlayerSettings.productName = "Backrooms Demo";
         }
 
-        /// <summary>
-        /// On every domain reload, runs the WebGL build if the sentinel file exists.
-        /// </summary>
-        [InitializeOnLoadMethod]
-        private static void CheckSentinel()
-        {
-            if (!File.Exists(SentinelFile)) return;
-
-            EditorApplication.delayCall += () =>
-            {
-                if (!File.Exists(SentinelFile)) return;
-                File.Delete(SentinelFile);
-                try
-                {
-                    BuildWebGL();
-                }
-                catch (Exception e)
-                {
-                    Debug.LogError($"[Backrooms] WebGL build threw: {e}");
-                }
-            };
-        }
     }
 }
