@@ -91,6 +91,14 @@ namespace Backrooms.PlayerManager
             head.transform.localPosition = new Vector3(0f, eyeHeight, 0f);
             HeadCamera = head.AddComponent<Camera>();
             HeadCamera.nearClipPlane = 0.05f;
+
+            // Fog is effectively opaque well before this, so anything beyond is shaded and thrown
+            // away. The default 1000m clip submitted the entire level every frame, and clearing with
+            // the skybox drew a full-screen pass behind a sealed interior. Clearing to a flat colour
+            // instead also means the horizon matches the fog rather than showing sky through a gap.
+            HeadCamera.farClipPlane = 45f;
+            HeadCamera.clearFlags = CameraClearFlags.SolidColor;
+            HeadCamera.backgroundColor = RenderSettings.fogColor;
             head.AddComponent<AudioListener>();
         }
 

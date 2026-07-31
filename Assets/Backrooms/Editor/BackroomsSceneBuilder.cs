@@ -77,12 +77,10 @@ namespace Backrooms.Editor
         /// </summary>
         private static void ConfigureAtmosphere()
         {
-            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
-            RenderSettings.ambientLight = new Color(0.58f, 0.55f, 0.40f);
-            RenderSettings.fog = true;
-            RenderSettings.fogMode = FogMode.Exponential;
-            RenderSettings.fogColor = new Color(0.74f, 0.70f, 0.52f);
-            RenderSettings.fogDensity = 0.018f;
+            // Author the scene through the same call the game uses at runtime. Setting these by
+            // hand meant the saved scene disagreed with what ships, so anyone tuning fog in the scene
+            // view was tuning a value that gets overwritten on the first frame.
+            FloorAtmosphere.Apply(FloorThemes.ForFloor(1));
         }
 
         /// <summary>
