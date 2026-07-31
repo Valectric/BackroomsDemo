@@ -30,8 +30,11 @@ namespace Backrooms.Gameplay
         [Tooltip("How close to the exit centre counts as escaping, in metres.")]
         [SerializeField] private float exitRadius = 1.5f;
 
-        /// <summary>Whether the player has reached the exit this run.</summary>
+        /// <summary>Whether the player has reached the exit on the current floor.</summary>
         public bool HasEscaped { get; private set; }
+
+        /// <summary>The floor the player is currently on, counting from 1 downwards.</summary>
+        public int CurrentFloor { get; private set; } = 1;
 
         /// <summary>Seconds of gameplay elapsed since the run started.</summary>
         public float ElapsedSeconds { get; private set; }
@@ -76,12 +79,40 @@ namespace Backrooms.Gameplay
             }
 
             seed = runSeed;
-            HasEscaped = false;
             ElapsedSeconds = 0f;
-
-            maze.GenerateAndBuild(runSeed);
-            player.SpawnAt(maze.GetSpawnPosition());
+            CurrentFloor = 0;
             if (hud != null) hud.ResetHud();
+
+            DescendToNextFloor();
+        }
+
+        /// <summary>
+        /// Moves the player one floor deeper: a fresh layout with that floor's palette, the player
+        /// back at its entrance, and the arrival banner shown. The seed is derived from the run seed
+        /// and the floor number, so a given run always produces the same sequence of floors.
+        /// </summary>
+        public void DescendToNextFloor()
+        {
+            CurrentFloor++;
+            HasEscaped = false;
+
+            FloorTheme theme = FloorThemes.ForFloor(CurrentFloor);
+            maze.GenerateAndBuild(seed + CurrentFloor * 977, theme);
+            player.SpawnAt(maze.GetSpawnPosition());
+            ApplyFog(theme);
+
+            if (hud != null) hud.ShowFloor(CurrentFloor, theme.Name);
+            Debug.Log($"[Gameplay] Floor {CurrentFloor}: {theme.Name}");
+        }
+
+        /// <summary>
+        /// Tints the scene fog to match the floor, so distance reads as part of the same space.
+        /// </summary>
+        /// <param name="theme">Palette of the floor just entered.</param>
+        private static void ApplyFog(FloorTheme theme)
+        {
+            RenderSettings.fog = true;
+            RenderSettings.fogColor = theme.Fog;
         }
 
         /// <summary>
@@ -97,8 +128,7 @@ namespace Backrooms.Gameplay
             if (DistanceToExit <= exitRadius)
             {
                 HasEscaped = true;
-                if (hud != null) hud.ShowEscaped(ElapsedSeconds);
-                Debug.Log($"[Gameplay] Escaped in {ElapsedSeconds:F1}s");
+                DescendToNextFloor();
             }
         }
     }

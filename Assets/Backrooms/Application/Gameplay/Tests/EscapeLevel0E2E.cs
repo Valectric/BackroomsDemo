@@ -66,7 +66,7 @@ namespace Backrooms.Gameplay.Tests
             Vector2Int playerCell = layout.WorldToCell(_player.Position);
             MooseRunnerFacade.Log($"player spawned in cell {playerCell}, maze spawn is {layout.Spawn}");
             Assert.AreEqual(layout.Spawn, playerCell, "player should start in the maze's spawn cell");
-            Assert.IsFalse(_controller.HasEscaped, "the run should not start already escaped");
+            Assert.AreEqual(1, _controller.CurrentFloor, "a run starts on the first floor");
 
             await Capture("01-spawn", ct);
         }
@@ -93,7 +93,7 @@ namespace Backrooms.Gameplay.Tests
 
         /// <summary>
         /// Walks the maze from the player's current cell to the exit, following a route the test
-        /// works out for itself from the public layout, and asserts the game reports the escape.
+        /// works out for itself from the public layout, and asserts the game drops them a floor.
         /// </summary>
         [Test, Order(3)]
         public async UniTask Step3_WalkToExit_GameReportsEscape(CancellationToken ct)
@@ -103,6 +103,7 @@ namespace Backrooms.Gameplay.Tests
             Assert.IsNotNull(route, "a route to the exit must exist in a perfect maze");
             MooseRunnerFacade.Log($"route to exit is {route.Count} cells");
 
+            int startFloor = _controller.CurrentFloor;
             int index = 0;
             foreach (Vector2Int cell in route)
             {
@@ -119,14 +120,16 @@ namespace Backrooms.Gameplay.Tests
                     await Capture("02-corridor", ct);
                 }
 
-                if (_controller.HasEscaped) break;
+                // Reaching the exit drops the player to the next floor, which rebuilds the level.
+                if (_controller.CurrentFloor > startFloor) break;
             }
 
             _input.ClearInput();
-            await Capture("03-exit", ct);
+            await Capture("03-nextfloor", ct);
             MooseRunnerFacade.Log(
-                $"finished {_controller.ElapsedSeconds:F1}s in, {_controller.DistanceToExit:F2}m from exit");
-            Assert.IsTrue(_controller.HasEscaped, "walking to the exit should end the run as an escape");
+                $"reached floor {_controller.CurrentFloor} after {_controller.ElapsedSeconds:F1}s");
+            Assert.AreEqual(startFloor + 1, _controller.CurrentFloor,
+                "reaching the exit should descend one floor");
         }
 
         /// <summary>
@@ -165,9 +168,13 @@ namespace Backrooms.Gameplay.Tests
         private static async UniTask<bool> WalkTo(Vector3 target, CancellationToken ct)
         {
             const int maxSteps = 400;
+            int floorOnEntry = _controller.CurrentFloor;
 
             for (int step = 0; step < maxSteps; step++)
             {
+                // Descending rebuilds the level and moves the player, so this waypoint is moot.
+                if (_controller.CurrentFloor != floorOnEntry) return true;
+
                 Vector3 pos = _player.Position;
                 Vector3 toTarget = new Vector3(target.x - pos.x, 0f, target.z - pos.z);
                 if (toTarget.magnitude <= WaypointRadius) return true;

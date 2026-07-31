@@ -43,6 +43,24 @@ namespace Backrooms.UIManager
         /// </summary>
         public void ResetHud() => Router.Reset();
 
+        /// <summary>Floor number currently shown on the HUD.</summary>
+        public int Floor => Router.Floor;
+
+        /// <summary>Whether the floor-arrival banner is on screen.</summary>
+        public bool BannerShown => Router.BannerShown;
+
+        /// <summary>
+        /// Announces arrival on a floor, showing the banner for a few seconds.
+        /// </summary>
+        /// <param name="floor">Floor number the player reached.</param>
+        /// <param name="name">Display name of that floor.</param>
+        public void ShowFloor(int floor, string name) => Router.ShowFloor(floor, name);
+
+        /// <summary>
+        /// Counts the arrival banner down on the frame clock.
+        /// </summary>
+        private void Update() => Router.TickBanner(Time.deltaTime);
+
         /// <summary>
         /// Renders the HUD each IMGUI pass.
         /// </summary>

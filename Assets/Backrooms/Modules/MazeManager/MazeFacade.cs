@@ -28,12 +28,16 @@ namespace Backrooms.MazeManager
         private MazeRouter _router;
         private MazeManagerTestFacade _testFacade;
         private GameObject _geometryRoot;
+        private FloorTheme _theme = FloorThemes.ForFloor(1);
 
         /// <summary>The most recently generated layout, or <c>null</c> if none yet.</summary>
         public MazeLayout CurrentLayout { get; private set; }
 
         /// <summary>The seed used for the next or most recent generation.</summary>
         public int Seed => seed;
+
+        /// <summary>The palette the maze is currently built with.</summary>
+        public FloorTheme CurrentTheme => _theme;
 
         /// <summary>Wall height in metres, used for camera and light placement.</summary>
         public float WallHeight => wallHeight;
@@ -73,11 +77,13 @@ namespace Backrooms.MazeManager
         /// the scene geometry for it. Any previously built geometry is destroyed first.
         /// </summary>
         /// <param name="newSeed">Seed to generate with.</param>
+        /// <param name="theme">Palette to build with; keeps the current one when null.</param>
         /// <returns>The generated layout.</returns>
-        public MazeLayout GenerateAndBuild(int newSeed)
+        public MazeLayout GenerateAndBuild(int newSeed, FloorTheme theme = null)
         {
             EnsureRouter();
             seed = newSeed;
+            if (theme != null) _theme = theme;
             CurrentLayout = _router.Generate(new MazeSettings(width, height, newSeed, cellSize));
             RebuildGeometry();
             return CurrentLayout;
@@ -99,7 +105,7 @@ namespace Backrooms.MazeManager
             }
 
             _geometryRoot = _router.BuildGeometry(
-                CurrentLayout, wallHeight, lightSpacingCells, transform);
+                CurrentLayout, wallHeight, lightSpacingCells, transform, _theme);
         }
 
         /// <summary>

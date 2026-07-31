@@ -14,17 +14,8 @@ namespace Backrooms.MazeManager.Internal.Geometry
     /// </remarks>
     internal sealed class MazeGeometryBuilder
     {
-        /// <summary>Backrooms wallpaper yellow — deliberately bright, this is a mono-yellow space.</summary>
-        private static readonly Color WallColor = new Color(0.91f, 0.85f, 0.55f);
-
-        /// <summary>Damp mustard carpet, darker than the walls but still lit.</summary>
-        private static readonly Color FloorColor = new Color(0.62f, 0.55f, 0.33f);
-
-        /// <summary>Pale ceiling tile, close to off-white.</summary>
-        private static readonly Color CeilingColor = new Color(0.88f, 0.86f, 0.75f);
-
-        /// <summary>Warm fluorescent tint.</summary>
-        private static readonly Color LightColor = new Color(1f, 0.97f, 0.82f);
+        /// <summary>Palette for the floor currently being built.</summary>
+        private FloorTheme _theme = FloorThemes.ForFloor(1);
 
         private readonly MazeWallPlanner _planner = new MazeWallPlanner();
         private readonly MazeMeshBuilder _meshBuilder = new MazeMeshBuilder();
@@ -39,8 +30,9 @@ namespace Backrooms.MazeManager.Internal.Geometry
         /// <param name="parent">Transform to parent the generated root under, may be <c>null</c>.</param>
         /// <returns>The root GameObject containing all generated geometry.</returns>
         public GameObject Build(MazeLayout layout, float cellSize, float wallHeight,
-            int lightSpacingCells, Transform parent)
+            int lightSpacingCells, Transform parent, FloorTheme theme)
         {
+            _theme = theme ?? FloorThemes.ForFloor(1);
             var root = new GameObject("MazeGeometry");
             if (parent != null) root.transform.SetParent(parent, worldPositionStays: false);
 
@@ -52,11 +44,11 @@ namespace Backrooms.MazeManager.Internal.Geometry
 
             CreateMeshObject("Floor", root.transform,
                 _meshBuilder.BuildPlane(worldWidth, worldDepth, 0f, faceUp: true, "MazeFloor"),
-                FloorColor, addCollider: true);
+                _theme.Floor, addCollider: true);
 
             CreateMeshObject("Ceiling", root.transform,
                 _meshBuilder.BuildPlane(worldWidth, worldDepth, wallHeight, faceUp: false, "MazeCeiling"),
-                CeilingColor, addCollider: false);
+                _theme.Ceiling, addCollider: false);
 
             CreateLights(layout, cellSize, wallHeight, lightSpacingCells, root.transform);
             CreateExitMarker(layout, wallHeight, root.transform);
@@ -141,7 +133,7 @@ namespace Backrooms.MazeManager.Internal.Geometry
             var wallsRoot = new GameObject("Walls");
             wallsRoot.transform.SetParent(parent, worldPositionStays: false);
 
-            Material shared = CreateMaterial(WallColor);
+            Material shared = CreateMaterial(_theme.Wall);
             foreach (KeyValuePair<Vector2Int, List<WallSegment>> chunk in chunks)
             {
                 var go = new GameObject($"WallChunk_{chunk.Key.x}_{chunk.Key.y}");
@@ -209,7 +201,7 @@ namespace Backrooms.MazeManager.Internal.Geometry
         /// <param name="wallHeight">Wall height in metres.</param>
         /// <param name="spacingCells">Light spacing in cells on both axes.</param>
         /// <param name="parent">Parent transform for the light objects.</param>
-        private static void CreateLights(MazeLayout layout, float cellSize, float wallHeight,
+        private void CreateLights(MazeLayout layout, float cellSize, float wallHeight,
             int spacingCells, Transform parent)
         {
             int spacing = spacingCells < 1 ? 1 : spacingCells;
@@ -229,7 +221,7 @@ namespace Backrooms.MazeManager.Internal.Geometry
 
                     var light = go.AddComponent<Light>();
                     light.type = LightType.Point;
-                    light.color = LightColor;
+                    light.color = _theme.Light;
                     light.intensity = 3.2f;
                     light.range = spacing * cellSize * 2f;
                     light.shadows = LightShadows.None;
@@ -245,7 +237,7 @@ namespace Backrooms.MazeManager.Internal.Geometry
         /// </summary>
         /// <param name="lightTransform">Transform of the point light to attach the panel to.</param>
         /// <param name="cellSize">World size of one cell in metres.</param>
-        private static void CreateLightPanel(Transform lightTransform, float cellSize)
+        private void CreateLightPanel(Transform lightTransform, float cellSize)
         {
             var panel = GameObject.CreatePrimitive(PrimitiveType.Quad);
             panel.name = "LightPanel";
@@ -259,10 +251,10 @@ namespace Backrooms.MazeManager.Internal.Geometry
                             ?? Shader.Find("Universal Render Pipeline/Lit")
                             ?? Shader.Find("Standard");
             var mat = new Material(shader);
-            if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", LightColor);
-            if (mat.HasProperty("_Color")) mat.SetColor("_Color", LightColor);
+            if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", _theme.Light);
+            if (mat.HasProperty("_Color")) mat.SetColor("_Color", _theme.Light);
             mat.EnableKeyword("_EMISSION");
-            if (mat.HasProperty("_EmissionColor")) mat.SetColor("_EmissionColor", LightColor * 2f);
+            if (mat.HasProperty("_EmissionColor")) mat.SetColor("_EmissionColor", _theme.Light * 2f);
             panel.GetComponent<MeshRenderer>().sharedMaterial = mat;
         }
     }
