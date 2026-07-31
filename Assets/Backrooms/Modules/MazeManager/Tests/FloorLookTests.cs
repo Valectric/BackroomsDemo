@@ -128,6 +128,69 @@ namespace Backrooms.MazeManager.Tests
         }
 
         /// <summary>
+        /// Photographs a bookcase head-on. Whether a piece of furniture faces into the room or has
+        /// its back turned cannot be asserted from a transform alone — the model's own facing
+        /// convention decides it — so this leaves a picture to check.
+        /// </summary>
+        [Test]
+        public async UniTask Furniture_FacesIntoTheRoom(CancellationToken ct)
+        {
+            FloorTheme theme = FloorThemes.ForFloor(1);
+            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
+            RenderSettings.ambientLight = new Color(0.7f, 0.68f, 0.6f);
+            RenderSettings.fog = false;
+
+            var mazeGo = new GameObject("MazeManager");
+            MazeFacade maze = mazeGo.AddComponent<MazeFacade>();
+            maze.GenerateAndBuild(977, theme);
+
+            // Walk up to the instance root — the child directly under "Props" — rather than the
+            // renderer's immediate parent, which for these models is the Props root at the origin.
+            GameObject bookcase = null;
+            foreach (MeshRenderer r in Object.FindObjectsByType<MeshRenderer>(FindObjectsSortMode.None))
+            {
+                Transform t = r.transform;
+                while (t.parent != null && t.parent.name != "Props") t = t.parent;
+                if (t.parent == null || !t.name.StartsWith("bookcase")) continue;
+                bookcase = t.gameObject;
+                break;
+            }
+
+            Assert.IsNotNull(bookcase, "the office floor should place bookcases against walls");
+
+            // Stand in front of the piece, looking back at it from inside the room.
+            // The piece's forward now aims at the wall, so step back the opposite way to stand in
+            // the room looking at its front.
+            Vector3 front = bookcase.transform.forward;
+            Vector3 eye = bookcase.transform.position - front * 2.4f + Vector3.up * 1.5f;
+            MooseRunnerFacade.Log($"bookcase at {bookcase.transform.position}, camera at {eye}");
+
+            var camGo = new GameObject("InspectionCamera");
+            var cam = camGo.AddComponent<Camera>();
+            camGo.transform.position = eye;
+            camGo.transform.rotation = Quaternion.LookRotation(
+                bookcase.transform.position + Vector3.up * 0.9f - eye);
+            cam.fieldOfView = 55f;
+
+            for (int i = 0; i < 4; i++) await UniTask.Yield(ct);
+            await UniTask.WaitForEndOfFrame(ct);
+
+            Texture2D shot = ScreenCapture.CaptureScreenshotAsTexture();
+            try
+            {
+                string dir = Path.Combine(UnityEngine.Application.dataPath, "..", "Screenshots");
+                Directory.CreateDirectory(dir);
+                string path = Path.GetFullPath(Path.Combine(dir, "facing-bookcase.png"));
+                File.WriteAllBytes(path, shot.EncodeToPNG());
+                MooseRunnerFacade.Log($"bookcase {bookcase.name} photographed -> {path}");
+            }
+            finally
+            {
+                Object.Destroy(shot);
+            }
+        }
+
+        /// <summary>
         /// Photographs the yellow entry floor.
         /// </summary>
         [Test]
