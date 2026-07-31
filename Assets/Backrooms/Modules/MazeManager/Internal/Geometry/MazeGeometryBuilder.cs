@@ -132,6 +132,16 @@ namespace Backrooms.MazeManager.Internal.Geometry
         private static Material CreateMaterial(Color color)
         {
             Shader shader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
+            if (shader == null)
+            {
+                // In a player build a shader reached only via Shader.Find is stripped unless it is
+                // in Graphics Settings' always-included list, and Unity silently swaps in the
+                // magenta error shader. Say so loudly instead of shipping a pink level.
+                Debug.LogError("[Maze] URP Lit shader missing from the build — geometry will render "
+                               + "magenta. Run Backrooms/Ensure Always-Included Shaders.");
+                return new Material(Shader.Find("Sprites/Default"));
+            }
+
             var mat = new Material(shader);
             if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", color);
             if (mat.HasProperty("_Color")) mat.SetColor("_Color", color);
