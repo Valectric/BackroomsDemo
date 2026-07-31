@@ -34,11 +34,11 @@ namespace Backrooms.Gameplay
         [Tooltip("How close to the exit centre counts as escaping, in metres.")]
         [SerializeField] private float exitRadius = 1.5f;
 
-        [Tooltip("Dweller speed in cells per second on floor 1.")]
-        [SerializeField] private float dwellerBaseSpeed = 1.3f;
+        [Tooltip("Dweller speed in METRES per second on floor 1. Player walks at 3.2, sprints at 5.6.")]
+        [SerializeField] private float dwellerBaseSpeed = 2.2f;
 
-        [Tooltip("Extra Dweller speed per floor descended.")]
-        [SerializeField] private float dwellerSpeedPerFloor = 0.15f;
+        [Tooltip("Extra Dweller metres per second per floor. Should stay under sprint for many floors.")]
+        [SerializeField] private float dwellerSpeedPerFloor = 0.12f;
 
         /// <summary>Whether the player has reached the exit on the current floor.</summary>
         public bool HasEscaped { get; private set; }
