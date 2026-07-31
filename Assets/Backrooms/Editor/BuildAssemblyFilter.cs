@@ -21,10 +21,16 @@ namespace Backrooms.Editor
         /// <summary>Runs early; the order relative to other filters does not matter here.</summary>
         public int callbackOrder => 0;
 
-        /// <summary>Assembly name fragments that must never reach a player build.</summary>
+        /// <summary>
+        /// Assembly name fragments that must never reach a player build. Matched case-insensitively:
+        /// the package ships <c>MooseRunner.Helpers.Runtime.dll</c>, whose casing differs from its
+        /// asmdef name. The whole MooseRunner family is excluded because
+        /// <c>MooseRunner.Internal</c> references the helper assembly, so dropping only the helper
+        /// leaves an unresolvable reference behind.
+        /// </summary>
         private static readonly string[] Excluded =
         {
-            "MooseRunner.helper",
+            "MooseRunner",
             "nunit.framework",
             ".Tests"
         };
@@ -37,8 +43,11 @@ namespace Backrooms.Editor
         /// <returns>The assemblies to actually include.</returns>
         public string[] OnFilterAssemblies(BuildOptions buildOptions, string[] assemblies)
         {
+            Debug.Log("[Backrooms] Candidate build assemblies:\n  " + string.Join("\n  ", assemblies));
+
             string[] kept = assemblies
-                .Where(path => !Excluded.Any(fragment => path.Contains(fragment)))
+                .Where(path => !Excluded.Any(
+                    fragment => path.IndexOf(fragment, System.StringComparison.OrdinalIgnoreCase) >= 0))
                 .ToArray();
 
             int dropped = assemblies.Length - kept.Length;
