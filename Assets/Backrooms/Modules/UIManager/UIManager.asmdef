@@ -1,11 +1,7 @@
 {
-    "name": "Backrooms.Gameplay",
-    "rootNamespace": "Backrooms.Gameplay",
-    "references": [
-        "Backrooms.MazeManager",
-        "Backrooms.PlayerManager",
-        "Backrooms.UIManager"
-    ],
+    "name": "Backrooms.UIManager",
+    "rootNamespace": "Backrooms.UIManager",
+    "references": [],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

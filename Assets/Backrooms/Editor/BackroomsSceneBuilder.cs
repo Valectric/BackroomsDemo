@@ -2,6 +2,7 @@ using System.IO;
 using Backrooms.Gameplay;
 using Backrooms.MazeManager;
 using Backrooms.PlayerManager;
+using Backrooms.UIManager;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -58,6 +59,9 @@ namespace Backrooms.Editor
             var playerGo = new GameObject("Player");
             playerGo.transform.position = new Vector3(2f, 0.1f, 2f);
             playerGo.AddComponent<PlayerFacade>();
+
+            var hudGo = new GameObject("Hud");
+            hudGo.AddComponent<HudFacade>();
 
             var controllerGo = new GameObject("GameplayController");
             controllerGo.AddComponent<GameplayController>();

@@ -48,9 +48,7 @@ namespace Backrooms.MazeManager.Internal.Geometry
             float worldDepth = layout.Height * cellSize;
 
             List<WallSegment> walls = _planner.Plan(layout, cellSize);
-
-            CreateMeshObject("Walls", root.transform,
-                _meshBuilder.BuildWalls(walls, wallHeight), WallColor, addCollider: true);
+            CreateChunkedWalls(walls, cellSize, wallHeight, root.transform);
 
             CreateMeshObject("Floor", root.transform,
                 _meshBuilder.BuildPlane(worldWidth, worldDepth, 0f, faceUp: true, "MazeFloor"),
@@ -102,6 +100,58 @@ namespace Backrooms.MazeManager.Internal.Geometry
             light.intensity = 3f;
             light.range = 12f;
             light.shadows = LightShadows.None;
+        }
+
+        /// <summary>
+        /// Cells per side of one wall chunk. Walls are split into chunks rather than combined into
+        /// a single mesh because URP applies its additional-light limit <b>per renderer</b>: one
+        /// giant wall mesh can only ever be lit by a handful of the ceiling lights, which makes the
+        /// whole level look flat. Chunking gives each part of the maze its own light budget, at the
+        /// cost of a few more draw calls.
+        /// </summary>
+        private const int WallChunkCells = 3;
+
+        /// <summary>
+        /// Builds the maze walls as a grid of chunk meshes sharing one material.
+        /// </summary>
+        /// <param name="walls">All planned wall segments.</param>
+        /// <param name="cellSize">World size of one cell in metres.</param>
+        /// <param name="wallHeight">Wall height in metres.</param>
+        /// <param name="parent">Parent transform for the chunk objects.</param>
+        private void CreateChunkedWalls(List<WallSegment> walls, float cellSize, float wallHeight,
+            Transform parent)
+        {
+            float chunkWorldSize = cellSize * WallChunkCells;
+            var chunks = new Dictionary<Vector2Int, List<WallSegment>>();
+
+            foreach (WallSegment w in walls)
+            {
+                var key = new Vector2Int(
+                    Mathf.FloorToInt(w.Center.x / chunkWorldSize),
+                    Mathf.FloorToInt(w.Center.z / chunkWorldSize));
+                if (!chunks.TryGetValue(key, out List<WallSegment> list))
+                {
+                    list = new List<WallSegment>();
+                    chunks[key] = list;
+                }
+
+                list.Add(w);
+            }
+
+            var wallsRoot = new GameObject("Walls");
+            wallsRoot.transform.SetParent(parent, worldPositionStays: false);
+
+            Material shared = CreateMaterial(WallColor);
+            foreach (KeyValuePair<Vector2Int, List<WallSegment>> chunk in chunks)
+            {
+                var go = new GameObject($"WallChunk_{chunk.Key.x}_{chunk.Key.y}");
+                go.transform.SetParent(wallsRoot.transform, worldPositionStays: false);
+
+                Mesh mesh = _meshBuilder.BuildWalls(chunk.Value, wallHeight);
+                go.AddComponent<MeshFilter>().sharedMesh = mesh;
+                go.AddComponent<MeshRenderer>().sharedMaterial = shared;
+                go.AddComponent<MeshCollider>().sharedMesh = mesh;
+            }
         }
 
         /// <summary>

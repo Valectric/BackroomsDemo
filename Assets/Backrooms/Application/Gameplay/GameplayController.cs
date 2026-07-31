@@ -1,5 +1,6 @@
 using Backrooms.MazeManager;
 using Backrooms.PlayerManager;
+using Backrooms.UIManager;
 using UnityEngine;
 
 namespace Backrooms.Gameplay
@@ -18,6 +19,9 @@ namespace Backrooms.Gameplay
 
         [Tooltip("The player module. Found in the scene if left empty.")]
         [SerializeField] private PlayerFacade player;
+
+        [Tooltip("The heads-up display. Found in the scene if left empty.")]
+        [SerializeField] private HudFacade hud;
 
         [Header("Run")]
         [Tooltip("Seed for the maze. Change for a different layout.")]
@@ -48,6 +52,7 @@ namespace Backrooms.Gameplay
         {
             if (maze == null) maze = FindAnyObjectByType<MazeFacade>();
             if (player == null) player = FindAnyObjectByType<PlayerFacade>();
+            if (hud == null) hud = FindAnyObjectByType<HudFacade>();
         }
 
         /// <summary>
@@ -76,6 +81,7 @@ namespace Backrooms.Gameplay
 
             maze.GenerateAndBuild(runSeed);
             player.SpawnAt(maze.GetSpawnPosition());
+            if (hud != null) hud.ResetHud();
         }
 
         /// <summary>
@@ -86,10 +92,12 @@ namespace Backrooms.Gameplay
             if (HasEscaped || maze == null || player == null) return;
 
             ElapsedSeconds += Time.deltaTime;
+            if (hud != null) hud.SetElapsed(ElapsedSeconds);
 
             if (DistanceToExit <= exitRadius)
             {
                 HasEscaped = true;
+                if (hud != null) hud.ShowEscaped(ElapsedSeconds);
                 Debug.Log($"[Gameplay] Escaped in {ElapsedSeconds:F1}s");
             }
         }
