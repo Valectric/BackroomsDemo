@@ -5,6 +5,7 @@ using Backrooms.MazeManager;
 using Backrooms.PlayerManager;
 using Cysharp.Threading.Tasks;
 using MooseRunner;
+using MooseRunner.SessionRecorder;
 using NUnit.Framework;
 using UnityEngine;
 
@@ -29,6 +30,7 @@ namespace Backrooms.Gameplay.Tests
         private static PlayerFacade _player;
         private static GameplayController _controller;
         private static PlayerManagerTestFacade _input;
+        private static SessionInfo _recording;
 
         /// <summary>
         /// Loads the real gameplay scene and waits for the level to build itself.
@@ -50,6 +52,13 @@ namespace Backrooms.Gameplay.Tests
             Assert.IsNotNull(_player, "the shipped scene must contain the player module");
             Assert.IsNotNull(_controller, "the shipped scene must contain the gameplay controller");
             Assert.IsNotNull(_maze.CurrentLayout, "the scene should have generated a maze on start");
+
+            // Record the whole run so the playthrough can be reviewed frame by frame afterwards.
+            // A still cannot tell you whether the level reads well while you are moving through it.
+            Camera eye = _player.HeadCamera;
+            var config = new SessionRecordingConfig(eye, ".mooserunner/Recordings/walkthrough", 30);
+            _recording = await SessionRecorderFacade.Instance.StartRecordingAsync(config, ct);
+            MooseRunnerFacade.Log($"recording to {_recording.SessionPath}");
         }
 
         /// <summary>
@@ -128,6 +137,9 @@ namespace Backrooms.Gameplay.Tests
             await Capture("03-nextfloor", ct);
             MooseRunnerFacade.Log(
                 $"reached floor {_controller.CurrentFloor} after {_controller.ElapsedSeconds:F1}s");
+            SessionRecorderFacade.Instance.StopRecording();
+            MooseRunnerFacade.Log($"recording saved to {_recording.SessionPath}");
+
             Assert.AreEqual(startFloor + 1, _controller.CurrentFloor,
                 "reaching the exit should descend one floor");
         }

@@ -19,6 +19,10 @@ namespace Backrooms.MazeManager.Internal.Geometry
 
         private readonly MazeWallPlanner _planner = new MazeWallPlanner();
         private readonly MazeMeshBuilder _meshBuilder = new MazeMeshBuilder();
+        private readonly PropDecorator _decorator = new PropDecorator();
+
+        /// <summary>Seed used for this floor's generated textures.</summary>
+        private int _themeSeed;
 
         /// <summary>
         /// Builds the geometry for a layout under a new root GameObject.
@@ -33,6 +37,7 @@ namespace Backrooms.MazeManager.Internal.Geometry
             int lightSpacingCells, Transform parent, FloorTheme theme)
         {
             _theme = theme ?? FloorThemes.ForFloor(1);
+            _themeSeed = Mathf.Abs(_theme.Name.GetHashCode()) % 9973;
             var root = new GameObject("MazeGeometry");
             if (parent != null) root.transform.SetParent(parent, worldPositionStays: false);
 
@@ -42,16 +47,22 @@ namespace Backrooms.MazeManager.Internal.Geometry
             List<WallSegment> walls = _planner.Plan(layout, cellSize);
             CreateChunkedWalls(walls, cellSize, wallHeight, root.transform);
 
-            CreateMeshObject("Floor", root.transform,
-                _meshBuilder.BuildPlane(worldWidth, worldDepth, 0f, faceUp: true, "MazeFloor"),
-                _theme.Floor, addCollider: true);
+            CreateMeshObject("Trim", root.transform,
+                _meshBuilder.BuildTrim(walls, 0.28f, 0.22f), _theme.Trim, addCollider: false);
 
-            CreateMeshObject("Ceiling", root.transform,
+            CreateTexturedMeshObject("Floor", root.transform,
+                _meshBuilder.BuildPlane(worldWidth, worldDepth, 0f, faceUp: true, "MazeFloor"),
+                _theme.Floor, ProceduralTextures.Carpet(_theme.Floor, _themeSeed), addCollider: true);
+
+            CreateTexturedMeshObject("Ceiling", root.transform,
                 _meshBuilder.BuildPlane(worldWidth, worldDepth, wallHeight, faceUp: false, "MazeCeiling"),
-                _theme.Ceiling, addCollider: false);
+                _theme.Ceiling, ProceduralTextures.CeilingTiles(_theme.Ceiling, _themeSeed),
+                addCollider: false);
 
             CreateLights(layout, cellSize, wallHeight, lightSpacingCells, root.transform);
             CreateExitMarker(layout, wallHeight, root.transform);
+            _decorator.Decorate(layout, _theme, layout.Width * 31 + layout.Height, root.transform,
+                wallHeight);
 
             return root;
         }
@@ -133,7 +144,8 @@ namespace Backrooms.MazeManager.Internal.Geometry
             var wallsRoot = new GameObject("Walls");
             wallsRoot.transform.SetParent(parent, worldPositionStays: false);
 
-            Material shared = CreateMaterial(_theme.Wall);
+            Material shared = CreateTexturedMaterial(
+                _theme.Wall, ProceduralTextures.Wall(_theme.Wall, _themeSeed));
             foreach (KeyValuePair<Vector2Int, List<WallSegment>> chunk in chunks)
             {
                 var go = new GameObject($"WallChunk_{chunk.Key.x}_{chunk.Key.y}");
@@ -144,6 +156,25 @@ namespace Backrooms.MazeManager.Internal.Geometry
                 go.AddComponent<MeshRenderer>().sharedMaterial = shared;
                 go.AddComponent<MeshCollider>().sharedMesh = mesh;
             }
+        }
+
+        /// <summary>
+        /// Creates a child GameObject rendering a mesh with a generated texture.
+        /// </summary>
+        /// <param name="name">Child object name.</param>
+        /// <param name="parent">Parent transform.</param>
+        /// <param name="mesh">Mesh to render.</param>
+        /// <param name="colour">Base colour.</param>
+        /// <param name="texture">Generated surface texture.</param>
+        /// <param name="addCollider">Whether to add a mesh collider.</param>
+        private static void CreateTexturedMeshObject(string name, Transform parent, Mesh mesh,
+            Color colour, Texture2D texture, bool addCollider)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(parent, worldPositionStays: false);
+            go.AddComponent<MeshFilter>().sharedMesh = mesh;
+            go.AddComponent<MeshRenderer>().sharedMaterial = CreateTexturedMaterial(colour, texture);
+            if (addCollider) go.AddComponent<MeshCollider>().sharedMesh = mesh;
         }
 
         /// <summary>
@@ -163,6 +194,21 @@ namespace Backrooms.MazeManager.Internal.Geometry
             go.AddComponent<MeshFilter>().sharedMesh = mesh;
             go.AddComponent<MeshRenderer>().sharedMaterial = CreateMaterial(color);
             if (addCollider) go.AddComponent<MeshCollider>().sharedMesh = mesh;
+        }
+
+        /// <summary>
+        /// Creates a URP-lit material carrying a generated texture, so surfaces have grain and
+        /// pattern instead of reading as flat blocks of colour.
+        /// </summary>
+        /// <param name="colour">Base colour.</param>
+        /// <param name="texture">Generated surface texture.</param>
+        /// <returns>A new textured material.</returns>
+        private static Material CreateTexturedMaterial(Color colour, Texture2D texture)
+        {
+            Material mat = CreateMaterial(colour);
+            if (mat.HasProperty("_BaseMap")) mat.SetTexture("_BaseMap", texture);
+            mat.mainTexture = texture;
+            return mat;
         }
 
         /// <summary>
