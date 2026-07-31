@@ -57,6 +57,20 @@ namespace Backrooms.UIManager.Internal
         }
 
         /// <summary>
+        /// Draws the end-of-run banner for being caught by a Dweller.
+        /// </summary>
+        /// <param name="floor">Floor the player died on.</param>
+        /// <param name="elapsedSeconds">How long they lasted.</param>
+        public void DrawCaught(int floor, float elapsedSeconds)
+        {
+            int size = Mathf.Max(20, Mathf.RoundToInt(Screen.height * 0.07f));
+            var rect = new Rect(0f, Screen.height * 0.34f, Screen.width, size * 4f);
+            DrawLabel(rect,
+                $"A DWELLER FOUND YOU\nFLOOR {floor}   {FormatTime(elapsedSeconds)}", size,
+                TextAnchor.UpperCenter);
+        }
+
+        /// <summary>
         /// Formats a duration as minutes and seconds.
         /// </summary>
         /// <param name="seconds">Duration in seconds.</param>

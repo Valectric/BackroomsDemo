@@ -43,6 +43,16 @@ namespace Backrooms.UIManager
         /// </summary>
         public void ResetHud() => Router.Reset();
 
+        /// <summary>
+        /// Shows the banner for being caught by a Dweller.
+        /// </summary>
+        /// <param name="floor">Floor the run ended on.</param>
+        /// <param name="finalSeconds">How long the player lasted.</param>
+        public void ShowCaught(int floor, float finalSeconds) => Router.ShowCaught(floor, finalSeconds);
+
+        /// <summary>Whether the caught banner is showing.</summary>
+        public bool CaughtShown => Router.CaughtShown;
+
         /// <summary>Floor number currently shown on the HUD.</summary>
         public int Floor => Router.Floor;
 

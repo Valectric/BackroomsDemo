@@ -1,3 +1,4 @@
+using Backrooms.EntityManager;
 using Backrooms.MazeManager;
 using Backrooms.PlayerManager;
 using Backrooms.UIManager;
@@ -23,6 +24,9 @@ namespace Backrooms.Gameplay
         [Tooltip("The heads-up display. Found in the scene if left empty.")]
         [SerializeField] private HudFacade hud;
 
+        [Tooltip("The Dweller that hunts the player. Found in the scene if left empty.")]
+        [SerializeField] private DwellerFacade dweller;
+
         [Header("Run")]
         [Tooltip("Seed for the maze. Change for a different layout.")]
         [SerializeField] private int seed = 1;
@@ -30,11 +34,20 @@ namespace Backrooms.Gameplay
         [Tooltip("How close to the exit centre counts as escaping, in metres.")]
         [SerializeField] private float exitRadius = 1.5f;
 
+        [Tooltip("Dweller speed in cells per second on floor 1.")]
+        [SerializeField] private float dwellerBaseSpeed = 1.3f;
+
+        [Tooltip("Extra Dweller speed per floor descended.")]
+        [SerializeField] private float dwellerSpeedPerFloor = 0.15f;
+
         /// <summary>Whether the player has reached the exit on the current floor.</summary>
         public bool HasEscaped { get; private set; }
 
         /// <summary>The floor the player is currently on, counting from 1 downwards.</summary>
         public int CurrentFloor { get; private set; } = 1;
+
+        /// <summary>Whether a Dweller has caught the player and ended the run.</summary>
+        public bool IsCaught { get; private set; }
 
         /// <summary>Seconds of gameplay elapsed since the run started.</summary>
         public float ElapsedSeconds { get; private set; }
@@ -56,6 +69,7 @@ namespace Backrooms.Gameplay
             if (maze == null) maze = FindAnyObjectByType<MazeFacade>();
             if (player == null) player = FindAnyObjectByType<PlayerFacade>();
             if (hud == null) hud = FindAnyObjectByType<HudFacade>();
+            if (dweller == null) dweller = FindAnyObjectByType<DwellerFacade>();
         }
 
         /// <summary>
@@ -81,6 +95,7 @@ namespace Backrooms.Gameplay
             seed = runSeed;
             ElapsedSeconds = 0f;
             CurrentFloor = 0;
+            IsCaught = false;
             if (hud != null) hud.ResetHud();
 
             DescendToNextFloor();
@@ -101,8 +116,32 @@ namespace Backrooms.Gameplay
             player.SpawnAt(maze.GetSpawnPosition());
             ApplyFog(theme);
 
+            PlaceDweller();
+
             if (hud != null) hud.ShowFloor(CurrentFloor, theme.Name);
             Debug.Log($"[Gameplay] Floor {CurrentFloor}: {theme.Name}");
+        }
+
+        /// <summary>
+        /// Drops a Dweller onto the new floor, moving a little faster on every floor down because
+        /// deeper floors are meant to be deadlier.
+        /// </summary>
+        /// <remarks>
+        /// It starts in one of the two corners that is neither the player's spawn nor the exit.
+        /// Spawning it on the exit would have it camping the one cell the player has to reach, and
+        /// spawning it near the player would be an instant, unavoidable death.
+        /// </remarks>
+        private void PlaceDweller()
+        {
+            if (dweller == null) return;
+
+            MazeLayout layout = maze.CurrentLayout;
+            Vector2Int start = (CurrentFloor % 2 == 1)
+                ? new Vector2Int(0, layout.Height - 1)
+                : new Vector2Int(layout.Width - 1, 0);
+
+            float speed = dwellerBaseSpeed + (CurrentFloor - 1) * dwellerSpeedPerFloor;
+            dweller.Place(layout, start, player.transform, speed, seed + CurrentFloor);
         }
 
         /// <summary>
@@ -120,7 +159,15 @@ namespace Backrooms.Gameplay
         /// </summary>
         private void Update()
         {
-            if (HasEscaped || maze == null || player == null) return;
+            if (IsCaught || HasEscaped || maze == null || player == null) return;
+
+            if (dweller != null && dweller.HasCaught)
+            {
+                IsCaught = true;
+                if (hud != null) hud.ShowCaught(CurrentFloor, ElapsedSeconds);
+                Debug.Log($"[Gameplay] Caught on floor {CurrentFloor} after {ElapsedSeconds:F1}s");
+                return;
+            }
 
             ElapsedSeconds += Time.deltaTime;
             if (hud != null) hud.SetElapsed(ElapsedSeconds);

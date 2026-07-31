@@ -3,6 +3,7 @@
     "rootNamespace": "Backrooms.Editor",
     "references": [
         "Backrooms.Gameplay",
+        "Backrooms.EntityManager",
         "Backrooms.MazeManager",
         "Backrooms.PlayerManager",
         "Backrooms.UIManager"

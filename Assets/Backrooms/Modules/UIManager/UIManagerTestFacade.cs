@@ -27,6 +27,9 @@ namespace Backrooms.UIManager
         /// <summary>Whether the end-of-run banner is showing.</summary>
         public bool EscapedShown => _router.EscapedShown;
 
+        /// <summary>Whether the caught-by-a-Dweller banner is showing.</summary>
+        public bool CaughtShown => _router.CaughtShown;
+
         /// <summary>Floor number shown on the HUD.</summary>
         public int Floor => _router.Floor;
 

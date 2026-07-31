@@ -19,6 +19,22 @@ namespace Backrooms.UIManager.Internal
         /// <summary>Whether the end-of-run banner is showing.</summary>
         public bool EscapedShown { get; private set; }
 
+        /// <summary>Whether the caught-by-a-Dweller banner is showing.</summary>
+        public bool CaughtShown { get; private set; }
+
+        /// <summary>
+        /// Shows the banner for being caught by a Dweller and freezes the final time.
+        /// </summary>
+        /// <param name="floor">Floor the run ended on.</param>
+        /// <param name="finalSeconds">How long the player lasted.</param>
+        public void ShowCaught(int floor, float finalSeconds)
+        {
+            Floor = floor;
+            ElapsedSeconds = finalSeconds;
+            CaughtShown = true;
+            BannerRemaining = 0f;
+        }
+
         /// <summary>Floor number shown on the HUD.</summary>
         public int Floor { get; private set; } = 1;
 
@@ -75,6 +91,7 @@ namespace Backrooms.UIManager.Internal
         {
             ElapsedSeconds = 0f;
             EscapedShown = false;
+            CaughtShown = false;
             Floor = 1;
             FloorName = string.Empty;
             BannerRemaining = 0f;
@@ -85,6 +102,12 @@ namespace Backrooms.UIManager.Internal
         /// </summary>
         public void Draw()
         {
+            if (CaughtShown)
+            {
+                _renderer.DrawCaught(Floor, ElapsedSeconds);
+                return;
+            }
+
             if (EscapedShown)
             {
                 _renderer.DrawEscaped(ElapsedSeconds);
