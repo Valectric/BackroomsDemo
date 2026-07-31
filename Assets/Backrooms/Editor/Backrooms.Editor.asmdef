@@ -4,7 +4,8 @@
     "references": [
         "Backrooms.Gameplay",
         "Backrooms.MazeManager",
-        "Backrooms.PlayerManager"
+        "Backrooms.PlayerManager",
+        "Backrooms.UIManager"
     ],
     "includePlatforms": [
         "Editor"
