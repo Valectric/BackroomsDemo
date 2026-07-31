@@ -119,8 +119,11 @@ namespace Backrooms.MazeManager.Internal.Geometry
             GameObject model = choices[rng.Next(choices.Length)];
             if (model == null) return;
 
+            // Kenney's furniture is modelled facing -Z, so aiming the transform's forward into the
+            // room turns the piece's back on it. Aim forward at the wall instead and the front face
+            // ends up looking into the room.
             Quaternion rotation = wall.HasValue
-                ? Quaternion.LookRotation(IntoRoom(wall.Value))
+                ? Quaternion.LookRotation(-IntoRoom(wall.Value))
                 : Quaternion.Euler(0f, rng.Next(4) * 90f, 0f);
 
             GameObject instance = Object.Instantiate(model, centre, rotation, parent);
