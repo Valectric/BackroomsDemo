@@ -21,12 +21,6 @@ namespace Backrooms.Editor
         public const string ScenePath = "Assets/Backrooms/Application/Gameplay/Scenes/Backrooms.unity";
 
         /// <summary>
-        /// Sentinel file at the project root. When present on domain reload the scene is rebuilt and
-        /// the file is deleted, which is how the build is triggered without clicking the menu.
-        /// </summary>
-        private const string SentinelFile = ".backrooms-build-scene";
-
-        /// <summary>
         /// Rebuilds the gameplay scene from scratch and saves it over any existing copy.
         /// </summary>
         [MenuItem("Backrooms/Build Gameplay Scene")]
@@ -132,23 +126,5 @@ namespace Backrooms.Editor
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        /// <summary>
-        /// On every domain reload, rebuilds the scene if the sentinel file exists. This is the
-        /// headless trigger: an agent creates the file, forces a recompile, and the scene is authored
-        /// without anyone clicking the menu item.
-        /// </summary>
-        [InitializeOnLoadMethod]
-        private static void CheckSentinel()
-        {
-            if (!File.Exists(SentinelFile)) return;
-
-            // Defer past asset loading: scene APIs are unsafe during the reload itself.
-            EditorApplication.delayCall += () =>
-            {
-                if (!File.Exists(SentinelFile)) return;
-                File.Delete(SentinelFile);
-                BuildScene();
-            };
-        }
     }
 }
