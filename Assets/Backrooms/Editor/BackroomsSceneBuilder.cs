@@ -1,4 +1,5 @@
 using System.IO;
+using Backrooms.EntityManager;
 using Backrooms.Gameplay;
 using Backrooms.MazeManager;
 using Backrooms.PlayerManager;
@@ -59,6 +60,9 @@ namespace Backrooms.Editor
             var playerGo = new GameObject("Player");
             playerGo.transform.position = new Vector3(2f, 0.1f, 2f);
             playerGo.AddComponent<PlayerFacade>();
+
+            var dwellerGo = new GameObject("Dweller");
+            dwellerGo.AddComponent<DwellerFacade>();
 
             var hudGo = new GameObject("Hud");
             hudGo.AddComponent<HudFacade>();
