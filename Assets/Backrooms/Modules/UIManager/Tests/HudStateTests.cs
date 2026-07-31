@@ -90,6 +90,39 @@ namespace Backrooms.UIManager.Tests
         }
 
         /// <summary>
+        /// Arriving on a floor records the floor and shows the arrival banner.
+        /// </summary>
+        [Test]
+        public void ShowFloor_RecordsFloor_AndShowsBanner()
+        {
+            (HudFacade hud, UIManagerTestFacade test) = NewHud();
+
+            hud.ShowFloor(3, "JANKY LAUNDROMAT");
+
+            Assert.AreEqual(3, test.Floor, "floor number recorded");
+            Assert.AreEqual("JANKY LAUNDROMAT", test.FloorName, "floor name recorded");
+            Assert.IsTrue(test.BannerShown, "arrival banner visible on arrival");
+        }
+
+        /// <summary>
+        /// The arrival banner clears itself after a few seconds so it does not block the view, while
+        /// the floor number stays on the status line.
+        /// </summary>
+        [Test]
+        public void FloorBanner_ExpiresButFloorPersists()
+        {
+            (HudFacade hud, UIManagerTestFacade test) = NewHud();
+
+            hud.ShowFloor(2, "ABANDONED MALL");
+            test.TickBanner(1f);
+            Assert.IsTrue(test.BannerShown, "banner still up shortly after arrival");
+
+            test.TickBanner(5f);
+            Assert.IsFalse(test.BannerShown, "banner clears itself");
+            Assert.AreEqual(2, test.Floor, "floor number stays on the status line");
+        }
+
+        /// <summary>
         /// Durations are displayed as zero-padded minutes and seconds, and negative input is treated
         /// as zero rather than rendering a nonsensical time.
         /// </summary>

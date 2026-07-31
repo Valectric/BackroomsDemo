@@ -27,6 +27,21 @@ namespace Backrooms.UIManager
         /// <summary>Whether the end-of-run banner is showing.</summary>
         public bool EscapedShown => _router.EscapedShown;
 
+        /// <summary>Floor number shown on the HUD.</summary>
+        public int Floor => _router.Floor;
+
+        /// <summary>Name of the current floor.</summary>
+        public string FloorName => _router.FloorName;
+
+        /// <summary>Whether the floor-arrival banner is on screen.</summary>
+        public bool BannerShown => _router.BannerShown;
+
+        /// <summary>
+        /// Advances the arrival banner countdown, so tests can verify it expires without waiting.
+        /// </summary>
+        /// <param name="deltaTime">Seconds to advance.</param>
+        public void TickBanner(float deltaTime) => _router.TickBanner(deltaTime);
+
         /// <summary>
         /// Formats a duration exactly as the HUD renders it.
         /// </summary>

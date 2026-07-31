@@ -20,14 +20,28 @@ namespace Backrooms.UIManager.Internal
         private static readonly Color ShadowColor = new Color(0f, 0f, 0f, 0.55f);
 
         /// <summary>
-        /// Draws the in-run timer in the top-left corner.
+        /// Draws the persistent status line — time survived and how deep the player has gone.
         /// </summary>
         /// <param name="elapsedSeconds">Seconds since the run started.</param>
-        public void DrawTimer(float elapsedSeconds)
+        /// <param name="floor">Current floor number.</param>
+        public void DrawStatus(float elapsedSeconds, int floor)
         {
             int size = Mathf.Max(14, Mathf.RoundToInt(Screen.height * 0.035f));
-            var rect = new Rect(size, size, Screen.width * 0.5f, size * 2f);
-            DrawLabel(rect, FormatTime(elapsedSeconds), size, TextAnchor.UpperLeft);
+            var rect = new Rect(size, size, Screen.width * 0.6f, size * 2f);
+            DrawLabel(rect, $"FLOOR {floor}    {FormatTime(elapsedSeconds)}", size,
+                TextAnchor.UpperLeft);
+        }
+
+        /// <summary>
+        /// Draws the arrival banner naming the floor the player just descended into.
+        /// </summary>
+        /// <param name="floor">Floor number.</param>
+        /// <param name="name">Display name of the floor.</param>
+        public void DrawFloorBanner(int floor, string name)
+        {
+            int size = Mathf.Max(18, Mathf.RoundToInt(Screen.height * 0.05f));
+            var rect = new Rect(0f, Screen.height * 0.30f, Screen.width, size * 3f);
+            DrawLabel(rect, $"FLOOR {floor}\n{name}", size, TextAnchor.UpperCenter);
         }
 
         /// <summary>

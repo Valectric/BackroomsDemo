@@ -40,9 +40,10 @@ namespace Backrooms.MazeManager.Internal
         /// <param name="wallHeight">Wall height in metres.</param>
         /// <param name="lightSpacingCells">Ceiling-light spacing in cells.</param>
         /// <param name="parent">Parent transform for the generated root.</param>
+        /// <param name="theme">Palette for the floor being built.</param>
         /// <returns>The generated geometry root GameObject.</returns>
         public GameObject BuildGeometry(MazeLayout layout, float wallHeight, int lightSpacingCells,
-            Transform parent)
-            => _geometry.Build(layout, layout.CellSize, wallHeight, lightSpacingCells, parent);
+            Transform parent, FloorTheme theme)
+            => _geometry.Build(layout, layout.CellSize, wallHeight, lightSpacingCells, parent, theme);
     }
 }
