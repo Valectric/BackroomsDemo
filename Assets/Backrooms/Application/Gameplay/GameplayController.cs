@@ -194,6 +194,9 @@ namespace Backrooms.Gameplay
             {
                 if (i < starts.Count)
                 {
+                    // One of each kind, in turn — a floor with three identical creatures teaches the
+                    // player nothing about what they are looking at.
+                    _dwellers[i].SetKind(DwellerArchetypes.AtIndex(i + CurrentFloor));
                     _dwellers[i].Place(layout, starts[i], player.transform, speed,
                         seed + CurrentFloor * 31 + i);
                 }
@@ -276,16 +279,21 @@ namespace Backrooms.Gameplay
             if (hud == null) return;
 
             float closest = float.PositiveInfinity;
+            string hunter = null;
             foreach (DwellerFacade d in _dwellers)
             {
                 if (d == null || !d.IsChasing) continue;
-                closest = Mathf.Min(closest, Vector3.Distance(
+                float distance = Vector3.Distance(
                     new Vector3(d.transform.position.x, 0f, d.transform.position.z),
-                    new Vector3(player.Position.x, 0f, player.Position.z)));
+                    new Vector3(player.Position.x, 0f, player.Position.z));
+                if (distance >= closest) continue;
+                closest = distance;
+                hunter = d.DisplayName;
             }
 
-            bool hunted = !float.IsPositiveInfinity(closest);
-            hud.SetHunted(hunted, hunted ? 1f - Mathf.Clamp01(closest / HuntedWarningMetres) : 0f);
+            bool hunted = hunter != null;
+            hud.SetHunted(hunted, hunted ? 1f - Mathf.Clamp01(closest / HuntedWarningMetres) : 0f,
+                hunter);
         }
 
         /// <summary>
@@ -316,7 +324,7 @@ namespace Backrooms.Gameplay
                 player.MovementEnabled = false;
                 if (hud != null)
                 {
-                    hud.SetHunted(false, 0f);
+                    hud.SetHunted(false, 0f, null);
                     hud.ShowCaught(CurrentFloor, ElapsedSeconds);
                 }
 

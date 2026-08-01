@@ -34,11 +34,18 @@ namespace Backrooms.UIManager.Internal
         /// </summary>
         /// <param name="hunted">Whether any Dweller is chasing.</param>
         /// <param name="closeness">How close the nearest one is, clamped to 0..1.</param>
-        public void SetHunted(bool hunted, float closeness)
+        /// <param name="hunterName">What the nearest hunter is called, or <c>null</c> for none.</param>
+        public void SetHunted(bool hunted, float closeness, string hunterName = null)
         {
             HuntedShown = hunted;
             HuntedCloseness = Mathf.Clamp01(closeness);
+            HunterName = string.IsNullOrEmpty(hunterName) ? "DWELLER" : hunterName;
         }
+
+        /// <summary>What the nearest hunting Dweller is called. Named so the player learns the
+        /// roster: a WATCHER is a different problem from a SKITTER, and being told which is which is
+        /// how they find that out.</summary>
+        public string HunterName { get; private set; } = "DWELLER";
 
         /// <summary>
         /// Shows the banner for being caught by a Dweller and freezes the final time.
@@ -112,6 +119,7 @@ namespace Backrooms.UIManager.Internal
             CaughtShown = false;
             HuntedShown = false;
             HuntedCloseness = 0f;
+            HunterName = "DWELLER";
             Floor = 1;
             FloorName = string.Empty;
             BannerRemaining = 0f;
@@ -137,7 +145,7 @@ namespace Backrooms.UIManager.Internal
             // The pursuit warning is drawn under the arrival banner but over the status line, and
             // stays visible during the banner — arriving on a floor next to a Dweller is exactly when
             // the player most needs telling.
-            if (HuntedShown) _renderer.DrawHunted(HuntedCloseness, ElapsedSeconds);
+            if (HuntedShown) _renderer.DrawHunted(HunterName, HuntedCloseness, ElapsedSeconds);
 
             _renderer.DrawStatus(ElapsedSeconds, Floor);
             if (BannerShown) _renderer.DrawFloorBanner(Floor, FloorName);

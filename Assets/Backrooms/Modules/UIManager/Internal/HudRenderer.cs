@@ -82,12 +82,13 @@ namespace Backrooms.UIManager.Internal
         /// text naming what is happening. Both pulse, because a static red edge stops being read
         /// after a few seconds whereas a moving one does not.
         /// </summary>
+        /// <param name="hunterName">What the nearest hunting Dweller is called.</param>
         /// <param name="closeness">How close the nearest hunting Dweller is, 0..1.</param>
         /// <param name="phase">
         /// Seconds used to drive the pulse. The run timer is passed in rather than a wall clock so
         /// the HUD has no clock of its own and a test can reproduce any frame of it exactly.
         /// </param>
-        public void DrawHunted(float closeness, float phase)
+        public void DrawHunted(string hunterName, float closeness, float phase)
         {
             float pulse = 0.72f + 0.28f * Mathf.Sin(phase * 7f);
             float thickness = Mathf.Lerp(Screen.height * 0.02f, Screen.height * 0.075f, closeness);
@@ -107,7 +108,7 @@ namespace Backrooms.UIManager.Internal
 
             int size = Mathf.Max(16, Mathf.RoundToInt(Screen.height * 0.045f));
             var rect = new Rect(0f, Screen.height * 0.12f, Screen.width, size * 2f);
-            DrawLabel(rect, "A DWELLER HAS SEEN YOU", size, TextAnchor.UpperCenter, AlertColor);
+            DrawLabel(rect, $"A {hunterName} HAS SEEN YOU", size, TextAnchor.UpperCenter, AlertColor);
         }
 
         /// <summary>

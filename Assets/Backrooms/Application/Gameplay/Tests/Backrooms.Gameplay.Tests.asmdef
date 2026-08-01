@@ -5,6 +5,8 @@
         "Backrooms.Gameplay",
         "Backrooms.MazeManager",
         "Backrooms.PlayerManager",
+        "Backrooms.UIManager",
+        "Backrooms.EntityManager",
         "MooseRunner",
         "MooseRunner.helper",
         "UniTask",

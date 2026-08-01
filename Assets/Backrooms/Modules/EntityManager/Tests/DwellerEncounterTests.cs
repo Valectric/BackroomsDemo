@@ -39,8 +39,9 @@ namespace Backrooms.EntityManager.Tests
         private const int ShippingPatrolSpan = 18;
 
         /// <summary>
-        /// Dweller cells travelled per player cell: 2.2 m/s against a 3.2 m/s walk. The player is
-        /// assumed to walk, never sprint, and never to stop — the shortest possible exposure.
+        /// Base Dweller cells travelled per player cell: 2.2 m/s against a 3.2 m/s walk. The player is
+        /// assumed to walk, never sprint, and never to stop — the shortest possible exposure. Each
+        /// kind then scales this by its own speed.
         /// </summary>
         private const float DwellerPace = 2.2f / 3.2f;
 
@@ -113,7 +114,8 @@ namespace Backrooms.EntityManager.Tests
         /// <param name="layout">The floor to cross.</param>
         /// <param name="dwellers">The Dwellers roaming it, already placed.</param>
         /// <returns><c>true</c> if at least one Dweller entered a chase during the crossing.</returns>
-        private static bool CrossingIsHunted(MazeLayout layout, List<DwellerManagerTestFacade> dwellers)
+        private static bool CrossingIsHunted(MazeLayout layout, List<DwellerManagerTestFacade> dwellers,
+            List<float> paces)
         {
             Vector2Int player = layout.Spawn;
             List<Vector2Int> route = dwellers[0].PathBetween(
@@ -128,7 +130,7 @@ namespace Backrooms.EntityManager.Tests
                 player = step;
                 for (int i = 0; i < dwellers.Count; i++)
                 {
-                    budget[i] += DwellerPace;
+                    budget[i] += paces[i];
                     while (budget[i] >= 1f)
                     {
                         budget[i] -= 1f;
@@ -161,17 +163,30 @@ namespace Backrooms.EntityManager.Tests
                 MazeLayout layout = NewFloor(seed);
 
                 var dwellers = new List<DwellerManagerTestFacade>();
+                var paces = new List<float>();
                 List<Vector2Int> starts = Starts(layout, dwellerCount);
                 for (int i = 0; i < starts.Count; i++)
                 {
-                    DwellerManagerTestFacade d = NewDweller($"Dweller_{i}");
-                    d.SetSenseRange(senseRange);
-                    if (patrolSpan > 0) d.SetPatrolSpan(patrolSpan);
+                    // Deal out kinds exactly as the gameplay layer does, and apply each one's own
+                    // multipliers — a roster of a far-sighted Watcher and a near-blind Skitter is a
+                    // different measurement from three identical creatures.
+                    DwellerArchetype archetype = DwellerArchetypes.For(DwellerArchetypes.AtIndex(i));
+
+                    DwellerManagerTestFacade d = NewDweller($"Dweller_{i}_{archetype.Kind}");
+                    d.SetSenseRange(Mathf.Max(1,
+                        Mathf.RoundToInt(senseRange * archetype.SenseMultiplier)));
+                    if (patrolSpan > 0)
+                    {
+                        d.SetPatrolSpan(Mathf.Max(3,
+                            Mathf.RoundToInt(patrolSpan * archetype.PatrolMultiplier)));
+                    }
+
                     d.Place(layout, starts[i], seed * 31 + i);
                     dwellers.Add(d);
+                    paces.Add(DwellerPace * archetype.SpeedMultiplier);
                 }
 
-                if (CrossingIsHunted(layout, dwellers)) hunted++;
+                if (CrossingIsHunted(layout, dwellers, paces)) hunted++;
             }
 
             return (float)hunted / trials;
