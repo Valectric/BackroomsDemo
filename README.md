@@ -10,24 +10,31 @@ agent using **[MooseRunner](https://mooserunner.com)**, and playable in your pho
 
 This is a MooseRunner showcase. The same tiny game exercises all three MooseRunner disciplines:
 
-- **Agent-driven PlayMode tests** — deterministic white-box tests (maze generation, sanity,
-  entity AI) an AI agent writes and runs headlessly via the MooseRunner CLI.
-- **Black-box E2E flows** — the real shipped scene, driven only by simulated physical input.
+- **Agent-driven PlayMode tests** — deterministic white-box tests (maze generation and topology,
+  Dweller pathing, player movement, HUD state) an AI agent writes and runs headlessly via the CLI.
+- **Black-box E2E flows** — the real shipped scene, driven only by simulated physical input: the
+  agent BFS-solves the maze and *walks* it until the game reports the descent.
 - **Visual validation** — SessionRecorder + screenshots so the agent can *see* the game renders
   correctly.
 
 ## The game
 
-You noclip into Level 0 of the Backrooms. Find the exit before your sanity runs out, while an
-entity roams the endless yellow rooms. Almond water restores sanity.
+You **noclip** into the Backrooms — an ever-changing dungeon stitched together from twisted
+carnivals, abandoned malls, janky laundromats and condemned asylums. Find the exit on each floor to
+descend. Every floor down is a different kind of space, and the **Dweller** hunting you is faster
+than the last. Let it reach you and the run is over.
 
-- **Controls (mobile):** left stick = move, right drag = look, buttons = sprint / interact.
-- **Controls (desktop):** WASD + mouse.
+- **Controls (mobile):** left half of the screen = virtual stick from wherever you press;
+  right half = look. Push the stick far to sprint.
+- **Controls (desktop):** WASD to move, hold left mouse to look, Shift to sprint.
 
 ## Tech
 
 - Unity `6000.3.17f1` + URP · MooseRunner `2.2.5` · UniTask
 - Architecture + testing doctrine: see `ArchitectureGuidelines.md`, `TestingGuidelines.md`, `CLAUDE.md`
+- Current state + next steps: see `HANDOVER.md`
+- Dated decision log: see `DECISIONS.md`
+- Setup from scratch: see `Documentation/SETUP.md`
 - Plan & milestones: see `PLAN.md`
 - Hosting runbook: see `Documentation/DEPLOYMENT.md`
 
