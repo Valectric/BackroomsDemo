@@ -219,3 +219,40 @@ click. Confirm-press is read by PlayerManager (which owns input devices) and exp
 than a fail state.
 **Trap found:** a Dweller left parked in `Caught` still reports having caught the player, so the next
 run ended the instant it began. `Hide()` now clears router state, not just the body.
+
+## 2026-08-01 — D21. Three opposed Dweller kinds, not one creature repeated
+
+**Decided:** a floor carries one LURKER, one WATCHER and one SKITTER, dealt out in turn.
+Differences live in a data table (`DwellerArchetypes`) rather than in subclasses, so the whole roster
+is readable at a glance.
+
+| | height | speed | sense | eyes |
+|---|---|---|---|---|
+| Lurker | 2.2 m | 2.2 m/s | 12 cells | 2, red |
+| Watcher | 2.85 m | 1.58 m/s | 18 cells | 2, cold blue |
+| Skitter | 1.05 m | 3.3 m/s | ~7 cells | 4, amber |
+
+**Why:** three of the same creature teaches the player nothing. These are deliberately *opposed* — the
+Watcher trades speed for sight, the Skitter sight for speed — so a Watcher is something you outrun but
+cannot lose, and a Skitter something you can hide from but not outpace. `DwellerArchetypeTests`
+asserts the trade-off holds: no kind may be both fastest and furthest-sighted, none may outrun a
+sprint, and no two may be within 0.4 m in height (height is the cue that survives fog).
+**Measured:** the mixed roster hunts the player on **88%** of crossings, against 84% for three
+identical Dwellers — the Watcher's 18-cell sense more than covers the Skitter's blindness.
+**Trap found twice, same root:** eyes are placed on the body's *surface*, computed per eye from the
+capsule's silhouette radius at that height. A flat forward offset buries them inside a wide body or
+leaves them hanging beside it, and both look exactly like the feature being broken. Nothing but a
+screenshot catches it.
+
+## 2026-08-01 — D22. Playthrough footage is recorded, not described
+
+**Decided:** `PlaythroughRecording` plays the shipped scene through simulated input and records it
+with MooseRunner's SessionRecorder to `.mooserunner/Recordings/playthrough`. It is `[Explicit]`
+because Unity Recorder logs benign errors when it stops, and a suite that leaves console errors is
+not a clean pass.
+**Why:** reviewers judging still frames judge composition; reviewers judging a playthrough judge the
+*game*. The first recorded run immediately produced a finding no still had: 112 seconds across three
+floors with **no Dweller visible at all**, on a build measured to hunt the player 88% of the time.
+**Note:** NUnit skips `[Explicit]` tests even under `--class` selection, so recording footage means
+removing the attribute for the run and restoring it after.
+

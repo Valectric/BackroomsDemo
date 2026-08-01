@@ -26,12 +26,14 @@ namespace Backrooms.EntityManager.Tests
         }
 
         /// <summary>
-        /// Builds a floor, stands a Dweller on it and photographs it from a few metres away, once
-        /// while it is unaware and once while it is hunting.
+        /// Builds a floor and photographs every kind of Dweller on it, once unaware and once
+        /// hunting. Six frames, and the pair that matters is any two kinds side by side: if a Watcher
+        /// and a Skitter are not obviously different animals at this distance, the roster is doing no
+        /// work.
         /// </summary>
         /// <param name="ct">Cancellation token supplied by the runner.</param>
         [Test]
-        public async UniTask HuntingDweller_LooksDifferentFromALurkingOne(CancellationToken ct)
+        public async UniTask EveryKind_ReadsAsItsOwnCreature(CancellationToken ct)
         {
             FloorTheme theme = FloorThemes.ForFloor(1);
             FloorAtmosphere.Apply(theme);
@@ -48,8 +50,7 @@ namespace Backrooms.EntityManager.Tests
             Vector2Int step = ViewingStep(layout, here);
 
             var prey = new GameObject("Prey");
-            prey.transform.position = layout.CellCenterToWorld(
-                Clamp(layout, here + step * 5));
+            prey.transform.position = layout.CellCenterToWorld(Clamp(layout, here + step * 5));
 
             var dwellerGo = new GameObject("Dweller");
             DwellerFacade dweller = dwellerGo.AddComponent<DwellerFacade>();
@@ -65,22 +66,26 @@ namespace Backrooms.EntityManager.Tests
             camGo.transform.position = layout.CellCenterToWorld(here + step) + Vector3.up * 1.7f;
             camGo.transform.rotation = Quaternion.LookRotation(stand + Vector3.up * 1.2f
                                                                - camGo.transform.position);
-            MooseRunnerFacade.Log($"dweller at {here}, camera at {here + step}, prey at {here + step * 5}");
 
-            // Unaware: the same Dweller with its senses turned off, so the only difference between
-            // the two frames is the state it is in.
-            dweller.Place(layout, here, prey.transform, 2.2f, seed: 5);
-            dweller.GetTestFacade().SetSenseRange(0);
-            for (int i = 0; i < 6; i++) await UniTask.Yield(ct);
-            Assert.IsFalse(dweller.IsChasing, "with no senses the Dweller must stay unaware");
-            await Capture("dweller-lurking", ct);
+            foreach (DwellerKind kind in System.Enum.GetValues(typeof(DwellerKind)))
+            {
+                string tag = kind.ToString().ToLowerInvariant();
+                dweller.SetKind(kind);
 
-            // Hunting: senses restored, prey well inside range.
-            dweller.Place(layout, here, prey.transform, 2.2f, seed: 5);
-            for (int i = 0; i < 6; i++) await UniTask.Yield(ct);
-            MooseRunnerFacade.Log($"dweller state while hunting: {dweller.State}");
-            Assert.IsTrue(dweller.IsChasing, "a Dweller four cells from its prey must be hunting");
-            await Capture("dweller-hunting", ct);
+                // Unaware: the same creature with its senses turned off, so the only difference
+                // between the two frames of a pair is the state it is in.
+                dweller.Place(layout, here, prey.transform, 2.2f, seed: 5);
+                dweller.GetTestFacade().SetSenseRange(0);
+                for (int i = 0; i < 6; i++) await UniTask.Yield(ct);
+                Assert.IsFalse(dweller.IsChasing, $"{kind} with no senses must stay unaware");
+                await Capture($"dweller-{tag}-lurking", ct);
+
+                dweller.Place(layout, here, prey.transform, 2.2f, seed: 5);
+                for (int i = 0; i < 6; i++) await UniTask.Yield(ct);
+                Assert.IsTrue(dweller.IsChasing, $"{kind} five cells from its prey must be hunting");
+                MooseRunnerFacade.Log($"{kind}: {dweller.DisplayName}, chasing={dweller.IsChasing}");
+                await Capture($"dweller-{tag}-hunting", ct);
+            }
         }
 
         /// <summary>

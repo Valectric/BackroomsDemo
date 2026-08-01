@@ -58,7 +58,12 @@ namespace Backrooms.UIManager
         /// </summary>
         /// <param name="hunted">Whether any Dweller is chasing.</param>
         /// <param name="closeness">How close the nearest one is, 0 at the edge of its range to 1 on top of you.</param>
-        public void SetHunted(bool hunted, float closeness) => Router.SetHunted(hunted, closeness);
+        /// <param name="hunterName">What the nearest hunter is called, or <c>null</c> for a generic warning.</param>
+        public void SetHunted(bool hunted, float closeness, string hunterName = null)
+            => Router.SetHunted(hunted, closeness, hunterName);
+
+        /// <summary>What the nearest hunting Dweller is called.</summary>
+        public string HunterName => Router.HunterName;
 
         /// <summary>Whether the pursuit warning is showing.</summary>
         public bool HuntedShown => Router.HuntedShown;
