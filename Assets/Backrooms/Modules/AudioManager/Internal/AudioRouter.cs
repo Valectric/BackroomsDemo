@@ -33,6 +33,15 @@ namespace Backrooms.AudioManager.Internal
         private float _stepTimer;
         private int _stepIndex;
 
+        /// <summary>The floor tone that has been asked for, whether or not it can play yet.</summary>
+        private int _wantedFloor;
+
+        /// <summary>Whether a user gesture has happened, so the browser will let sound out.</summary>
+        private bool _unlocked;
+
+        /// <summary>Whether sound is allowed to play yet.</summary>
+        public bool Unlocked => _unlocked;
+
         /// <summary>Volume the pursuit drone is currently at.</summary>
         public float DroneVolume => _drone == null ? 0f : _drone.volume;
 
@@ -55,7 +64,6 @@ namespace Backrooms.AudioManager.Internal
 
             _drone.clip = Clip("DwellerDrone", ToneGenerator.Drone(46f, 30, 0.9f));
             _drone.volume = 0f;
-            _drone.Play();
 
             _footsteps = new AudioClip[FootstepVariants];
             for (int i = 0; i < FootstepVariants; i++)
@@ -76,11 +84,36 @@ namespace Backrooms.AudioManager.Internal
         {
             if (_hum == null) return;
 
+            _wantedFloor = floor;
+
             // Drop a little deeper every floor and level off, so floor 20 is not inaudible.
             float fundamental = 50f * Mathf.Pow(0.97f, Mathf.Min(floor - 1, 18));
             _hum.clip = Clip($"Hum{floor}", ToneGenerator.Hum(fundamental, 24, 0.34f));
             _hum.volume = 0.30f;
-            _hum.Play();
+
+            if (_unlocked) _hum.Play();
+        }
+
+        /// <summary>
+        /// Notes that the player has interacted, which is the moment a browser will allow sound.
+        /// </summary>
+        /// <remarks>
+        /// Browsers keep the audio context suspended until a real user gesture. Anything started
+        /// before that is silent, and stays silent even once the context resumes, because the source
+        /// was begun against a dead context. That is why the game had no sound until the player died
+        /// once: the tap to retry was the first gesture, and restarting happened to re-issue Play.
+        /// Starting the loops here instead makes the first gesture the thing that opens them.
+        /// </remarks>
+        /// <param name="interacted">Whether the player did anything this frame.</param>
+        public void NoteInteraction(bool interacted)
+        {
+            if (_unlocked || !interacted || _hum == null) return;
+
+            _unlocked = true;
+            AudioListener.pause = false;
+
+            if (_wantedFloor > 0) _hum.Play();
+            _drone.Play();
         }
 
         /// <summary>
@@ -151,6 +184,17 @@ namespace Backrooms.AudioManager.Internal
         {
             if (_hum != null) _hum.Stop();
             if (_drone != null) _drone.volume = 0f;
+        }
+
+        /// <summary>
+        /// Restarts any loop that has fallen silent. A browser tab that was backgrounded, or an
+        /// audio context that resumed late, can leave a looping source stopped.
+        /// </summary>
+        public void KeepLoopsAlive()
+        {
+            if (!_unlocked || _hum == null) return;
+            if (_wantedFloor > 0 && !_hum.isPlaying && _hum.clip != null) _hum.Play();
+            if (!_drone.isPlaying && _drone.clip != null) _drone.Play();
         }
 
         /// <summary>

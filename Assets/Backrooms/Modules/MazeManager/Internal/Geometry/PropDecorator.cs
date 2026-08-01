@@ -18,17 +18,22 @@ namespace Backrooms.MazeManager.Internal.Geometry
     /// </remarks>
     internal sealed class PropDecorator
     {
+        // Furniture is deliberately sparse: a handful of pieces per floor rather than a dressed set.
+        // A Backrooms floor reads as abandoned because it is nearly empty, and a lone bench at the
+        // end of a corridor says more than a wall lined with them. These skip chances were an order
+        // of magnitude lower and the floors looked furnished rather than deserted.
+
         /// <summary>Chance a single-cell stub of wall is left bare.</summary>
-        private const double StubSkipChance = 0.8;
+        private const double StubSkipChance = 0.99;
 
         /// <summary>Chance a two-cell run of wall is left bare.</summary>
-        private const double ShortRunSkipChance = 0.5;
+        private const double ShortRunSkipChance = 0.95;
 
         /// <summary>Chance a run of three cells or more is left bare.</summary>
-        private const double LongRunSkipChance = 0.3;
+        private const double LongRunSkipChance = 0.88;
 
         /// <summary>Chance a cell with no walls at all gets an island piece of furniture.</summary>
-        private const double OpenCellChance = 0.5;
+        private const double OpenCellChance = 0.1;
 
         /// <summary>How far an island piece is offset from its cell centre, in metres.</summary>
         private const float IslandJitter = 1f;
@@ -113,6 +118,7 @@ namespace Backrooms.MazeManager.Internal.Geometry
         {
             var reserved = new HashSet<Vector2Int> { layout.Spawn };
             foreach (Vector2Int stairs in layout.Stairs) reserved.Add(stairs);
+            foreach (Vector2Int stairs in layout.StairsUp) reserved.Add(stairs);
             return reserved;
         }
 

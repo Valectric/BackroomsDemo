@@ -19,8 +19,8 @@ browser.
 
 | | |
 |---|---|
-| Tests | **110 green** (40 maze, 11 player, 13 HUD, 21 Dweller, 15 relic, 6 audio, 4 E2E), console clean |
-| Gameplay | Descend themed floors; find any of **three stairwells** to go deeper; detour for a **relic** at the far end of each floor; a **Lurker, a Watcher and a Skitter** hunt you; caught = run over, tap to retry |
+| Tests | **115 green** (43 maze, 11 player, 13 HUD, 21 Dweller, 15 relic, 8 audio, 4 E2E), console clean |
+| Gameplay | Title screen, then descend themed floors; find any of **three stairwells** to go deeper; detour for a **relic** at the far end of each floor; a **Lurker, a Watcher and a Skitter** hunt you; caught = run over, tap to retry |
 | Floors | **24×24 cells (96 m square)**. Yellow Rooms → Abandoned Mall → Janky Laundromat → Twisted Carnival → Condemned Asylum, then wraps |
 | Art | Procedural wallpaper/carpet/ceiling textures, skirting, structural columns, Kenney CC0 furniture laid along wall runs |
 | Controls | Phone: left half = stick (double-tap = Banisher), right half = look (double-tap = Blink). Desktop: WASD + hold-LMB, Shift sprint, same double-taps by screen half |

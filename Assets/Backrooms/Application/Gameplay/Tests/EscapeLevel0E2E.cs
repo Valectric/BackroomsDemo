@@ -51,6 +51,16 @@ namespace Backrooms.Gameplay.Tests
             Assert.IsNotNull(_controller, "the shipped scene must contain the gameplay controller");
             Assert.IsNotNull(_maze.CurrentLayout, "the scene should have generated a maze on start");
 
+            // The game opens on a title screen, which is both a front door and the user gesture a
+            // browser demands before it will play a sound. Get past it the way a player does.
+            _input = _player.GetTestFacade();
+            _input.SimulationEnabled = true;
+            _input.Tap();
+            for (int i = 0; i < 4; i++) await UniTask.Yield(ct);
+            _input.ClearInput();
+
+            Assert.IsFalse(_controller.IsAwaitingStart, "tapping the title should start the run");
+
             // NOTE: SessionRecorder video capture used to run here and produced a usable
             // walkthrough, but Unity Recorder logs "AudioRender ... called while system was not
             // recording" errors on stop, and a suite that leaves errors in the console is not a

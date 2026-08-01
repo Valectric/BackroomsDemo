@@ -86,6 +86,27 @@ namespace Backrooms.UIManager.Internal
         /// <summary>Whether the caught-by-a-Dweller banner is showing.</summary>
         public bool CaughtShown { get; private set; }
 
+        /// <summary>Whether the game is waiting on the title screen for the run to be started.</summary>
+        public bool TitleShown { get; private set; } = true;
+
+        /// <summary>
+        /// Shows the title screen and waits there.
+        /// </summary>
+        /// <param name="bestFloors">Deepest floor reached in any run.</param>
+        /// <param name="bestRelics">Most relics carried in any run.</param>
+        public void ShowTitle(int bestFloors, int bestRelics)
+        {
+            BestFloors = bestFloors;
+            BestRelics = bestRelics;
+            TitleShown = true;
+            CaughtShown = false;
+        }
+
+        /// <summary>
+        /// Leaves the title screen for a run in progress.
+        /// </summary>
+        public void HideTitle() => TitleShown = false;
+
         /// <summary>Whether a Dweller is currently hunting the player.</summary>
         public bool HuntedShown { get; private set; }
 
@@ -242,6 +263,12 @@ namespace Backrooms.UIManager.Internal
             if (IsPortrait)
             {
                 _overlays.DrawRotatePrompt();
+                return;
+            }
+
+            if (TitleShown)
+            {
+                _renderer.DrawTitle(BestFloors, BestRelics);
                 return;
             }
 

@@ -31,6 +31,122 @@ namespace Backrooms.MazeManager.Internal.Geometry
         private static readonly Color StairsGreen = new Color(0.35f, 1f, 0.45f);
 
         /// <summary>
+        /// Colour of the way up. Deliberately cold and dim next to the green: the player never needs
+        /// to find one — they arrive out of it — so it must not compete with the beacon that marks
+        /// the way onward.
+        /// </summary>
+        private static readonly Color StairsPale = new Color(0.62f, 0.72f, 0.85f);
+
+        /// <summary>
+        /// Builds a stairwell up in one cell: the flight the player emerges from.
+        /// </summary>
+        /// <remarks>
+        /// It is a real staircase rising into an opening cut in the ceiling, not a decoration. The
+        /// point is continuity — you came down stairs, so when you look back there are stairs. The
+        /// opening is the ceiling's version of the hole the way down cuts in the floor.
+        /// </remarks>
+        /// <param name="layout">The floor being built.</param>
+        /// <param name="cell">Cell to raise the stairwell in.</param>
+        /// <param name="wallHeight">Floor-to-ceiling height in metres.</param>
+        /// <param name="theme">Palette for the shaft lining and treads.</param>
+        /// <param name="parent">Parent transform for the stairwell.</param>
+        public void BuildUp(MazeLayout layout, Vector2Int cell, float wallHeight, FloorTheme theme,
+            Transform parent)
+        {
+            float cellSize = layout.CellSize;
+            Vector3 centre = layout.CellCenterToWorld(cell);
+
+            var root = new GameObject($"StairwellUp_{cell.x}_{cell.y}");
+            root.transform.SetParent(parent, worldPositionStays: false);
+
+            Material lining = MazeMaterials.Lit(theme.Trim * 0.8f);
+            Material tread = MazeMaterials.Lit(theme.Wall * 0.6f);
+
+            LineRise(root.transform, centre, cellSize, wallHeight, lining);
+
+            // Climb away from the doorway, the same way the down stairs descend away from it. Rising
+            // towards the doorway puts the tallest step in the player's face and the flight reads as
+            // a blank slab rather than as stairs.
+            BuildRise(root.transform, centre, cellSize, wallHeight,
+                DescentDirection(layout, cell), tread);
+            AddLight(root.transform, "UpGlow", centre + Vector3.up * (wallHeight + 0.6f),
+                1.6f, 5f, StairsPale);
+        }
+
+        /// <summary>
+        /// Lines the shaft above the ceiling, so looking up the stairs shows a stairwell rather than
+        /// straight out of the level.
+        /// </summary>
+        /// <param name="parent">Stairwell root transform.</param>
+        /// <param name="centre">World centre of the cell at floor level.</param>
+        /// <param name="cellSize">World size of one cell in metres.</param>
+        /// <param name="wallHeight">Floor-to-ceiling height in metres.</param>
+        /// <param name="lining">Material for the shaft walls and the landing above.</param>
+        private static void LineRise(Transform parent, Vector3 centre, float cellSize,
+            float wallHeight, Material lining)
+        {
+            float half = cellSize * 0.5f;
+            float midY = wallHeight + RiseShaft * 0.5f;
+
+            foreach (Direction dir in Directions.All)
+            {
+                Vector2Int d = Directions.Delta(dir);
+                var outward = new Vector3(d.x, 0f, d.y);
+                bool alongX = d.x == 0;
+
+                Vector3 size = alongX
+                    ? new Vector3(cellSize, RiseShaft, LiningThickness)
+                    : new Vector3(LiningThickness, RiseShaft, cellSize);
+
+                MazeMaterials.Cube(parent, $"RiseWall_{dir}",
+                    centre + outward * (half - LiningThickness * 0.5f) + Vector3.up * midY,
+                    size, lining);
+            }
+
+            MazeMaterials.Cube(parent, "RiseLanding",
+                centre + Vector3.up * (wallHeight + RiseShaft + LiningThickness * 0.5f),
+                new Vector3(cellSize, LiningThickness, cellSize), lining);
+        }
+
+        /// <summary>
+        /// Builds the ascending flight. Each tread is a solid block from the floor up to its top
+        /// face, so the staircase reads as one mass rather than as floating slabs.
+        /// </summary>
+        /// <param name="parent">Stairwell root transform.</param>
+        /// <param name="centre">World centre of the cell at floor level.</param>
+        /// <param name="cellSize">World size of one cell in metres.</param>
+        /// <param name="wallHeight">Floor-to-ceiling height in metres.</param>
+        /// <param name="ascent">Direction the steps climb towards.</param>
+        /// <param name="tread">Material for the treads.</param>
+        private static void BuildRise(Transform parent, Vector3 centre, float cellSize,
+            float wallHeight, Direction ascent, Material tread)
+        {
+            Vector2Int d = Directions.Delta(ascent);
+            var along = new Vector3(d.x, 0f, d.y);
+            float half = cellSize * 0.5f;
+            float run = cellSize / StepCount;
+            float width = cellSize - LiningThickness * 4f;
+            float rise = (wallHeight + 0.2f) / StepCount;
+
+            Vector3 foot = centre - along * half;
+
+            for (int i = 0; i < StepCount; i++)
+            {
+                float top = (i + 1) * rise;
+                Vector3 footprint = along * ((i + 0.5f) * run);
+                var size = d.x != 0
+                    ? new Vector3(run, top, width)
+                    : new Vector3(width, top, run);
+
+                MazeMaterials.Cube(parent, $"RiseStep_{i}",
+                    foot + footprint + Vector3.up * (top * 0.5f), size, tread);
+            }
+        }
+
+        /// <summary>How far the shaft above the ceiling extends, in metres.</summary>
+        private const float RiseShaft = 2.4f;
+
+        /// <summary>
         /// Builds a stairwell in one cell.
         /// </summary>
         /// <param name="layout">The floor being built.</param>
@@ -183,8 +299,9 @@ namespace Backrooms.MazeManager.Internal.Geometry
         /// <param name="intensity">Light intensity.</param>
         /// <param name="range">Light range in metres. A 12m range washed green through three cells
         /// of solid wall and gave the way down away from the far side of the floor.</param>
+        /// <param name="colour">Colour of the light.</param>
         private static void AddLight(Transform parent, string name, Vector3 position, float intensity,
-            float range)
+            float range, Color? colour = null)
         {
             var go = new GameObject(name);
             go.transform.SetParent(parent, worldPositionStays: false);
@@ -192,7 +309,7 @@ namespace Backrooms.MazeManager.Internal.Geometry
 
             var light = go.AddComponent<Light>();
             light.type = LightType.Point;
-            light.color = StairsGreen;
+            light.color = colour ?? StairsGreen;
             light.intensity = intensity;
             light.range = range;
             light.shadows = LightShadows.None;

@@ -71,6 +71,11 @@ namespace Backrooms.Gameplay.Tests
             _input = _player.GetTestFacade();
             _input.SimulationEnabled = true;
 
+            // Past the title the way a player gets past it.
+            _input.Tap();
+            for (int i = 0; i < 4; i++) await UniTask.Yield(ct);
+            _input.ClearInput();
+
             // Tag the Dwellers so the recording's motion log says where each one was and when,
             // which is what turns "something chased me" into something reviewable after the fact.
             foreach (DwellerFacade dweller in

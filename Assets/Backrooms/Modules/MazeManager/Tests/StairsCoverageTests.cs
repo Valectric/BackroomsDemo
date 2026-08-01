@@ -165,6 +165,76 @@ namespace Backrooms.MazeManager.Tests
         }
 
         /// <summary>
+        /// A floor must carry as many ways up as ways down, and the player must arrive out of one of
+        /// the ways up. That is what makes descending read as moving through a building rather than
+        /// as a teleport: you came down a staircase, so there is a staircase behind you.
+        /// </summary>
+        [Test]
+        public void EveryFloor_HasEqualStairsAndSpawnsAtAWayUp()
+        {
+            var facade = NewMaze();
+            for (int seed = 0; seed < 20; seed++)
+            {
+                MazeLayout layout = facade.Generate(new MazeSettings(FloorCells, FloorCells, seed));
+
+                Assert.AreEqual(layout.Stairs.Count, layout.StairsUp.Count,
+                    $"seed {seed}: as many ways up as down");
+                Assert.IsTrue(layout.IsStairsUp(layout.Spawn),
+                    $"seed {seed}: the player must arrive out of a way up");
+            }
+        }
+
+        /// <summary>
+        /// A cell may not be both a way up and a way down. One hole in the floor and one in the
+        /// ceiling of the same cell would leave the player standing in mid-air over a pit.
+        /// </summary>
+        [Test]
+        public void NoCell_IsBothAWayUpAndAWayDown()
+        {
+            var facade = NewMaze();
+            for (int seed = 0; seed < 20; seed++)
+            {
+                MazeLayout layout = facade.Generate(new MazeSettings(FloorCells, FloorCells, seed));
+
+                foreach (Vector2Int up in layout.StairsUp)
+                {
+                    Assert.IsFalse(layout.IsStairs(up),
+                        $"seed {seed}: cell {up} is both a way up and a way down");
+                }
+            }
+        }
+
+        /// <summary>
+        /// The ways up must be spread over the floor rather than clustered, since the player emerges
+        /// from a different one each run and every one of them should open onto a different part of
+        /// the level.
+        /// </summary>
+        [Test]
+        public void TheWaysUp_AreSpreadAcrossTheFloor()
+        {
+            var facade = NewMaze();
+            int closestSeen = int.MaxValue;
+
+            for (int seed = 0; seed < 20; seed++)
+            {
+                MazeLayout layout = facade.Generate(new MazeSettings(FloorCells, FloorCells, seed));
+
+                for (int i = 0; i < layout.StairsUp.Count; i++)
+                {
+                    for (int j = i + 1; j < layout.StairsUp.Count; j++)
+                    {
+                        int apart = Mathf.Abs(layout.StairsUp[i].x - layout.StairsUp[j].x)
+                                    + Mathf.Abs(layout.StairsUp[i].y - layout.StairsUp[j].y);
+                        closestSeen = Mathf.Min(closestSeen, apart);
+                    }
+                }
+            }
+
+            MooseRunnerFacade.Log($"closest pair of ways up across 20 seeds: {closestSeen} cells");
+            Assert.Greater(closestSeen, 4, "two ways up landed almost on top of each other");
+        }
+
+        /// <summary>
         /// Every stairwell must be reachable, and the floor must carry the number it was asked for.
         /// </summary>
         [Test]
