@@ -22,6 +22,24 @@ namespace Backrooms.UIManager.Internal
         /// <summary>Whether the caught-by-a-Dweller banner is showing.</summary>
         public bool CaughtShown { get; private set; }
 
+        /// <summary>Whether a Dweller is currently hunting the player.</summary>
+        public bool HuntedShown { get; private set; }
+
+        /// <summary>How close the nearest hunting Dweller is, 0 at the edge of its range and 1 on top of you.</summary>
+        public float HuntedCloseness { get; private set; }
+
+        /// <summary>
+        /// Sets the pursuit warning. The player cannot see behind them and fog hides most of what is
+        /// ahead, so being hunted has to be said on the HUD as well as shown in the world.
+        /// </summary>
+        /// <param name="hunted">Whether any Dweller is chasing.</param>
+        /// <param name="closeness">How close the nearest one is, clamped to 0..1.</param>
+        public void SetHunted(bool hunted, float closeness)
+        {
+            HuntedShown = hunted;
+            HuntedCloseness = Mathf.Clamp01(closeness);
+        }
+
         /// <summary>
         /// Shows the banner for being caught by a Dweller and freezes the final time.
         /// </summary>
@@ -92,6 +110,8 @@ namespace Backrooms.UIManager.Internal
             ElapsedSeconds = 0f;
             EscapedShown = false;
             CaughtShown = false;
+            HuntedShown = false;
+            HuntedCloseness = 0f;
             Floor = 1;
             FloorName = string.Empty;
             BannerRemaining = 0f;
@@ -113,6 +133,11 @@ namespace Backrooms.UIManager.Internal
                 _renderer.DrawEscaped(ElapsedSeconds);
                 return;
             }
+
+            // The pursuit warning is drawn under the arrival banner but over the status line, and
+            // stays visible during the banner — arriving on a floor next to a Dweller is exactly when
+            // the player most needs telling.
+            if (HuntedShown) _renderer.DrawHunted(HuntedCloseness, ElapsedSeconds);
 
             _renderer.DrawStatus(ElapsedSeconds, Floor);
             if (BannerShown) _renderer.DrawFloorBanner(Floor, FloorName);

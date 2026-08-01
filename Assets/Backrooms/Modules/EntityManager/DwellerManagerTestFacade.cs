@@ -49,6 +49,15 @@ namespace Backrooms.EntityManager
         public void SetSenseRange(int cells) => _router.SenseRangeCells = cells;
 
         /// <summary>
+        /// Sets how far a patrol trip travels before a new one is planned.
+        /// </summary>
+        /// <param name="cells">Shortest patrol trip, in cells of grid separation.</param>
+        public void SetPatrolSpan(int cells) => _router.PatrolSpanCells = cells;
+
+        /// <summary>Whether the Dweller is actively hunting the player.</summary>
+        public bool IsChasing => _router.IsChasing;
+
+        /// <summary>
         /// Recomputes the Dweller's state against a player position.
         /// </summary>
         /// <param name="playerCell">The player's cell.</param>

@@ -53,6 +53,16 @@ namespace Backrooms.UIManager
         /// <summary>Whether the caught banner is showing.</summary>
         public bool CaughtShown => Router.CaughtShown;
 
+        /// <summary>
+        /// Sets the pursuit warning shown while a Dweller is hunting the player.
+        /// </summary>
+        /// <param name="hunted">Whether any Dweller is chasing.</param>
+        /// <param name="closeness">How close the nearest one is, 0 at the edge of its range to 1 on top of you.</param>
+        public void SetHunted(bool hunted, float closeness) => Router.SetHunted(hunted, closeness);
+
+        /// <summary>Whether the pursuit warning is showing.</summary>
+        public bool HuntedShown => Router.HuntedShown;
+
         /// <summary>Floor number currently shown on the HUD.</summary>
         public int Floor => Router.Floor;
 

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Backrooms.EntityManager;
 using Backrooms.MazeManager;
 using Backrooms.PlayerManager;
@@ -24,8 +25,17 @@ namespace Backrooms.Gameplay
         [Tooltip("The heads-up display. Found in the scene if left empty.")]
         [SerializeField] private HudFacade hud;
 
-        [Tooltip("The Dweller that hunts the player. Found in the scene if left empty.")]
+        [Tooltip("A Dweller that hunts the player. Any others needed for the floor size are spawned.")]
         [SerializeField] private DwellerFacade dweller;
+
+        [Tooltip("Grid cells of floor per Dweller. A 24x24 floor at 190 gets three.")]
+        [SerializeField] private int cellsPerDweller = 190;
+
+        [Tooltip("Never place more than this many Dwellers on one floor.")]
+        [SerializeField] private int maxDwellers = 4;
+
+        /// <summary>Every Dweller currently roaming the floor.</summary>
+        private readonly List<DwellerFacade> _dwellers = new List<DwellerFacade>();
 
         [Header("Run")]
         [Tooltip("Seed for the maze. Change for a different layout.")]
@@ -48,6 +58,37 @@ namespace Backrooms.Gameplay
 
         /// <summary>Whether a Dweller has caught the player and ended the run.</summary>
         public bool IsCaught { get; private set; }
+
+        /// <summary>How many Dweller are roaming the current floor.</summary>
+        public int DwellerCount => _dwellers.Count;
+
+        /// <summary>Whether any Dweller is currently hunting the player.</summary>
+        public bool IsHunted
+        {
+            get
+            {
+                foreach (DwellerFacade d in _dwellers)
+                {
+                    if (d != null && d.IsChasing) return true;
+                }
+
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Whether any Dweller on the floor has reached the player.
+        /// </summary>
+        /// <returns><c>true</c> if the run is over.</returns>
+        private bool AnyDwellerCaughtPlayer()
+        {
+            foreach (DwellerFacade d in _dwellers)
+            {
+                if (d != null && d.HasCaught) return true;
+            }
+
+            return false;
+        }
 
         /// <summary>Seconds of gameplay elapsed since the run started.</summary>
         public float ElapsedSeconds { get; private set; }
@@ -104,6 +145,7 @@ namespace Backrooms.Gameplay
             ElapsedSeconds = 0f;
             CurrentFloor = 0;
             IsCaught = false;
+            player.MovementEnabled = true;
             if (hud != null) hud.ResetHud();
 
             DescendToNextFloor();
@@ -124,7 +166,7 @@ namespace Backrooms.Gameplay
             player.SpawnAt(maze.GetSpawnPosition());
             FloorAtmosphere.Apply(theme);
 
-            PlaceDweller();
+            PlaceDwellers();
 
             if (hud != null) hud.ShowFloor(CurrentFloor, theme.Name);
             Debug.Log($"[Gameplay] Floor {CurrentFloor}: {theme.Name}");
@@ -135,64 +177,156 @@ namespace Backrooms.Gameplay
         /// deeper floors are meant to be deadlier.
         /// </summary>
         /// <remarks>
-        /// It starts in a far corner that is neither the player's spawn nor a stairwell. Spawning it
-        /// on a way down would have it camping a cell the player has to reach, and spawning it near
-        /// the player would be an instant, unavoidable death.
+        /// How many is decided by the floor's area, not by taste. One Dweller wandering a 24×24 grid
+        /// is one Dweller you never meet: it has 576 cells to cover and the player is heading for the
+        /// nearest way down. Dwellers start in the corners furthest from the spawn — never on a
+        /// stairwell, which would have one camping a cell the player has to reach, and never next to
+        /// the player, which is an unavoidable death.
         /// </remarks>
-        private void PlaceDweller()
+        private void PlaceDwellers()
         {
-            if (dweller == null) return;
-
             MazeLayout layout = maze.CurrentLayout;
+            List<Vector2Int> starts = DwellerStarts(layout);
+            EnsureDwellers(starts.Count);
+
             float speed = dwellerBaseSpeed + (CurrentFloor - 1) * dwellerSpeedPerFloor;
-            dweller.Place(layout, ChooseDwellerStart(layout), player.transform, speed,
-                seed + CurrentFloor);
+            for (int i = 0; i < _dwellers.Count; i++)
+            {
+                if (i < starts.Count)
+                {
+                    _dwellers[i].Place(layout, starts[i], player.transform, speed,
+                        seed + CurrentFloor * 31 + i);
+                }
+                else
+                {
+                    _dwellers[i].Hide();
+                }
+            }
         }
 
         /// <summary>
-        /// Picks the corner a Dweller starts in: the corners are tried in an order that rotates with
-        /// the floor number, so consecutive floors do not all start it in the same place, and any
-        /// corner holding the spawn or a stairwell is skipped.
+        /// How many Dwellers this floor gets, and where each starts. Candidates are the four corners
+        /// plus the edge midpoints, ordered by distance from the spawn so the first Dwellers placed
+        /// are the furthest away.
         /// </summary>
         /// <param name="layout">The floor being populated.</param>
-        /// <returns>The cell to start the Dweller in.</returns>
-        private Vector2Int ChooseDwellerStart(MazeLayout layout)
+        /// <returns>One start cell per Dweller the floor should carry.</returns>
+        private List<Vector2Int> DwellerStarts(MazeLayout layout)
         {
-            Vector2Int[] corners =
+            int wanted = Mathf.Clamp(
+                layout.Width * layout.Height / Mathf.Max(1, cellsPerDweller), 1, Mathf.Max(1, maxDwellers));
+
+            int right = layout.Width - 1;
+            int top = layout.Height - 1;
+            var candidates = new List<Vector2Int>
             {
-                new Vector2Int(0, layout.Height - 1),
-                new Vector2Int(layout.Width - 1, 0),
-                new Vector2Int(layout.Width - 1, layout.Height - 1)
+                new Vector2Int(right, top),
+                new Vector2Int(0, top),
+                new Vector2Int(right, 0),
+                new Vector2Int(right / 2, top),
+                new Vector2Int(right, top / 2),
+                new Vector2Int(right / 2, top / 2)
             };
 
-            for (int i = 0; i < corners.Length; i++)
+            // Rotating the order by floor number stops every floor opening with the Dwellers in
+            // identical places, without making their positions unpredictable within a run.
+            var starts = new List<Vector2Int>(wanted);
+            for (int i = 0; i < candidates.Count && starts.Count < wanted; i++)
             {
-                Vector2Int candidate = corners[(CurrentFloor + i) % corners.Length];
-                if (candidate == layout.Spawn) continue;
-                if (layout.IsStairs(candidate)) continue;
-                return candidate;
+                Vector2Int cell = candidates[(i + CurrentFloor) % candidates.Count];
+                if (cell == layout.Spawn) continue;
+                if (layout.IsStairs(cell)) continue;
+                if (starts.Contains(cell)) continue;
+                starts.Add(cell);
             }
 
-            return corners[0];
+            if (starts.Count == 0) starts.Add(new Vector2Int(right, top));
+            return starts;
         }
+
+        /// <summary>
+        /// Grows the pool of Dwellers to the requested size, reusing any authored in the scene and
+        /// creating the rest. Dwellers persist between floors and are re-placed rather than rebuilt.
+        /// </summary>
+        /// <param name="count">How many Dwellers the floor needs.</param>
+        private void EnsureDwellers(int count)
+        {
+            if (_dwellers.Count == 0)
+            {
+                if (dweller != null) _dwellers.Add(dweller);
+                foreach (DwellerFacade found in FindObjectsByType<DwellerFacade>(FindObjectsSortMode.None))
+                {
+                    if (!_dwellers.Contains(found)) _dwellers.Add(found);
+                }
+            }
+
+            while (_dwellers.Count < count)
+            {
+                var go = new GameObject($"Dweller_{_dwellers.Count}");
+                go.transform.SetParent(transform.parent, worldPositionStays: true);
+                _dwellers.Add(go.AddComponent<DwellerFacade>());
+            }
+        }
+
+        /// <summary>
+        /// Updates the HUD's pursuit warning from whichever Dweller is hunting and closest.
+        /// </summary>
+        private void ReportPursuit()
+        {
+            if (hud == null) return;
+
+            float closest = float.PositiveInfinity;
+            foreach (DwellerFacade d in _dwellers)
+            {
+                if (d == null || !d.IsChasing) continue;
+                closest = Mathf.Min(closest, Vector3.Distance(
+                    new Vector3(d.transform.position.x, 0f, d.transform.position.z),
+                    new Vector3(player.Position.x, 0f, player.Position.z)));
+            }
+
+            bool hunted = !float.IsPositiveInfinity(closest);
+            hud.SetHunted(hunted, hunted ? 1f - Mathf.Clamp01(closest / HuntedWarningMetres) : 0f);
+        }
+
+        /// <summary>
+        /// Distance at which the pursuit warning is at its faintest. Beyond a Dweller's sense range,
+        /// so the warning is already up by the time one is visible through the fog.
+        /// </summary>
+        private const float HuntedWarningMetres = 34f;
 
         /// <summary>
         /// Tracks run time and detects the player reaching a stairwell down.
         /// </summary>
         private void Update()
         {
-            if (IsCaught || HasEscaped || maze == null || player == null) return;
+            if (maze == null || player == null) return;
 
-            if (dweller != null && dweller.HasCaught)
+            if (IsCaught)
+            {
+                // A death screen you cannot leave is not a losing condition, it is a dead end.
+                if (player.ConfirmPressed) StartRun(seed);
+                return;
+            }
+
+            if (HasEscaped) return;
+
+            if (AnyDwellerCaughtPlayer())
             {
                 IsCaught = true;
-                if (hud != null) hud.ShowCaught(CurrentFloor, ElapsedSeconds);
+                player.MovementEnabled = false;
+                if (hud != null)
+                {
+                    hud.SetHunted(false, 0f);
+                    hud.ShowCaught(CurrentFloor, ElapsedSeconds);
+                }
+
                 Debug.Log($"[Gameplay] Caught on floor {CurrentFloor} after {ElapsedSeconds:F1}s");
                 return;
             }
 
             ElapsedSeconds += Time.deltaTime;
             if (hud != null) hud.SetElapsed(ElapsedSeconds);
+            ReportPursuit();
 
             if (DistanceToStairs <= stairsRadius)
             {

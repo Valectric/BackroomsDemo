@@ -55,6 +55,20 @@ namespace Backrooms.Editor
 
             if (EditorApplication.isCompiling || EditorApplication.isUpdating) return;
 
+            // Scene authoring cannot run in Play Mode — EditorSceneManager.NewScene throws. The
+            // editor is left in Play Mode by every test run, so this is the normal state after a
+            // working loop, and consuming the sentinel here would silently ship a stale scene while
+            // the build "succeeded". Leave the sentinel alone and pick it up on the way out.
+            if (EditorApplication.isPlaying)
+            {
+                if (File.Exists(SceneSentinel))
+                {
+                    Debug.Log("[Backrooms] Scene rebuild deferred until Play Mode exits.");
+                }
+
+                return;
+            }
+
             TryRun(SceneSentinel, BackroomsSceneBuilder.BuildScene);
             TryRun(WebGLSentinel, BackroomsWebGLBuilder.BuildWebGL);
             TryRun(KenneySentinel, KenneyModelPostprocessor.ReimportPack);

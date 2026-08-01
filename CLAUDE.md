@@ -87,6 +87,15 @@ Deploy: build into `docs/`, commit, push. Pages serves `main` `/docs`. Check wit
   that code compiled is running a test.**
 - A **brand-new test `.asmdef` needs TWO `force-recompile` passes** before `test --assembly` finds
   it; the first attempt reports "Assembly not found in loaded assemblies".
+- **Sentinel builds are a no-op while the editor is in Play Mode**, which is where every test run
+  leaves it. `EditorSceneManager.NewScene` throws, and the trigger used to consume the sentinel
+  anyway — so the scene silently stayed stale while the loop looked green. `BackroomsBuildTriggers`
+  now defers instead of consuming, but the ordering still matters: **`force-recompile` first to exit
+  Play Mode, then `touch` the sentinel.** Touching first means the currently-loaded (possibly stale)
+  assembly serialises the scene.
+- **Serialized scene values beat code defaults.** Changing a `[SerializeField]` default does nothing
+  to the shipped scene until it is rebuilt — a renamed field drops its old value, but a changed
+  default does not apply. Check the value landed: `grep -n '<field>' Assets/Backrooms/.../Backrooms.unity`.
 - Long CLI commands report `[MODAL]` when the editor is merely busy building. **Never `unity_stop`
   during a build** — that kills it. Open Package Manager / Project Settings windows also register as
   false-positive modals.
@@ -132,7 +141,13 @@ every assertion and only a rendered frame caught them: stripped shaders (magenta
 limits (flat lighting), and model facing (furniture backwards).
 
 - `FloorLookTests` photographs every floor: an **orthographic, fog-off, ceiling-hidden plan view**
-  plus an eye-level view, into `Screenshots/`. Read the PNGs.
+  plus an eye-level view, into `Screenshots/`. Read the PNGs. `DwellerLookTests` and `HudLookTests`
+  do the same for the pursuit tell and the HUD warning.
+- **Green unit tests can hide a broken *rate*.** Every Dweller test passed while the shipped game let
+  you cross a whole floor without meeting one: pathing, states and catching were each correct, and
+  the encounter rate — the thing that was actually broken — was measured by none of them.
+  `DwellerEncounterTests` simulates whole crossings and asserts a percentage. Reach for that shape
+  whenever behaviour is correct but the game still feels wrong.
 - **The editor is not the shipping renderer.** `QualitySettings` sets WebGL to tier 0 (Mobile,
   0.8 render scale, no MSAA) while the editor runs tier 1 (PC).
 - For quick iteration, serve the build locally (`python -m http.server 8765` in `docs/`) and drive a

@@ -51,8 +51,47 @@ namespace Backrooms.EntityManager.Internal.Behaviour
         }
 
         /// <summary>
-        /// The next cell to move into when wandering: a random reachable neighbour, preferring not to
-        /// double back so patrols drift along corridors instead of jittering in place.
+        /// Plans a patrol: a route to a random cell some distance away, which the Dweller then walks
+        /// end to end.
+        /// </summary>
+        /// <remarks>
+        /// This replaces step-by-step random wandering, and the difference is not cosmetic. A random
+        /// walk re-treads the cells it has already visited and spreads only as the square root of the
+        /// steps taken, so on a 24×24 floor a wandering Dweller effectively never reaches the player —
+        /// which is exactly what "I don't see any dwellers" looks like from the inside. Walking a
+        /// planned route covers ground linearly instead, so Dwellers actually arrive somewhere.
+        /// </remarks>
+        /// <param name="layout">The maze being traversed.</param>
+        /// <param name="from">The Dweller's cell.</param>
+        /// <param name="minCells">Shortest acceptable trip, in cells of grid separation.</param>
+        /// <returns>The route excluding the starting cell, or <c>null</c> if none was found.</returns>
+        public List<Vector2Int> PlanPatrol(MazeLayout layout, Vector2Int from, int minCells)
+        {
+            for (int attempt = 0; attempt < PatrolAttempts; attempt++)
+            {
+                var candidate = new Vector2Int(_rng.Next(layout.Width), _rng.Next(layout.Height));
+                if (candidate == from) continue;
+
+                int spread = Mathf.Abs(candidate.x - from.x) + Mathf.Abs(candidate.y - from.y);
+                if (spread < minCells) continue;
+
+                List<Vector2Int> route = FindPath(layout, from, candidate);
+                if (route != null && route.Count > 0) return route;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// How many random destinations to try before giving up and wandering a step instead. The
+        /// limit matters on small or awkward grids where few cells are far enough away.
+        /// </summary>
+        private const int PatrolAttempts = 12;
+
+        /// <summary>
+        /// The next cell to move into when no patrol route is available: a random reachable
+        /// neighbour, preferring not to double back so the Dweller drifts along a corridor instead of
+        /// jittering in place.
         /// </summary>
         /// <param name="layout">The maze being traversed.</param>
         /// <param name="from">The Dweller's cell.</param>

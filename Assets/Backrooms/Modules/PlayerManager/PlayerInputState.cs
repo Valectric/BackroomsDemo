@@ -22,12 +22,19 @@ namespace Backrooms.PlayerManager
         /// <summary>Whether the sprint action is held.</summary>
         public bool Sprint;
 
+        /// <summary>
+        /// Whether a confirm press started this frame — a click or a tap. Used for out-of-gameplay
+        /// choices such as restarting after a Dweller catches you; movement ignores it.
+        /// </summary>
+        public bool Confirm;
+
         /// <summary>Input representing "no intent at all".</summary>
         public static PlayerInputState None => new PlayerInputState
         {
             Move = Vector2.zero,
             Look = Vector2.zero,
-            Sprint = false
+            Sprint = false,
+            Confirm = false
         };
     }
 }
