@@ -1,13 +1,8 @@
 {
-    "name": "Backrooms.Gameplay",
-    "rootNamespace": "Backrooms.Gameplay",
+    "name": "Backrooms.RelicManager",
+    "rootNamespace": "Backrooms.RelicManager",
     "references": [
-        "Backrooms.EntityManager",
-        "Backrooms.MazeManager",
-        "Backrooms.PlayerManager",
-        "Backrooms.UIManager",
-        "Backrooms.RelicManager",
-        "Backrooms.AudioManager"
+        "Backrooms.MazeManager"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

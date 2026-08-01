@@ -48,7 +48,20 @@ namespace Backrooms.UIManager
         /// </summary>
         /// <param name="floor">Floor the run ended on.</param>
         /// <param name="finalSeconds">How long the player lasted.</param>
-        public void ShowCaught(int floor, float finalSeconds) => Router.ShowCaught(floor, finalSeconds);
+        /// <param name="relics">How many relics they were carrying.</param>
+        /// <param name="bestFloors">Deepest floor reached in any run.</param>
+        /// <param name="bestRelics">Most relics carried in any run.</param>
+        public void ShowCaught(int floor, float finalSeconds, int relics, int bestFloors, int bestRelics)
+            => Router.ShowCaught(floor, finalSeconds, relics, bestFloors, bestRelics);
+
+        /// <summary>
+        /// Announces that a relic was just picked up.
+        /// </summary>
+        /// <param name="total">How many the player now carries.</param>
+        public void ShowRelic(int total) => Router.ShowRelic(total);
+
+        /// <summary>How many relics the HUD is showing.</summary>
+        public int Relics => Router.Relics;
 
         /// <summary>Whether the caught banner is showing.</summary>
         public bool CaughtShown => Router.CaughtShown;
@@ -79,7 +92,9 @@ namespace Backrooms.UIManager
         /// </summary>
         /// <param name="floor">Floor number the player reached.</param>
         /// <param name="name">Display name of that floor.</param>
-        public void ShowFloor(int floor, string name) => Router.ShowFloor(floor, name);
+        /// <param name="relics">How many relics the player is carrying.</param>
+        public void ShowFloor(int floor, string name, int relics)
+            => Router.ShowFloor(floor, name, relics);
 
         /// <summary>
         /// Counts the arrival banner down on the frame clock.

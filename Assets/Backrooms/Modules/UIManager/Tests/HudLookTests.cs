@@ -42,7 +42,7 @@ namespace Backrooms.UIManager.Tests
             var hudGo = new GameObject("Hud");
             HudFacade hud = hudGo.AddComponent<HudFacade>();
             hud.SetElapsed(74f);
-            hud.ShowFloor(3, "JANKY LAUNDROMAT");
+            hud.ShowFloor(3, "JANKY LAUNDROMAT", 1);
 
             hud.SetHunted(true, 0.15f);
             await Capture("hud-hunted-far", ct);
@@ -51,7 +51,7 @@ namespace Backrooms.UIManager.Tests
             await Capture("hud-hunted-close", ct);
 
             hud.SetHunted(false, 0f);
-            hud.ShowCaught(3, 74f);
+            hud.ShowCaught(3, 74f, relics: 2, bestFloors: 5, bestRelics: 4);
             await Capture("hud-caught", ct);
 
             Assert.IsTrue(hud.CaughtShown, "the caught screen should be the one photographed last");
