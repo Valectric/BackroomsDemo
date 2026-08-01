@@ -105,6 +105,16 @@ namespace Backrooms.EntityManager
         }
 
         /// <summary>
+        /// Whether this Dweller is on a floor and able to act.
+        /// </summary>
+        public bool IsActive => _router.Layout != null;
+
+        /// <summary>
+        /// Unmakes the Dweller: it leaves the floor and does not come back until the next one.
+        /// </summary>
+        public void Banish() => Hide();
+
+        /// <summary>
         /// Hides the Dweller, used while no floor is active.
         /// </summary>
         public void Hide()

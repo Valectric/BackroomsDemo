@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Backrooms.EntityManager;
 using Backrooms.MazeManager;
 using Backrooms.PlayerManager;
+using System.Collections.Generic;
 using Backrooms.RelicManager;
 using Backrooms.UIManager;
 using Backrooms.AudioManager;
@@ -44,6 +45,15 @@ namespace Backrooms.Gameplay
 
         /// <summary>Decides how many Dwellers a floor carries and where they go.</summary>
         private DwellerDirector _director;
+
+        /// <summary>Turns carried relics into compass arrows and usable powers.</summary>
+        private readonly PowerDirector _powers = new PowerDirector();
+
+        /// <summary>Reused each frame so the HUD is not handed fresh lists sixty times a second.</summary>
+        private readonly List<string> _carriedLines = new List<string>();
+
+        /// <summary>Colour for each carried line.</summary>
+        private readonly List<Color> _carriedColours = new List<Color>();
 
         [Header("Run")]
         [Tooltip("Seed for the maze. Change for a different layout.")]
@@ -121,6 +131,44 @@ namespace Backrooms.Gameplay
         private const float HuntedWarningMetres = 34f;
 
         /// <summary>
+        /// Acts on the player's double-tap gestures, spending a relic if one fires.
+        /// </summary>
+        private void UsePowers()
+        {
+            if (!_powers.TryUsePowers(relics, player, _director, out RelicKind used)) return;
+
+            if (audioModule != null) audioModule.PlayRelic();
+            if (hud != null) hud.ShowRelic(RelicsCollected);
+            Debug.Log($"[Gameplay] Used {RelicArchetypes.For(used).DisplayName}");
+        }
+
+        /// <summary>
+        /// Feeds the HUD the compass arrows and the list of what the player is carrying.
+        /// </summary>
+        private void ReportCarried()
+        {
+            if (hud == null || relics == null) return;
+
+            hud.SetCompass(_powers.Compasses(relics, player, maze, _director));
+
+            _carriedLines.Clear();
+            _carriedColours.Clear();
+            foreach (RelicKind kind in relics.Carried)
+            {
+                RelicArchetype archetype = RelicArchetypes.For(kind);
+                int charges = relics.ChargesOf(kind);
+
+                // Unlimited relics are stored as -1; showing "-1 left" would be nonsense.
+                _carriedLines.Add(charges < 0
+                    ? archetype.DisplayName
+                    : $"{archetype.DisplayName}  x{charges}");
+                _carriedColours.Add(archetype.Colour);
+            }
+
+            hud.SetCarried(_carriedLines, _carriedColours);
+        }
+
+        /// <summary>
         /// Collects a relic if the player has reached one, and says so.
         /// </summary>
         private void CollectRelics()
@@ -128,6 +176,9 @@ namespace Backrooms.Gameplay
             if (relics == null || !relics.TryCollect(player.Position)) return;
             if (audioModule != null) audioModule.PlayRelic();
             if (hud != null) hud.ShowRelic(RelicsCollected);
+
+            RelicArchetype found = RelicArchetypes.For(relics.LastCollected);
+            Debug.Log($"[Gameplay] Found {found.DisplayName}: {found.Effect}");
         }
 
         /// <summary>
@@ -224,7 +275,8 @@ namespace Backrooms.Gameplay
 
             _director.PopulateFloor(maze.CurrentLayout, CurrentFloor, player.transform,
                 dwellerBaseSpeed + (CurrentFloor - 1) * dwellerSpeedPerFloor, seed);
-            if (relics != null) relics.PlaceForFloor(maze.CurrentLayout, seed + CurrentFloor * 613);
+            if (relics != null) relics.PlaceForFloor(maze.CurrentLayout, seed + CurrentFloor * 613,
+                CurrentFloor - 1);
 
             if (audioModule != null)
             {
@@ -252,6 +304,14 @@ namespace Backrooms.Gameplay
 
             if (HasEscaped) return;
 
+            if (_director.AnyCaughtPlayer() && _powers.TrySpendWard(relics, _director))
+            {
+                // The ward took it. Say so where the player is already looking for bad news.
+                if (hud != null) hud.ShowRelic(RelicsCollected);
+                if (audioModule != null) audioModule.PlayRelic();
+                Debug.Log($"[Gameplay] A ward absorbed a Dweller on floor {CurrentFloor}");
+            }
+
             if (_director.AnyCaughtPlayer())
             {
                 IsCaught = true;
@@ -273,6 +333,9 @@ namespace Backrooms.Gameplay
             ReportPursuit();
             CollectRelics();
             ReportMovement();
+            UsePowers();
+            ReportCarried();
+            if (hud != null) hud.SetPlayerActive(player.HasInput);
 
             if (DistanceToStairs <= stairsRadius)
             {

@@ -38,7 +38,44 @@ namespace Backrooms.RelicManager
         /// <param name="parent">Transform to parent the relics under.</param>
         /// <returns>The cells that received a relic.</returns>
         public List<Vector2Int> Place(MazeLayout layout, int count, int seed, Transform parent)
-            => _router.Place(layout, count, seed, parent);
+            => _router.Place(layout, count, seed, 0, parent);
+
+        /// <summary>
+        /// Places relics choosing which kind the floor offers first.
+        /// </summary>
+        /// <param name="layout">The floor to place on.</param>
+        /// <param name="count">How many relics to place.</param>
+        /// <param name="seed">Seed for deterministic placement.</param>
+        /// <param name="firstKind">Index into the roster for the first relic.</param>
+        /// <param name="parent">Transform to parent the relics under.</param>
+        /// <returns>The cells that received a relic.</returns>
+        public List<Vector2Int> Place(MazeLayout layout, int count, int seed, int firstKind,
+            Transform parent)
+            => _router.Place(layout, count, seed, firstKind, parent);
+
+        /// <summary>The kind picked up by the most recent successful collect.</summary>
+        public RelicKind LastCollected => _router.LastCollected;
+
+        /// <summary>
+        /// Whether the player is carrying a kind of relic with uses left.
+        /// </summary>
+        /// <param name="kind">Kind to test.</param>
+        /// <returns><c>true</c> if held and not spent.</returns>
+        public bool Holds(RelicKind kind) => _router.Holds(kind);
+
+        /// <summary>
+        /// How many uses of a kind remain.
+        /// </summary>
+        /// <param name="kind">Kind to query.</param>
+        /// <returns>Uses left, 0 if not held, -1 if unlimited.</returns>
+        public int ChargesOf(RelicKind kind) => _router.ChargesOf(kind);
+
+        /// <summary>
+        /// Spends one use of a relic.
+        /// </summary>
+        /// <param name="kind">Kind to spend.</param>
+        /// <returns><c>true</c> if a use was spent.</returns>
+        public bool Spend(RelicKind kind) => _router.Spend(kind);
 
         /// <summary>
         /// Whether a cell still holds an uncollected relic.

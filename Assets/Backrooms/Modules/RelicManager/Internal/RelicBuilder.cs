@@ -14,9 +14,6 @@ namespace Backrooms.RelicManager.Internal
     /// </remarks>
     internal sealed class RelicBuilder
     {
-        /// <summary>Colour of the shard and the light it throws.</summary>
-        private static readonly Color RelicViolet = new Color(0.72f, 0.42f, 1f);
-
         /// <summary>Height of the shard's centre above the floor, in metres.</summary>
         private const float FloatHeight = 1.15f;
 
@@ -25,19 +22,21 @@ namespace Backrooms.RelicManager.Internal
         /// </summary>
         /// <param name="layout">The floor being dressed.</param>
         /// <param name="cell">Cell to place the relic in.</param>
+        /// <param name="archetype">Which relic this is, which sets its colour.</param>
         /// <param name="parent">Parent transform for the relic.</param>
         /// <returns>The relic's root object, carrying its spinner.</returns>
-        public GameObject Build(MazeLayout layout, Vector2Int cell, Transform parent)
+        public GameObject Build(MazeLayout layout, Vector2Int cell, RelicArchetype archetype,
+            Transform parent)
         {
             Vector3 centre = layout.CellCenterToWorld(cell);
 
-            var root = new GameObject($"Relic_{cell.x}_{cell.y}");
+            var root = new GameObject($"Relic_{archetype.Kind}_{cell.x}_{cell.y}");
             root.transform.SetParent(parent, worldPositionStays: false);
             root.transform.position = centre;
 
             BuildPlinth(root.transform);
-            BuildShard(root.transform);
-            BuildGlow(root.transform);
+            BuildShard(root.transform, archetype.Colour);
+            BuildGlow(root.transform, archetype.Colour);
 
             return root;
         }
@@ -64,14 +63,15 @@ namespace Backrooms.RelicManager.Internal
         /// this budget reads as "an object with facets" rather than "a box".
         /// </summary>
         /// <param name="parent">Relic root transform.</param>
-        private static void BuildShard(Transform parent)
+        /// <param name="colour">Colour this relic glows.</param>
+        private static void BuildShard(Transform parent, Color colour)
         {
             var shard = new GameObject("Shard");
             shard.transform.SetParent(parent, worldPositionStays: false);
             shard.transform.localPosition = new Vector3(0f, FloatHeight, 0f);
             shard.AddComponent<RelicSpinner>();
 
-            Material glow = Unlit(RelicViolet);
+            Material glow = Unlit(colour);
             foreach (float tilt in new[] { 0f, 45f })
             {
                 var facet = GameObject.CreatePrimitive(PrimitiveType.Cube);
@@ -89,7 +89,8 @@ namespace Backrooms.RelicManager.Internal
         /// is that you notice it from somewhere you were not going.
         /// </summary>
         /// <param name="parent">Relic root transform.</param>
-        private static void BuildGlow(Transform parent)
+        /// <param name="colour">Colour of the light it throws.</param>
+        private static void BuildGlow(Transform parent, Color colour)
         {
             var go = new GameObject("RelicGlow");
             go.transform.SetParent(parent, worldPositionStays: false);
@@ -97,7 +98,7 @@ namespace Backrooms.RelicManager.Internal
 
             var light = go.AddComponent<Light>();
             light.type = LightType.Point;
-            light.color = RelicViolet;
+            light.color = colour;
             light.intensity = 2.2f;
             light.range = 7f;
             light.shadows = LightShadows.None;

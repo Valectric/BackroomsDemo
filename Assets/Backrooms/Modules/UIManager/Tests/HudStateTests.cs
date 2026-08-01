@@ -159,6 +159,58 @@ namespace Backrooms.UIManager.Tests
         }
 
         /// <summary>
+        /// The rotate prompt tracks the screen shape. A phone held upright cannot play this — the
+        /// level is built around a wide field of view and a HUD anchored to the corners — so the game
+        /// asks rather than letting someone judge it sideways.
+        /// </summary>
+        [Test]
+        public void RotatePrompt_FollowsTheScreenShape()
+        {
+            (HudFacade hud, UIManagerTestFacade _) = NewHud();
+
+            Assert.AreEqual(Screen.height > Screen.width, hud.ShowingRotatePrompt,
+                "the prompt should show exactly when the screen is taller than it is wide");
+        }
+
+        /// <summary>
+        /// Control hints stay hidden while the player is doing anything, and appear once they have
+        /// stopped for a while. A hint shown to someone already walking is clutter over the middle of
+        /// a horror game; a hint shown to someone who has stood still for ten seconds is help.
+        /// </summary>
+        [Test]
+        public void ControlHints_AppearOnlyAfterThePlayerGoesIdle()
+        {
+            (HudFacade hud, UIManagerTestFacade _) = NewHud();
+            UIManagerTestFacade seam = hud.GetTestFacade();
+
+            // Nine seconds of standing still is not yet enough.
+            for (int i = 0; i < 90; i++) seam.TickActivity(false, 0.1f);
+            Assert.AreEqual(0f, hud.HintStrength, 1e-3f, "nine seconds idle shows nothing");
+
+            // Past ten, and past the fade, they are fully up.
+            for (int i = 0; i < 20; i++) seam.TickActivity(false, 0.1f);
+            Assert.AreEqual(1f, hud.HintStrength, 1e-3f, "they should be up after eleven seconds");
+
+            // Any input at all puts them away immediately.
+            seam.TickActivity(true, 0.1f);
+            Assert.AreEqual(0f, hud.HintStrength, 1e-3f, "moving again hides them at once");
+        }
+
+        /// <summary>
+        /// The compass and carried list accept being handed nothing, which is the normal state for
+        /// most of a run — the player starts every run carrying no relics at all.
+        /// </summary>
+        [Test]
+        public void CompassAndCarried_AcceptBeingEmpty()
+        {
+            (HudFacade hud, UIManagerTestFacade _) = NewHud();
+
+            Assert.DoesNotThrow(() => hud.SetCompass(null), "a null compass is an empty compass");
+            Assert.DoesNotThrow(() => hud.SetCarried(null, null), "and nothing carried is normal");
+            Assert.DoesNotThrow(() => hud.SetCompass(new CompassMark[0]), "as is an empty list");
+        }
+
+        /// <summary>
         /// Durations are displayed as zero-padded minutes and seconds, and negative input is treated
         /// as zero rather than rendering a nonsensical time.
         /// </summary>

@@ -101,15 +101,27 @@ namespace Backrooms.AudioManager.Internal.Synthesis
             var samples = new float[length];
             var rng = new System.Random(seed);
 
-            // A one-pole low pass over white noise: cheap, and it turns a hiss into a thump.
-            float previous = 0f;
+            // Two one-pole low passes in series, cut far lower than one. A single gentle filter left
+            // enough upper content that every step read as a slap on a hard floor rather than a
+            // footfall felt through it; cascading them rolls that off at twice the rate.
+            float stage1 = 0f;
+            float stage2 = 0f;
+
+            // A short sub-bass thump underneath, which is what actually carries a footstep on a
+            // phone speaker — the noise alone is all texture and no body.
+            const float BodyHz = 62f;
+
             for (int i = 0; i < length; i++)
             {
                 var noise = (float)(rng.NextDouble() * 2.0 - 1.0);
-                previous += (noise - previous) * 0.16f;
+                stage1 += (noise - stage1) * 0.05f;
+                stage2 += (stage1 - stage2) * 0.05f;
 
-                float decay = Mathf.Exp(-9f * i / length);
-                samples[i] = previous * decay * amplitude * 3.4f;
+                float t = i / (float)SampleRate;
+                float body = Mathf.Sin(2f * Mathf.PI * BodyHz * t) * Mathf.Exp(-26f * i / length);
+
+                float decay = Mathf.Exp(-13f * i / length);
+                samples[i] = (stage2 * 5.2f * decay + body * 0.5f) * amplitude;
             }
 
             return Clamped(samples);

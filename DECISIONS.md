@@ -339,3 +339,42 @@ the loop**, which cannot desynchronise.
 determinism are all measurable from the samples. Those five cover the faults that make generated
 audio unusable.
 
+## 2026-08-01 — D28. Relics carry powers, bound to gestures
+
+**Decided:** six relic kinds, dealt out one per floor so descending offers something new each time —
+three compasses (nearest Dweller, nearest stairs, nearest relic), a Ward that absorbs one catch, a
+Blink Shard, and a Banisher with five shots. Powers fire on **double taps**: look side blinks, move
+side banishes.
+**Why:** a relic that is only a counter is a collectible, not a decision. With powers, the detour buys
+something the player can feel, and each floor asks a different question because each floor offers a
+different relic.
+**Gestures, not buttons:** the touch scheme deliberately has no on-screen widgets — the left half is
+already a stick and the right half is already the camera — so a double tap is the only input left
+that steals from neither. Desktop gets the same gesture on the same halves rather than a separate key,
+so there is one thing to learn.
+**Detail that matters:** a recognised double tap is *consumed*, so drumming a finger fires once rather
+than emptying a relic. And a Banisher shot only spends a charge if something actually dies; a shot
+into an empty corridor that still costs a charge reads as the relic being broken.
+**The Ward has to remove the Dweller too.** Cancelling only the catch leaves the creature standing on
+the player, and it catches them again the next frame — the ward would appear to have done nothing.
+
+## 2026-08-01 — D29. Control hints are idle-triggered, not timed
+
+**Decided:** the touch-zone hints appear only after the player has given **no input for ten seconds**,
+and vanish the instant they do anything.
+**Why:** user correction, and the right call. A hint shown on arrival covers the middle of the screen
+for someone who is already walking and already knows how. Someone who has stood still for ten seconds
+is either lost or has not realised the screen halves do different things — which is exactly the person
+the hint is for.
+**Also:** the game now detects a portrait screen and asks for the phone to be turned. The level is
+built around a wide field of view and a HUD anchored to the corners; in portrait it is not merely
+uglier, it is harder to play.
+
+## 2026-08-01 — D30. Footsteps are body, not surface
+
+**Decided:** the footstep is two cascaded low-passes over noise plus a 62 Hz sine thump, played
+quieter and pitched down.
+**Why:** user feedback — the single gentle filter left enough upper content that every step read as a
+slap on a hard floor. On a phone speaker the sub-bass thump is what actually carries a footfall; the
+filtered noise alone is all texture and no body.
+
