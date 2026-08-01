@@ -2,7 +2,9 @@ using System.Collections.Generic;
 using Backrooms.EntityManager;
 using Backrooms.MazeManager;
 using Backrooms.PlayerManager;
+using Backrooms.RelicManager;
 using Backrooms.UIManager;
+using Backrooms.AudioManager;
 using UnityEngine;
 
 namespace Backrooms.Gameplay
@@ -28,14 +30,20 @@ namespace Backrooms.Gameplay
         [Tooltip("A Dweller that hunts the player. Any others needed for the floor size are spawned.")]
         [SerializeField] private DwellerFacade dweller;
 
+        [Tooltip("The relics module. Found in the scene if left empty.")]
+        [SerializeField] private RelicFacade relics;
+
+        [Tooltip("The audio module. Found in the scene if left empty.")]
+        [SerializeField] private AudioFacade audioModule;
+
         [Tooltip("Grid cells of floor per Dweller. A 24x24 floor at 190 gets three.")]
         [SerializeField] private int cellsPerDweller = 190;
 
         [Tooltip("Never place more than this many Dwellers on one floor.")]
         [SerializeField] private int maxDwellers = 4;
 
-        /// <summary>Every Dweller currently roaming the floor.</summary>
-        private readonly List<DwellerFacade> _dwellers = new List<DwellerFacade>();
+        /// <summary>Decides how many Dwellers a floor carries and where they go.</summary>
+        private DwellerDirector _director;
 
         [Header("Run")]
         [Tooltip("Seed for the maze. Change for a different layout.")]
@@ -59,35 +67,76 @@ namespace Backrooms.Gameplay
         /// <summary>Whether a Dweller has caught the player and ended the run.</summary>
         public bool IsCaught { get; private set; }
 
-        /// <summary>How many Dweller are roaming the current floor.</summary>
-        public int DwellerCount => _dwellers.Count;
+        /// <summary>How many Dwellers are roaming the current floor.</summary>
+        public int DwellerCount => _director == null ? 0 : _director.Count;
 
         /// <summary>Whether any Dweller is currently hunting the player.</summary>
-        public bool IsHunted
-        {
-            get
-            {
-                foreach (DwellerFacade d in _dwellers)
-                {
-                    if (d != null && d.IsChasing) return true;
-                }
+        public bool IsHunted => _director != null && _director.AnyHunting;
 
-                return false;
-            }
+        /// <summary>How many relics the player has collected this run.</summary>
+        public int RelicsCollected => relics == null ? 0 : relics.Collected;
+
+        /// <summary>Deepest floor reached in any run on this device.</summary>
+        public int BestFloors { get; private set; }
+
+        /// <summary>Most relics carried in any run on this device.</summary>
+        public int BestRelics { get; private set; }
+
+        /// <summary>Where the best run is remembered between sessions.</summary>
+        private const string BestFloorsKey = "Backrooms.BestFloors";
+
+        /// <summary>Where the best relic haul is remembered between sessions.</summary>
+        private const string BestRelicsKey = "Backrooms.BestRelics";
+
+        /// <summary>
+        /// Records the run that just ended if it beat the stored best. A relic the player never gets
+        /// to compare against anything is just a noise and a number.
+        /// </summary>
+        private void RecordBest()
+        {
+            BestFloors = Mathf.Max(BestFloors, CurrentFloor);
+            BestRelics = Mathf.Max(BestRelics, RelicsCollected);
+            PlayerPrefs.SetInt(BestFloorsKey, BestFloors);
+            PlayerPrefs.SetInt(BestRelicsKey, BestRelics);
+            PlayerPrefs.Save();
         }
 
         /// <summary>
-        /// Whether any Dweller on the floor has reached the player.
+        /// Updates the HUD and the audio from whichever Dweller is hunting and closest.
         /// </summary>
-        /// <returns><c>true</c> if the run is over.</returns>
-        private bool AnyDwellerCaughtPlayer()
+        private void ReportPursuit()
         {
-            foreach (DwellerFacade d in _dwellers)
-            {
-                if (d != null && d.HasCaught) return true;
-            }
+            bool hunted = _director.TryGetNearestHunter(player.Position, out float closest,
+                out string hunter);
+            float closeness = hunted ? 1f - Mathf.Clamp01(closest / HuntedWarningMetres) : 0f;
 
-            return false;
+            if (hud != null) hud.SetHunted(hunted, closeness, hunter);
+            if (audioModule != null) audioModule.SetHunted(hunted, closeness);
+        }
+
+        /// <summary>
+        /// Distance at which the pursuit warning is at its faintest. Beyond a Dweller's sense range,
+        /// so the warning is already up by the time one is visible through the fog.
+        /// </summary>
+        private const float HuntedWarningMetres = 34f;
+
+        /// <summary>
+        /// Collects a relic if the player has reached one, and says so.
+        /// </summary>
+        private void CollectRelics()
+        {
+            if (relics == null || !relics.TryCollect(player.Position)) return;
+            if (audioModule != null) audioModule.PlayRelic();
+            if (hud != null) hud.ShowRelic(RelicsCollected);
+        }
+
+        /// <summary>
+        /// Tells the audio module whether the player is moving, so footsteps keep time with them.
+        /// </summary>
+        private void ReportMovement()
+        {
+            if (audioModule == null) return;
+            audioModule.SetMovement(player.IsMoving, player.IsSprinting);
         }
 
         /// <summary>Seconds of gameplay elapsed since the run started.</summary>
@@ -119,6 +168,12 @@ namespace Backrooms.Gameplay
             if (player == null) player = FindAnyObjectByType<PlayerFacade>();
             if (hud == null) hud = FindAnyObjectByType<HudFacade>();
             if (dweller == null) dweller = FindAnyObjectByType<DwellerFacade>();
+            if (relics == null) relics = FindAnyObjectByType<RelicFacade>();
+            if (audioModule == null) audioModule = FindAnyObjectByType<AudioFacade>();
+
+            BestFloors = PlayerPrefs.GetInt(BestFloorsKey, 0);
+            BestRelics = PlayerPrefs.GetInt(BestRelicsKey, 0);
+            _director = new DwellerDirector(transform.parent, dweller, cellsPerDweller, maxDwellers);
         }
 
         /// <summary>
@@ -146,6 +201,7 @@ namespace Backrooms.Gameplay
             CurrentFloor = 0;
             IsCaught = false;
             player.MovementEnabled = true;
+            if (relics != null) relics.ResetRun();
             if (hud != null) hud.ResetHud();
 
             DescendToNextFloor();
@@ -166,141 +222,19 @@ namespace Backrooms.Gameplay
             player.SpawnAt(maze.GetSpawnPosition());
             FloorAtmosphere.Apply(theme);
 
-            PlaceDwellers();
+            _director.PopulateFloor(maze.CurrentLayout, CurrentFloor, player.transform,
+                dwellerBaseSpeed + (CurrentFloor - 1) * dwellerSpeedPerFloor, seed);
+            if (relics != null) relics.PlaceForFloor(maze.CurrentLayout, seed + CurrentFloor * 613);
 
-            if (hud != null) hud.ShowFloor(CurrentFloor, theme.Name);
+            if (audioModule != null)
+            {
+                audioModule.SetFloor(CurrentFloor);
+                if (CurrentFloor > 1) audioModule.PlayDescend();
+            }
+
+            if (hud != null) hud.ShowFloor(CurrentFloor, theme.Name, RelicsCollected);
             Debug.Log($"[Gameplay] Floor {CurrentFloor}: {theme.Name}");
         }
-
-        /// <summary>
-        /// Drops a Dweller onto the new floor, moving a little faster on every floor down because
-        /// deeper floors are meant to be deadlier.
-        /// </summary>
-        /// <remarks>
-        /// How many is decided by the floor's area, not by taste. One Dweller wandering a 24×24 grid
-        /// is one Dweller you never meet: it has 576 cells to cover and the player is heading for the
-        /// nearest way down. Dwellers start in the corners furthest from the spawn — never on a
-        /// stairwell, which would have one camping a cell the player has to reach, and never next to
-        /// the player, which is an unavoidable death.
-        /// </remarks>
-        private void PlaceDwellers()
-        {
-            MazeLayout layout = maze.CurrentLayout;
-            List<Vector2Int> starts = DwellerStarts(layout);
-            EnsureDwellers(starts.Count);
-
-            float speed = dwellerBaseSpeed + (CurrentFloor - 1) * dwellerSpeedPerFloor;
-            for (int i = 0; i < _dwellers.Count; i++)
-            {
-                if (i < starts.Count)
-                {
-                    // One of each kind, in turn — a floor with three identical creatures teaches the
-                    // player nothing about what they are looking at.
-                    _dwellers[i].SetKind(DwellerArchetypes.AtIndex(i + CurrentFloor));
-                    _dwellers[i].Place(layout, starts[i], player.transform, speed,
-                        seed + CurrentFloor * 31 + i);
-                }
-                else
-                {
-                    _dwellers[i].Hide();
-                }
-            }
-        }
-
-        /// <summary>
-        /// How many Dwellers this floor gets, and where each starts. Candidates are the four corners
-        /// plus the edge midpoints, ordered by distance from the spawn so the first Dwellers placed
-        /// are the furthest away.
-        /// </summary>
-        /// <param name="layout">The floor being populated.</param>
-        /// <returns>One start cell per Dweller the floor should carry.</returns>
-        private List<Vector2Int> DwellerStarts(MazeLayout layout)
-        {
-            int wanted = Mathf.Clamp(
-                layout.Width * layout.Height / Mathf.Max(1, cellsPerDweller), 1, Mathf.Max(1, maxDwellers));
-
-            int right = layout.Width - 1;
-            int top = layout.Height - 1;
-            var candidates = new List<Vector2Int>
-            {
-                new Vector2Int(right, top),
-                new Vector2Int(0, top),
-                new Vector2Int(right, 0),
-                new Vector2Int(right / 2, top),
-                new Vector2Int(right, top / 2),
-                new Vector2Int(right / 2, top / 2)
-            };
-
-            // Rotating the order by floor number stops every floor opening with the Dwellers in
-            // identical places, without making their positions unpredictable within a run.
-            var starts = new List<Vector2Int>(wanted);
-            for (int i = 0; i < candidates.Count && starts.Count < wanted; i++)
-            {
-                Vector2Int cell = candidates[(i + CurrentFloor) % candidates.Count];
-                if (cell == layout.Spawn) continue;
-                if (layout.IsStairs(cell)) continue;
-                if (starts.Contains(cell)) continue;
-                starts.Add(cell);
-            }
-
-            if (starts.Count == 0) starts.Add(new Vector2Int(right, top));
-            return starts;
-        }
-
-        /// <summary>
-        /// Grows the pool of Dwellers to the requested size, reusing any authored in the scene and
-        /// creating the rest. Dwellers persist between floors and are re-placed rather than rebuilt.
-        /// </summary>
-        /// <param name="count">How many Dwellers the floor needs.</param>
-        private void EnsureDwellers(int count)
-        {
-            if (_dwellers.Count == 0)
-            {
-                if (dweller != null) _dwellers.Add(dweller);
-                foreach (DwellerFacade found in FindObjectsByType<DwellerFacade>(FindObjectsSortMode.None))
-                {
-                    if (!_dwellers.Contains(found)) _dwellers.Add(found);
-                }
-            }
-
-            while (_dwellers.Count < count)
-            {
-                var go = new GameObject($"Dweller_{_dwellers.Count}");
-                go.transform.SetParent(transform.parent, worldPositionStays: true);
-                _dwellers.Add(go.AddComponent<DwellerFacade>());
-            }
-        }
-
-        /// <summary>
-        /// Updates the HUD's pursuit warning from whichever Dweller is hunting and closest.
-        /// </summary>
-        private void ReportPursuit()
-        {
-            if (hud == null) return;
-
-            float closest = float.PositiveInfinity;
-            string hunter = null;
-            foreach (DwellerFacade d in _dwellers)
-            {
-                if (d == null || !d.IsChasing) continue;
-                float distance = Vector3.Distance(
-                    new Vector3(d.transform.position.x, 0f, d.transform.position.z),
-                    new Vector3(player.Position.x, 0f, player.Position.z));
-                if (distance >= closest) continue;
-                closest = distance;
-                hunter = d.DisplayName;
-            }
-
-            bool hunted = hunter != null;
-            hud.SetHunted(hunted, hunted ? 1f - Mathf.Clamp01(closest / HuntedWarningMetres) : 0f,
-                hunter);
-        }
-
-        /// <summary>
-        /// Distance at which the pursuit warning is at its faintest. Beyond a Dweller's sense range,
-        /// so the warning is already up by the time one is visible through the fog.
-        /// </summary>
-        private const float HuntedWarningMetres = 34f;
 
         /// <summary>
         /// Tracks run time and detects the player reaching a stairwell down.
@@ -318,14 +252,16 @@ namespace Backrooms.Gameplay
 
             if (HasEscaped) return;
 
-            if (AnyDwellerCaughtPlayer())
+            if (_director.AnyCaughtPlayer())
             {
                 IsCaught = true;
                 player.MovementEnabled = false;
+                RecordBest();
+                if (audioModule != null) audioModule.Silence();
                 if (hud != null)
                 {
                     hud.SetHunted(false, 0f, null);
-                    hud.ShowCaught(CurrentFloor, ElapsedSeconds);
+                    hud.ShowCaught(CurrentFloor, ElapsedSeconds, RelicsCollected, BestFloors, BestRelics);
                 }
 
                 Debug.Log($"[Gameplay] Caught on floor {CurrentFloor} after {ElapsedSeconds:F1}s");
@@ -335,6 +271,8 @@ namespace Backrooms.Gameplay
             ElapsedSeconds += Time.deltaTime;
             if (hud != null) hud.SetElapsed(ElapsedSeconds);
             ReportPursuit();
+            CollectRelics();
+            ReportMovement();
 
             if (DistanceToStairs <= stairsRadius)
             {

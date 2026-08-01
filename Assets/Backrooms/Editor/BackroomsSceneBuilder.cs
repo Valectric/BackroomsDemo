@@ -3,6 +3,8 @@ using Backrooms.EntityManager;
 using Backrooms.Gameplay;
 using Backrooms.MazeManager;
 using Backrooms.PlayerManager;
+using Backrooms.RelicManager;
+using Backrooms.AudioManager;
 using Backrooms.UIManager;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -65,6 +67,12 @@ namespace Backrooms.Editor
 
             var dwellerGo = new GameObject("Dweller");
             dwellerGo.AddComponent<DwellerFacade>();
+
+            var relicsGo = new GameObject("Relics");
+            relicsGo.AddComponent<RelicFacade>();
+
+            var audioGo = new GameObject("Audio");
+            audioGo.AddComponent<AudioFacade>();
 
             var hudGo = new GameObject("Hud");
             hudGo.AddComponent<HudFacade>();

@@ -41,6 +41,20 @@ namespace Backrooms.PlayerManager
         /// </summary>
         public bool ConfirmPressed => _router != null && _router.ReadInput().Confirm;
 
+        /// <summary>Whether the player is asking to move this frame.</summary>
+        public bool IsMoving => _router != null && _router.ReadInput().Move.sqrMagnitude > 0.02f;
+
+        /// <summary>Whether the player is asking to sprint while moving.</summary>
+        public bool IsSprinting
+        {
+            get
+            {
+                if (_router == null) return false;
+                PlayerInputState input = _router.ReadInput();
+                return input.Sprint && input.Move.sqrMagnitude > 0.02f;
+            }
+        }
+
         /// <summary>
         /// Builds the module's own pieces: the character controller sizing, the head camera, and the
         /// internal router that wires input to movement.

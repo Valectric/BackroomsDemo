@@ -97,7 +97,7 @@ namespace Backrooms.UIManager.Tests
         {
             (HudFacade hud, UIManagerTestFacade test) = NewHud();
 
-            hud.ShowFloor(3, "JANKY LAUNDROMAT");
+            hud.ShowFloor(3, "JANKY LAUNDROMAT", 0);
 
             Assert.AreEqual(3, test.Floor, "floor number recorded");
             Assert.AreEqual("JANKY LAUNDROMAT", test.FloorName, "floor name recorded");
@@ -113,7 +113,7 @@ namespace Backrooms.UIManager.Tests
         {
             (HudFacade hud, UIManagerTestFacade test) = NewHud();
 
-            hud.ShowFloor(2, "ABANDONED MALL");
+            hud.ShowFloor(2, "ABANDONED MALL", 0);
             test.TickBanner(1f);
             Assert.IsTrue(test.BannerShown, "banner still up shortly after arrival");
 
@@ -151,7 +151,7 @@ namespace Backrooms.UIManager.Tests
             (HudFacade hud, UIManagerTestFacade _) = NewHud();
 
             hud.SetHunted(true, 1f);
-            hud.ShowCaught(3, 42f);
+            hud.ShowCaught(3, 42f, relics: 1, bestFloors: 3, bestRelics: 1);
             hud.ResetHud();
 
             Assert.IsFalse(hud.HuntedShown, "a new run starts unhunted");

@@ -24,12 +24,36 @@ namespace Backrooms.UIManager.Internal
         /// </summary>
         /// <param name="elapsedSeconds">Seconds since the run started.</param>
         /// <param name="floor">Current floor number.</param>
-        public void DrawStatus(float elapsedSeconds, int floor)
+        /// <param name="relics">How many relics the player is carrying.</param>
+        public void DrawStatus(float elapsedSeconds, int floor, int relics)
         {
             int size = Mathf.Max(14, Mathf.RoundToInt(Screen.height * 0.035f));
             var rect = new Rect(size, size, Screen.width * 0.6f, size * 2f);
-            DrawLabel(rect, $"FLOOR {floor}    {FormatTime(elapsedSeconds)}", size,
+            string carried = relics > 0 ? $"    {RelicMark} {relics}" : string.Empty;
+            DrawLabel(rect, $"FLOOR {floor}    {FormatTime(elapsedSeconds)}{carried}", size,
                 TextAnchor.UpperLeft);
+        }
+
+        /// <summary>Colour relics are shown in, matching the violet they glow in the world.</summary>
+        private static readonly Color RelicColor = new Color(0.78f, 0.55f, 1f);
+
+        /// <summary>
+        /// Symbol standing in for a relic. A four-pointed star is in every font the browser will
+        /// fall back to, which a rarer glyph is not — a missing-glyph box on the HUD would be the
+        /// first thing a player sees.
+        /// </summary>
+        private const string RelicMark = "✦";
+
+        /// <summary>
+        /// Draws the flash confirming a relic was just picked up.
+        /// </summary>
+        /// <param name="relics">How many the player now carries.</param>
+        public void DrawRelicFlash(int relics)
+        {
+            int size = Mathf.Max(18, Mathf.RoundToInt(Screen.height * 0.05f));
+            var rect = new Rect(0f, Screen.height * 0.62f, Screen.width, size * 2f);
+            DrawLabel(rect, $"{RelicMark} RELIC RECOVERED  ({relics})", size, TextAnchor.UpperCenter,
+                RelicColor);
         }
 
         /// <summary>
@@ -61,16 +85,30 @@ namespace Backrooms.UIManager.Internal
         /// </summary>
         /// <param name="floor">Floor the player died on.</param>
         /// <param name="elapsedSeconds">How long they lasted.</param>
-        public void DrawCaught(int floor, float elapsedSeconds)
+        /// <param name="relics">How many relics they were carrying.</param>
+        /// <param name="bestFloors">Deepest floor reached in any run.</param>
+        /// <param name="bestRelics">Most relics carried in any run.</param>
+        public void DrawCaught(int floor, float elapsedSeconds, int relics, int bestFloors,
+            int bestRelics)
         {
             int size = Mathf.Max(20, Mathf.RoundToInt(Screen.height * 0.07f));
-            var rect = new Rect(0f, Screen.height * 0.34f, Screen.width, size * 4f);
-            DrawLabel(rect,
-                $"A DWELLER FOUND YOU\nFLOOR {floor}   {FormatTime(elapsedSeconds)}", size,
+            DrawLabel(new Rect(0f, Screen.height * 0.30f, Screen.width, size * 2f),
+                "A DWELLER FOUND YOU", size, TextAnchor.UpperCenter);
+
+            // The run's own numbers, then the numbers to beat. Without the second line the first is
+            // just a record of losing.
+            int summary = Mathf.Max(16, Mathf.RoundToInt(Screen.height * 0.045f));
+            DrawLabel(new Rect(0f, Screen.height * 0.44f, Screen.width, summary * 2f),
+                $"{floor} FLOORS    {RelicMark} {relics}    {FormatTime(elapsedSeconds)}", summary,
                 TextAnchor.UpperCenter);
 
+            int best = Mathf.Max(13, Mathf.RoundToInt(Screen.height * 0.032f));
+            DrawLabel(new Rect(0f, Screen.height * 0.53f, Screen.width, best * 2f),
+                $"BEST    {Mathf.Max(bestFloors, floor)} FLOORS    {RelicMark} {Mathf.Max(bestRelics, relics)}",
+                best, TextAnchor.UpperCenter);
+
             int hint = Mathf.Max(14, Mathf.RoundToInt(Screen.height * 0.035f));
-            DrawLabel(new Rect(0f, Screen.height * 0.62f, Screen.width, hint * 2f),
+            DrawLabel(new Rect(0f, Screen.height * 0.66f, Screen.width, hint * 2f),
                 "TAP OR CLICK TO TRY AGAIN", hint, TextAnchor.UpperCenter);
         }
 

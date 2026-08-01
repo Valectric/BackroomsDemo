@@ -1,19 +1,14 @@
 {
-    "name": "Backrooms.Gameplay.Tests",
-    "rootNamespace": "Backrooms.Gameplay.Tests",
+    "name": "Backrooms.RelicManager.Tests",
+    "rootNamespace": "Backrooms.RelicManager.Tests",
     "references": [
-        "Backrooms.Gameplay",
+        "Backrooms.RelicManager",
         "Backrooms.MazeManager",
-        "Backrooms.PlayerManager",
-        "Backrooms.UIManager",
-        "Backrooms.EntityManager",
         "MooseRunner",
         "MooseRunner.helper",
         "UniTask",
         "UnityEngine.TestRunner",
-        "UnityEditor.TestRunner",
-        "Backrooms.RelicManager",
-        "Backrooms.AudioManager"
+        "UnityEditor.TestRunner"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

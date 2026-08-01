@@ -52,13 +52,44 @@ namespace Backrooms.UIManager.Internal
         /// </summary>
         /// <param name="floor">Floor the run ended on.</param>
         /// <param name="finalSeconds">How long the player lasted.</param>
-        public void ShowCaught(int floor, float finalSeconds)
+        /// <param name="relics">How many relics the player was carrying.</param>
+        /// <param name="bestFloors">Deepest floor reached in any run.</param>
+        /// <param name="bestRelics">Most relics carried in any run.</param>
+        public void ShowCaught(int floor, float finalSeconds, int relics, int bestFloors, int bestRelics)
         {
             Floor = floor;
             ElapsedSeconds = finalSeconds;
+            Relics = relics;
+            BestFloors = bestFloors;
+            BestRelics = bestRelics;
             CaughtShown = true;
             BannerRemaining = 0f;
         }
+
+        /// <summary>Relics the player is carrying.</summary>
+        public int Relics { get; private set; }
+
+        /// <summary>Deepest floor reached in any run.</summary>
+        public int BestFloors { get; private set; }
+
+        /// <summary>Most relics carried in any run.</summary>
+        public int BestRelics { get; private set; }
+
+        /// <summary>Seconds of relic-pickup flash left to show.</summary>
+        public float RelicFlashRemaining { get; private set; }
+
+        /// <summary>
+        /// Announces that a relic was just picked up.
+        /// </summary>
+        /// <param name="total">How many the player now carries.</param>
+        public void ShowRelic(int total)
+        {
+            Relics = total;
+            RelicFlashRemaining = RelicFlashSeconds;
+        }
+
+        /// <summary>How long the relic-pickup flash stays on screen, in seconds.</summary>
+        private const float RelicFlashSeconds = 1.8f;
 
         /// <summary>Floor number shown on the HUD.</summary>
         public int Floor { get; private set; } = 1;
@@ -77,10 +108,12 @@ namespace Backrooms.UIManager.Internal
         /// </summary>
         /// <param name="floor">Floor number the player just reached.</param>
         /// <param name="name">Display name of that floor.</param>
-        public void ShowFloor(int floor, string name)
+        /// <param name="relics">How many relics the player is carrying.</param>
+        public void ShowFloor(int floor, string name, int relics)
         {
             Floor = floor;
             FloorName = name;
+            Relics = relics;
             BannerRemaining = BannerSeconds;
         }
 
@@ -91,6 +124,10 @@ namespace Backrooms.UIManager.Internal
         public void TickBanner(float deltaTime)
         {
             if (BannerRemaining > 0f) BannerRemaining = Mathf.Max(0f, BannerRemaining - deltaTime);
+            if (RelicFlashRemaining > 0f)
+            {
+                RelicFlashRemaining = Mathf.Max(0f, RelicFlashRemaining - deltaTime);
+            }
         }
 
         /// <summary>
@@ -117,6 +154,8 @@ namespace Backrooms.UIManager.Internal
             ElapsedSeconds = 0f;
             EscapedShown = false;
             CaughtShown = false;
+            Relics = 0;
+            RelicFlashRemaining = 0f;
             HuntedShown = false;
             HuntedCloseness = 0f;
             HunterName = "DWELLER";
@@ -132,7 +171,7 @@ namespace Backrooms.UIManager.Internal
         {
             if (CaughtShown)
             {
-                _renderer.DrawCaught(Floor, ElapsedSeconds);
+                _renderer.DrawCaught(Floor, ElapsedSeconds, Relics, BestFloors, BestRelics);
                 return;
             }
 
@@ -147,8 +186,9 @@ namespace Backrooms.UIManager.Internal
             // the player most needs telling.
             if (HuntedShown) _renderer.DrawHunted(HunterName, HuntedCloseness, ElapsedSeconds);
 
-            _renderer.DrawStatus(ElapsedSeconds, Floor);
+            _renderer.DrawStatus(ElapsedSeconds, Floor, Relics);
             if (BannerShown) _renderer.DrawFloorBanner(Floor, FloorName);
+            if (RelicFlashRemaining > 0f) _renderer.DrawRelicFlash(Relics);
         }
 
         /// <summary>

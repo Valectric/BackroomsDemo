@@ -1,0 +1,81 @@
+using Backrooms.AudioManager.Internal;
+using UnityEngine;
+
+namespace Backrooms.AudioManager
+{
+    /// <summary>
+    /// This is a Module. The single public door into AudioManager: everything the game makes a sound
+    /// with. Place one on a GameObject in the scene; it self-bootstraps its internal router and
+    /// generates every clip at startup. Concrete by design — there is no interface.
+    /// </summary>
+    /// <remarks>
+    /// Nothing here is an imported asset. The repo may only carry CC0 material, which makes a sound
+    /// library a licensing problem; a waveform computed from a formula has no licence. It is also the
+    /// cheapest tension the game can buy — a drone that swells as something closes says "behind you"
+    /// with no words, no HUD and no art budget.
+    /// </remarks>
+    public sealed class AudioFacade : MonoBehaviour
+    {
+        private readonly AudioRouter _router = new AudioRouter();
+        private AudioManagerTestFacade _testFacade;
+
+        /// <summary>Volume the pursuit drone is currently at, 0 when nothing is hunting.</summary>
+        public float DroneVolume => _router.DroneVolume;
+
+        /// <summary>Whether the room hum is playing.</summary>
+        public bool HumPlaying => _router.HumPlaying;
+
+        /// <summary>
+        /// Builds the voices and generates every clip before anything asks for one.
+        /// </summary>
+        private void Awake() => _router.Build(transform);
+
+        /// <summary>
+        /// Sets the room tone for a floor, so each floor sounds like its own space.
+        /// </summary>
+        /// <param name="floor">One-based floor number.</param>
+        public void SetFloor(int floor)
+        {
+            _router.Build(transform);
+            _router.SetFloor(floor);
+        }
+
+        /// <summary>
+        /// Sets how loudly a hunting Dweller is heard.
+        /// </summary>
+        /// <param name="hunted">Whether any Dweller is chasing.</param>
+        /// <param name="closeness">How close the nearest one is, 0 at the edge of its range to 1 on top of you.</param>
+        public void SetHunted(bool hunted, float closeness) => _router.SetHunted(hunted, closeness);
+
+        /// <summary>
+        /// Advances footsteps for a frame.
+        /// </summary>
+        /// <param name="moving">Whether the player is moving under their own power.</param>
+        /// <param name="sprinting">Whether they are sprinting.</param>
+        public void SetMovement(bool moving, bool sprinting)
+            => _router.TickFootsteps(moving, sprinting, Time.deltaTime);
+
+        /// <summary>
+        /// Plays the relic pickup chime.
+        /// </summary>
+        public void PlayRelic() => _router.PlayRelic();
+
+        /// <summary>
+        /// Plays the falling tone for dropping a floor.
+        /// </summary>
+        public void PlayDescend() => _router.PlayDescend();
+
+        /// <summary>
+        /// Silences everything, for the end of a run.
+        /// </summary>
+        public void Silence() => _router.Silence();
+
+        /// <summary>
+        /// Returns the module's test seam, creating it lazily. Not intended for production use —
+        /// only for automated testing.
+        /// </summary>
+        /// <returns>The module's <see cref="AudioManagerTestFacade"/>.</returns>
+        public AudioManagerTestFacade GetTestFacade()
+            => _testFacade ??= new AudioManagerTestFacade(_router);
+    }
+}

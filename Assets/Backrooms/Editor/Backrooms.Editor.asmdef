@@ -6,7 +6,9 @@
         "Backrooms.EntityManager",
         "Backrooms.MazeManager",
         "Backrooms.PlayerManager",
-        "Backrooms.UIManager"
+        "Backrooms.UIManager",
+        "Backrooms.RelicManager",
+        "Backrooms.AudioManager"
     ],
     "includePlatforms": [
         "Editor"

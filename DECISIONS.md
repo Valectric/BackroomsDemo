@@ -305,3 +305,37 @@ chain before it was measured. The cheap check they proposed — log spawn-to-nea
 existing seeds — took one test and confirmed it immediately. `TheNearestWayDown_IsNeverOnTheDoorstep`
 now guards it.
 
+## 2026-08-01 — D26. Relics make descending a decision
+
+**Decided:** a new `RelicManager` module places one relic per floor at the cell with the **longest
+walk to the nearest stairwell or the spawn** — the cell the stairwell placement works hardest to
+avoid creating. Violet, on a plinth, throwing light far enough to be noticed from somewhere the
+player was not going.
+**Why:** the game had one verb — walk to the green thing. Every floor asked the same question and the
+answer was always the same. A relic at the far end of the floor makes each floor ask instead: leave
+now, or go and get it. It is also on-canon; relics are core to *Discount Dan*.
+**Rules out:** placing relics for looks. `ARelic_IsAGenuineDetour` measures the detour across 20
+seeds and fails if a relic is ever collectable in passing.
+**Colour is load-bearing:** green already means "way down" and the player has learned it; the
+creatures own red, cold blue and amber. Violet is the only saturated hue left that says "worth going
+to" without saying "exit" or "danger".
+**Also added:** a run summary and a persisted best, because a relic the player cannot compare against
+anything is a noise and a number.
+
+## 2026-08-01 — D27. Audio is synthesised, never imported
+
+**Decided:** a new `AudioManager` module generates every sound at runtime from float arrays — room
+hum, footsteps, a pursuit drone, a relic chime, a descent tone.
+**Why:** the repo may only carry CC0 assets, which makes a sound library a licensing audit and had
+kept the game silent. A waveform computed from a formula has no licence to audit. It is also a few
+kilobytes of code against megabytes of clips on a build that loads over a phone connection.
+**The trap, and the test that caught it:** a looping clip must contain a whole number of cycles of
+**every** partial. The drone's detuned partial was expressed as a frequency ratio (1.0136×), which
+left it part-way through a cycle at the buffer's end — a click on every repeat, forever.
+`LoopingWaveforms_MeetAtTheSeam` measured the seam discontinuity at 0.184 against an interior step of
+0.006 and failed before anyone heard it. Detune is now expressed as **one extra whole cycle across
+the loop**, which cannot desynchronise.
+**How to test audio without listening:** clipping, loop-seam discontinuity, DC offset, silence and
+determinism are all measurable from the samples. Those five cover the faults that make generated
+audio unusable.
+
