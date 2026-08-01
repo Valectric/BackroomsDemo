@@ -183,3 +183,39 @@ fires as they cross the cell edge, long before the invisible span matters.
 **Trap found:** with no tonemapping in the pipeline, an unlit material brighter than 1.0 clips the
 green channel first, so the stairs sign rendered as a blank white slab. Emissive markers that carry
 meaning through *colour* must stay at strength 1 until H4 lands.
+
+## 2026-08-01 — D18. Encounter rate is a measured number, not a vibe
+
+**Decided:** `DwellerEncounterTests` simulates a whole crossing of a shipping-size floor on the grid —
+player walking the route to the nearest stairwell, Dwellers roaming at their real speed ratio — over
+25 seeds, and asserts how often a Dweller starts hunting.
+**Why:** the user reported "I don't see any dwellers" while every Dweller unit test was green. Pathing,
+the state machine and catching were all individually correct. What was broken was the *rate*, which no
+test that places a Dweller next to the player can see. Measured: the shipped configuration hunted the
+player on **12%** of crossings; the fixed one on **84%**.
+**Rules out:** tuning Dweller difficulty by feel. Change the numbers, re-run, read the percentage.
+**Sweep result worth keeping:** sense range dominates (8→12 cells took 56%→84%); Dweller count barely
+matters above three; patrol span is nearly flat. Tune sense range first.
+
+## 2026-08-01 — D19. Dwellers patrol to a destination; a chase is unmistakable
+
+**Decided:** patrolling Dwellers plan a route to a random far cell and walk it, instead of picking a
+random neighbour each step. Three per floor, sense range 12 cells. A chasing Dweller opens glowing red
+eyes, casts a red light, and raises a pulsing HUD border plus "A DWELLER HAS SEEN YOU".
+**Why:** a random walk spreads as the square root of the steps taken, so on 576 cells one Dweller
+effectively never arrives anywhere. And a Dweller that has noticed you looked identical to one that
+has not, so even a successful encounter read as confusing rather than tense.
+**Detail that matters:** sense range 12 cells is 48 m, slightly beyond the 45 m camera clip. A Dweller
+notices you just before you could see it — the HUD warning fires first, then it comes out of the fog.
+That ordering is deliberate.
+**Wrong if:** 84% makes floors feel relentless rather than tense. Lower sense range, not count.
+
+## 2026-08-01 — D20. Being caught is a losing condition you can leave
+
+**Decided:** catching freezes the player, shows the run's floor and time, and restarts on a tap or
+click. Confirm-press is read by PlayerManager (which owns input devices) and exposed as
+`PlayerFacade.ConfirmPressed`, rather than the application layer touching the Input System.
+**Why:** the caught banner had no way out — the run just stopped forever, which is a dead end rather
+than a fail state.
+**Trap found:** a Dweller left parked in `Caught` still reports having caught the player, so the next
+run ended the instant it began. `Hide()` now clears router state, not just the body.

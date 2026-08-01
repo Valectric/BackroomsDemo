@@ -64,7 +64,9 @@ namespace Backrooms.PlayerManager.Internal.Input
         private static void ReadMouse(ref PlayerInputState state)
         {
             Mouse mouse = Mouse.current;
-            if (mouse == null || !mouse.leftButton.isPressed) return;
+            if (mouse == null) return;
+            if (mouse.leftButton.wasPressedThisFrame) state.Confirm = true;
+            if (!mouse.leftButton.isPressed) return;
             state.Look += mouse.delta.ReadValue();
         }
 
@@ -82,6 +84,7 @@ namespace Backrooms.PlayerManager.Internal.Input
 
             foreach (TouchControl t in touch.touches)
             {
+                if (t.press.wasPressedThisFrame) state.Confirm = true;
                 if (!t.press.isPressed) continue;
 
                 Vector2 start = t.startPosition.ReadValue();

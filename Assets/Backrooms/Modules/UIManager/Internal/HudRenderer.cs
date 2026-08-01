@@ -68,6 +68,46 @@ namespace Backrooms.UIManager.Internal
             DrawLabel(rect,
                 $"A DWELLER FOUND YOU\nFLOOR {floor}   {FormatTime(elapsedSeconds)}", size,
                 TextAnchor.UpperCenter);
+
+            int hint = Mathf.Max(14, Mathf.RoundToInt(Screen.height * 0.035f));
+            DrawLabel(new Rect(0f, Screen.height * 0.62f, Screen.width, hint * 2f),
+                "TAP OR CLICK TO TRY AGAIN", hint, TextAnchor.UpperCenter);
+        }
+
+        /// <summary>Warning colour for the pursuit alert.</summary>
+        private static readonly Color AlertColor = new Color(0.95f, 0.24f, 0.18f);
+
+        /// <summary>
+        /// Draws the pursuit warning: a red border that closes in as the Dweller does, and a line of
+        /// text naming what is happening. Both pulse, because a static red edge stops being read
+        /// after a few seconds whereas a moving one does not.
+        /// </summary>
+        /// <param name="closeness">How close the nearest hunting Dweller is, 0..1.</param>
+        /// <param name="phase">
+        /// Seconds used to drive the pulse. The run timer is passed in rather than a wall clock so
+        /// the HUD has no clock of its own and a test can reproduce any frame of it exactly.
+        /// </param>
+        public void DrawHunted(float closeness, float phase)
+        {
+            float pulse = 0.72f + 0.28f * Mathf.Sin(phase * 7f);
+            float thickness = Mathf.Lerp(Screen.height * 0.02f, Screen.height * 0.075f, closeness);
+            float alpha = Mathf.Lerp(0.16f, 0.46f, closeness) * pulse;
+
+            Color previous = GUI.color;
+            GUI.color = new Color(AlertColor.r, AlertColor.g, AlertColor.b, alpha);
+
+            GUI.DrawTexture(new Rect(0f, 0f, Screen.width, thickness), Texture2D.whiteTexture);
+            GUI.DrawTexture(new Rect(0f, Screen.height - thickness, Screen.width, thickness),
+                Texture2D.whiteTexture);
+            GUI.DrawTexture(new Rect(0f, 0f, thickness, Screen.height), Texture2D.whiteTexture);
+            GUI.DrawTexture(new Rect(Screen.width - thickness, 0f, thickness, Screen.height),
+                Texture2D.whiteTexture);
+
+            GUI.color = previous;
+
+            int size = Mathf.Max(16, Mathf.RoundToInt(Screen.height * 0.045f));
+            var rect = new Rect(0f, Screen.height * 0.12f, Screen.width, size * 2f);
+            DrawLabel(rect, "A DWELLER HAS SEEN YOU", size, TextAnchor.UpperCenter, AlertColor);
         }
 
         /// <summary>
@@ -89,7 +129,9 @@ namespace Backrooms.UIManager.Internal
         /// <param name="text">Text to draw.</param>
         /// <param name="fontSize">Font size in pixels.</param>
         /// <param name="anchor">Alignment within the rectangle.</param>
-        private static void DrawLabel(Rect rect, string text, int fontSize, TextAnchor anchor)
+        /// <param name="colour">Text colour, or <c>null</c> for the standard HUD white.</param>
+        private static void DrawLabel(Rect rect, string text, int fontSize, TextAnchor anchor,
+            Color? colour = null)
         {
             var style = new GUIStyle(GUI.skin.label)
             {
@@ -101,7 +143,7 @@ namespace Backrooms.UIManager.Internal
             style.normal.textColor = ShadowColor;
             GUI.Label(new Rect(rect.x + 2f, rect.y + 2f, rect.width, rect.height), text, style);
 
-            style.normal.textColor = TextColor;
+            style.normal.textColor = colour ?? TextColor;
             GUI.Label(rect, text, style);
         }
     }

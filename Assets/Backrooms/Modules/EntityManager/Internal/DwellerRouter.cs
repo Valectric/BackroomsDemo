@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Backrooms.EntityManager.Internal.Behaviour;
 using Backrooms.MazeManager;
 using UnityEngine;
@@ -13,6 +14,10 @@ namespace Backrooms.EntityManager.Internal
         private DwellerBrain _brain = new DwellerBrain(0);
         private Vector2Int _cameFrom;
 
+        /// <summary>The route the Dweller is currently patrolling, and how far along it is.</summary>
+        private List<Vector2Int> _patrol = new List<Vector2Int>();
+        private int _patrolIndex;
+
         /// <summary>The maze the Dweller is roaming, or <c>null</c> before it is placed.</summary>
         public MazeLayout Layout { get; private set; }
 
@@ -26,7 +31,13 @@ namespace Backrooms.EntityManager.Internal
         public DwellerState State { get; private set; } = DwellerState.Patrol;
 
         /// <summary>How many cells away the Dweller notices the player.</summary>
-        public int SenseRangeCells { get; set; } = 5;
+        public int SenseRangeCells { get; set; } = 12;
+
+        /// <summary>Shortest patrol trip, in cells of grid separation.</summary>
+        public int PatrolSpanCells { get; set; } = 18;
+
+        /// <summary>Whether the Dweller is actively hunting the player right now.</summary>
+        public bool IsChasing => State == DwellerState.Chase;
 
         /// <summary>
         /// Places the Dweller on a floor and resets its behaviour.
@@ -42,6 +53,8 @@ namespace Backrooms.EntityManager.Internal
             _cameFrom = startCell;
             State = DwellerState.Patrol;
             _brain = new DwellerBrain(seed);
+            _patrol.Clear();
+            _patrolIndex = 0;
         }
 
         /// <summary>
@@ -64,11 +77,36 @@ namespace Backrooms.EntityManager.Internal
         {
             if (Layout == null) return Cell;
 
-            TargetCell = State == DwellerState.Chase
-                ? _brain.StepToward(Layout, Cell, playerCell)
-                : _brain.StepWander(Layout, Cell, _cameFrom);
+            if (State == DwellerState.Chase)
+            {
+                // Drop the patrol route on sight. Resuming a route planned from a cell the Dweller
+                // has since left would walk it through walls.
+                _patrol.Clear();
+                _patrolIndex = 0;
+                TargetCell = _brain.StepToward(Layout, Cell, playerCell);
+                return TargetCell;
+            }
 
+            TargetCell = NextPatrolCell();
             return TargetCell;
+        }
+
+        /// <summary>
+        /// The next cell along the current patrol route, planning a fresh one when the last is spent.
+        /// Falls back to a single wander step on a grid where no route could be planned.
+        /// </summary>
+        /// <returns>The cell to move into.</returns>
+        private Vector2Int NextPatrolCell()
+        {
+            if (_patrolIndex >= _patrol.Count)
+            {
+                _patrol = _brain.PlanPatrol(Layout, Cell, PatrolSpanCells) ?? new List<Vector2Int>();
+                _patrolIndex = 0;
+            }
+
+            return _patrolIndex < _patrol.Count
+                ? _patrol[_patrolIndex++]
+                : _brain.StepWander(Layout, Cell, _cameFrom);
         }
 
         /// <summary>
@@ -84,6 +122,19 @@ namespace Backrooms.EntityManager.Internal
         /// Marks the player as caught, which ends the run.
         /// </summary>
         public void MarkCaught() => State = DwellerState.Caught;
+
+        /// <summary>
+        /// Takes the Dweller off the floor entirely. Clearing the state matters as much as hiding the
+        /// body: a Dweller parked in <see cref="DwellerState.Caught"/> would keep reporting that it
+        /// had caught the player, and end the next run the instant it began.
+        /// </summary>
+        public void Deactivate()
+        {
+            Layout = null;
+            State = DwellerState.Patrol;
+            _patrol.Clear();
+            _patrolIndex = 0;
+        }
 
         /// <summary>
         /// Path distance in cells from the Dweller to a cell, or -1 if unreachable.

@@ -123,6 +123,42 @@ namespace Backrooms.UIManager.Tests
         }
 
         /// <summary>
+        /// The pursuit warning goes up when a Dweller starts hunting and comes down when it loses
+        /// interest. Without this the player has no way to know they are being chased by something
+        /// behind them, in fog.
+        /// </summary>
+        [Test]
+        public void HuntedWarning_FollowsThePursuit()
+        {
+            (HudFacade hud, UIManagerTestFacade _) = NewHud();
+
+            Assert.IsFalse(hud.HuntedShown, "nothing is hunting at the start of a run");
+
+            hud.SetHunted(true, 0.4f);
+            Assert.IsTrue(hud.HuntedShown, "the warning must appear the moment a Dweller gives chase");
+
+            hud.SetHunted(false, 0f);
+            Assert.IsFalse(hud.HuntedShown, "the warning must clear when the chase ends");
+        }
+
+        /// <summary>
+        /// Resetting for a new run clears the pursuit warning. A warning left over from the run that
+        /// just ended would tell the player they are being chased before anything has found them.
+        /// </summary>
+        [Test]
+        public void ResetHud_ClearsTheHuntedWarning()
+        {
+            (HudFacade hud, UIManagerTestFacade _) = NewHud();
+
+            hud.SetHunted(true, 1f);
+            hud.ShowCaught(3, 42f);
+            hud.ResetHud();
+
+            Assert.IsFalse(hud.HuntedShown, "a new run starts unhunted");
+            Assert.IsFalse(hud.CaughtShown, "a new run starts without the caught banner");
+        }
+
+        /// <summary>
         /// Durations are displayed as zero-padded minutes and seconds, and negative input is treated
         /// as zero rather than rendering a nonsensical time.
         /// </summary>

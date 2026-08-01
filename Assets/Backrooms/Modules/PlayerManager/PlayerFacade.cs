@@ -35,6 +35,13 @@ namespace Backrooms.PlayerManager
         public Vector3 Forward => transform.forward;
 
         /// <summary>
+        /// Whether a confirm press — a click or a tap — started this frame. Exposed so the gameplay
+        /// layer can offer choices like "try again" without reaching for input hardware itself; this
+        /// module is the one that owns devices.
+        /// </summary>
+        public bool ConfirmPressed => _router != null && _router.ReadInput().Confirm;
+
+        /// <summary>
         /// Builds the module's own pieces: the character controller sizing, the head camera, and the
         /// internal router that wires input to movement.
         /// </summary>
@@ -57,8 +64,15 @@ namespace Backrooms.PlayerManager
         /// </summary>
         private void FixedUpdate()
         {
+            if (!MovementEnabled) return;
             _router?.Tick(Time.fixedDeltaTime);
         }
+
+        /// <summary>
+        /// Whether the player responds to movement and look input. Turned off while a run is over so
+        /// the end-of-run screen is a stop rather than a wander with a banner over it.
+        /// </summary>
+        public bool MovementEnabled { get; set; } = true;
 
         /// <summary>
         /// Places the player at a world position, keeping their feet on the given floor level.

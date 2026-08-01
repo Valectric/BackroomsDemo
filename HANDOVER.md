@@ -19,8 +19,8 @@ browser.
 
 | | |
 |---|---|
-| Tests | **59 green** (35 maze, 7 player, 7 HUD, 6 Dweller, 4 E2E), console clean |
-| Gameplay | Descend themed floors; find any of **three stairwells** to go deeper; a Dweller hunts you; caught = run over |
+| Tests | **68 green** (36 maze, 7 player, 10 HUD, 11 Dweller, 4 E2E), console clean |
+| Gameplay | Descend themed floors; find any of **three stairwells** to go deeper; **three Dwellers** hunt you; caught = run over, tap to retry |
 | Floors | **24×24 cells (96 m square)**. Yellow Rooms → Abandoned Mall → Janky Laundromat → Twisted Carnival → Condemned Asylum, then wraps |
 | Art | Procedural wallpaper/carpet/ceiling textures, skirting, structural columns, Kenney CC0 furniture laid along wall runs |
 | Controls | Phone: left half = virtual stick, right half = look. Desktop: WASD + hold-LMB to look, Shift sprint |
@@ -93,9 +93,10 @@ Perlin puts a 2 m grid on wall/floor textures; walls are zero-thickness with no 
 
 ## Questions outstanding for the user
 
-- **Does one Dweller still threaten a 24×24 floor?** It has 5 cells of sense range and starts in a
-  far corner; the floor is now four times the area it was tuned on. Untested at this size — the
-  honest options are a second Dweller, a longer sense range, or leaving it as ambience.
+- **Is 84% too relentless?** A player crossing a floor is now hunted on 84% of runs, up from a
+  measured 12%. That was the fix for "I don't see any dwellers", but it has not been played. Lower
+  `senseRangeCells` (12) before touching the count — the sweep in `DECISIONS.md` D18 shows sense
+  range is the only lever that moves the number much.
 - **Do 500–760 props per floor cost too much on a phone?** Fog and a 45 m far clip bound what is
   drawn per frame, but not instantiation or the fixed WebGL heap. `FloorLookTests` logs the count.
 - Is it **too dark to navigate** on a phone in daylight? Last change dropped ambient substantially.
