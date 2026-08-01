@@ -289,3 +289,19 @@ Dweller hunt rate from 96% to 28%. A minimum spawn distance of 16 cells recovers
 keeping the coverage win. Stairwell placement, floor size and Dweller sensing are one system; tuning
 any of them alone moves the others.
 
+## 2026-08-01 — D25. Stairwell coverage needs a doorstep guard on both passes
+
+**Decided:** cells within 16 maze-cells of the spawn are ineligible to hold a stairwell, enforced in
+**both** the greedy seeding and the local search.
+**Why:** minimising the worst walk, on its own, puts a way down next to where the player arrives —
+the mirror image of the long-walk bug. The chain is specific: the first stairwell is the cell
+furthest from spawn, the distance field is then reseeded from that stairwell alone, and the cell
+furthest from *it* is the spawn's own corner. Measured: the shortest spawn-to-stairs walk was **2
+cells**. Guarding only the local search was not enough, because the greedy pass had already placed it
+and no single move improved coverage by removing it.
+**Now:** shortest 16 cells, mean 19.9; worst walk 29, mean 24.6.
+**How it was found:** a reviewer read the new code and predicted the regression from the reseeding
+chain before it was measured. The cheap check they proposed — log spawn-to-nearest-stairs across the
+existing seeds — took one test and confirmed it immediately. `TheNearestWayDown_IsNeverOnTheDoorstep`
+now guards it.
+

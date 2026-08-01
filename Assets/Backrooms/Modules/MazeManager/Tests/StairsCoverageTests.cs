@@ -128,6 +128,43 @@ namespace Backrooms.MazeManager.Tests
         }
 
         /// <summary>
+        /// The nearest way down must never sit on the player's doorstep. Optimising purely for
+        /// coverage will happily put one two cells from where the player arrives, which ends the
+        /// floor before it starts and removes the Dwellers from the game — the mirror image of the
+        /// long-walk bug, and the reason the encounter rate collapsed when coverage was first fixed.
+        /// </summary>
+        [Test]
+        public void TheNearestWayDown_IsNeverOnTheDoorstep()
+        {
+            var facade = NewMaze();
+            int closestSeen = int.MaxValue;
+            int closestSeed = 0;
+            float total = 0f;
+
+            const int seeds = 30;
+            for (int seed = 0; seed < seeds; seed++)
+            {
+                MazeLayout layout = facade.Generate(new MazeSettings(FloorCells, FloorCells, seed));
+
+                // Distance from spawn to whichever stairwell is nearest, through the maze.
+                int[] fromStairs = DistanceToNearestStairs(layout);
+                int atSpawn = fromStairs[layout.Spawn.y * layout.Width + layout.Spawn.x];
+                total += atSpawn;
+
+                if (atSpawn >= closestSeen) continue;
+                closestSeen = atSpawn;
+                closestSeed = seed;
+            }
+
+            MooseRunnerFacade.Log(
+                $"shortest spawn-to-stairs walk: {closestSeen} cells (seed {closestSeed}); "
+                + $"mean {total / seeds:F1} cells");
+
+            Assert.GreaterOrEqual(closestSeen, 10,
+                $"seed {closestSeed} puts a way down {closestSeen} cells from the spawn");
+        }
+
+        /// <summary>
         /// Every stairwell must be reachable, and the floor must carry the number it was asked for.
         /// </summary>
         [Test]

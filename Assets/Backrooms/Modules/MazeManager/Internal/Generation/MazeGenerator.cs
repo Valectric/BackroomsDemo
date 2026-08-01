@@ -115,7 +115,7 @@ namespace Backrooms.MazeManager.Internal.Generation
 
             while (chosen.Count < count)
             {
-                Vector2Int pick = FurthestCell(distance, w, h, spawn, chosen, rng);
+                Vector2Int pick = FurthestCell(distance, w, h, spawn, fromSpawn, chosen, rng);
                 chosen.Add(pick);
                 if (chosen.Count < count) distance = Distances(cells, w, h, chosen);
             }
@@ -219,11 +219,12 @@ namespace Backrooms.MazeManager.Internal.Generation
         /// <param name="w">Grid width.</param>
         /// <param name="h">Grid height.</param>
         /// <param name="spawn">Cell the player starts in, which may never hold a stairwell.</param>
+        /// <param name="fromSpawn">Walking distance from the spawn to every cell.</param>
         /// <param name="taken">Cells already chosen.</param>
         /// <param name="rng">Seeded generator.</param>
         /// <returns>The furthest eligible cell.</returns>
         private static Vector2Int FurthestCell(int[] distance, int w, int h, Vector2Int spawn,
-            List<Vector2Int> taken, System.Random rng)
+            int[] fromSpawn, List<Vector2Int> taken, System.Random rng)
         {
             var best = new List<Vector2Int>();
             int bestDistance = -1;
@@ -234,6 +235,11 @@ namespace Backrooms.MazeManager.Internal.Generation
                 {
                     var cell = new Vector2Int(x, y);
                     if (cell == spawn || taken.Contains(cell)) continue;
+
+                    // The same doorstep guard the local search uses. Without it here, the second
+                    // stairwell lands next to the player: the field is reseeded from the first
+                    // stairwell alone, and the cell furthest from that is the spawn's own corner.
+                    if (fromSpawn[Index(x, y, w)] < MinStairsFromSpawn) continue;
 
                     int d = distance[Index(x, y, w)];
                     if (d < bestDistance) continue;
