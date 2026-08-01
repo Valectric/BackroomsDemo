@@ -31,8 +31,8 @@ namespace Backrooms.Gameplay
         [Tooltip("Seed for the maze. Change for a different layout.")]
         [SerializeField] private int seed = 1;
 
-        [Tooltip("How close to the exit centre counts as escaping, in metres.")]
-        [SerializeField] private float exitRadius = 1.5f;
+        [Tooltip("How close to a stairwell's centre counts as descending, in metres.")]
+        [SerializeField] private float stairsRadius = 2f;
 
         [Tooltip("Dweller speed in METRES per second on floor 1. Player walks at 3.2, sprints at 5.6.")]
         [SerializeField] private float dwellerBaseSpeed = 2.2f;
@@ -52,13 +52,21 @@ namespace Backrooms.Gameplay
         /// <summary>Seconds of gameplay elapsed since the run started.</summary>
         public float ElapsedSeconds { get; private set; }
 
-        /// <summary>Straight-line distance from the player to the exit, in metres.</summary>
-        public float DistanceToExit =>
-            maze == null || player == null
-                ? float.PositiveInfinity
-                : Vector3.Distance(
+        /// <summary>
+        /// Straight-line distance from the player to the nearest stairwell down, in metres. A floor
+        /// has several, so the one that matters is whichever is closest.
+        /// </summary>
+        public float DistanceToStairs
+        {
+            get
+            {
+                if (maze == null || player == null) return float.PositiveInfinity;
+                Vector3 stairs = maze.GetNearestStairsPosition(player.Position);
+                return Vector3.Distance(
                     new Vector3(player.Position.x, 0f, player.Position.z),
-                    new Vector3(maze.GetExitPosition().x, 0f, maze.GetExitPosition().z));
+                    new Vector3(stairs.x, 0f, stairs.z));
+            }
+        }
 
         /// <summary>
         /// Finds the module facades in the scene when they were not assigned in the inspector, so the
@@ -127,25 +135,49 @@ namespace Backrooms.Gameplay
         /// deeper floors are meant to be deadlier.
         /// </summary>
         /// <remarks>
-        /// It starts in one of the two corners that is neither the player's spawn nor the exit.
-        /// Spawning it on the exit would have it camping the one cell the player has to reach, and
-        /// spawning it near the player would be an instant, unavoidable death.
+        /// It starts in a far corner that is neither the player's spawn nor a stairwell. Spawning it
+        /// on a way down would have it camping a cell the player has to reach, and spawning it near
+        /// the player would be an instant, unavoidable death.
         /// </remarks>
         private void PlaceDweller()
         {
             if (dweller == null) return;
 
             MazeLayout layout = maze.CurrentLayout;
-            Vector2Int start = (CurrentFloor % 2 == 1)
-                ? new Vector2Int(0, layout.Height - 1)
-                : new Vector2Int(layout.Width - 1, 0);
-
             float speed = dwellerBaseSpeed + (CurrentFloor - 1) * dwellerSpeedPerFloor;
-            dweller.Place(layout, start, player.transform, speed, seed + CurrentFloor);
+            dweller.Place(layout, ChooseDwellerStart(layout), player.transform, speed,
+                seed + CurrentFloor);
         }
 
         /// <summary>
-        /// Tracks run time and detects the player reaching the exit.
+        /// Picks the corner a Dweller starts in: the corners are tried in an order that rotates with
+        /// the floor number, so consecutive floors do not all start it in the same place, and any
+        /// corner holding the spawn or a stairwell is skipped.
+        /// </summary>
+        /// <param name="layout">The floor being populated.</param>
+        /// <returns>The cell to start the Dweller in.</returns>
+        private Vector2Int ChooseDwellerStart(MazeLayout layout)
+        {
+            Vector2Int[] corners =
+            {
+                new Vector2Int(0, layout.Height - 1),
+                new Vector2Int(layout.Width - 1, 0),
+                new Vector2Int(layout.Width - 1, layout.Height - 1)
+            };
+
+            for (int i = 0; i < corners.Length; i++)
+            {
+                Vector2Int candidate = corners[(CurrentFloor + i) % corners.Length];
+                if (candidate == layout.Spawn) continue;
+                if (layout.IsStairs(candidate)) continue;
+                return candidate;
+            }
+
+            return corners[0];
+        }
+
+        /// <summary>
+        /// Tracks run time and detects the player reaching a stairwell down.
         /// </summary>
         private void Update()
         {
@@ -162,7 +194,7 @@ namespace Backrooms.Gameplay
             ElapsedSeconds += Time.deltaTime;
             if (hud != null) hud.SetElapsed(ElapsedSeconds);
 
-            if (DistanceToExit <= exitRadius)
+            if (DistanceToStairs <= stairsRadius)
             {
                 HasEscaped = true;
                 DescendToNextFloor();

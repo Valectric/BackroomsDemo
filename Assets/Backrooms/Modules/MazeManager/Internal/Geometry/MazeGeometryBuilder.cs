@@ -4,13 +4,14 @@ using UnityEngine;
 namespace Backrooms.MazeManager.Internal.Geometry
 {
     /// <summary>
-    /// Turns a planned maze into actual scene geometry: a combined wall object, a floor, a ceiling
-    /// and the fluorescent ceiling lights that give Level 0 its look. Everything is parented under a
-    /// single root so a rebuild can destroy and recreate it cleanly.
+    /// Turns a planned maze into actual scene geometry: chunked walls, skirting, floor and ceiling,
+    /// the fluorescent lights, the stairwells down to the next floor, and the furniture. Everything
+    /// is parented under a single root so a rebuild can destroy and recreate it cleanly.
     /// </summary>
     /// <remarks>
     /// This is a plain C# class; the owning <see cref="MazeFacade"/> MonoBehaviour passes in the
-    /// parent transform, so no hidden Unity lookups happen here.
+    /// parent transform, so no hidden Unity lookups happen here. Fixtures, stairwells and furniture
+    /// each have their own builder — this class only decides the order they run in.
     /// </remarks>
     internal sealed class MazeGeometryBuilder
     {
@@ -19,6 +20,8 @@ namespace Backrooms.MazeManager.Internal.Geometry
 
         private readonly MazeWallPlanner _planner = new MazeWallPlanner();
         private readonly MazeMeshBuilder _meshBuilder = new MazeMeshBuilder();
+        private readonly MazeFixtureBuilder _fixtures = new MazeFixtureBuilder();
+        private readonly StairwellBuilder _stairwells = new StairwellBuilder();
         private readonly PropDecorator _decorator = new PropDecorator();
 
         /// <summary>Seed used for this floor's generated textures.</summary>
@@ -51,18 +54,19 @@ namespace Backrooms.MazeManager.Internal.Geometry
             CreateMeshObject("Trim", root.transform,
                 _meshBuilder.BuildTrim(walls, 0.28f, 0.22f), _theme.Trim, addCollider: false);
 
-            CreateTexturedMeshObject("Floor", root.transform,
-                _meshBuilder.BuildPlane(worldWidth, worldDepth, 0f, faceUp: true, "MazeFloor"),
-                _theme.Floor, ProceduralTextures.Carpet(_theme.Floor, _themeSeed), addCollider: true);
+            CreateFloor(layout, cellSize, worldWidth, worldDepth, root.transform);
 
             CreateTexturedMeshObject("Ceiling", root.transform,
                 _meshBuilder.BuildPlane(worldWidth, worldDepth, wallHeight, faceUp: false, "MazeCeiling"),
                 _theme.Ceiling, ProceduralTextures.CeilingTiles(_theme.Ceiling, _themeSeed),
                 addCollider: false);
 
-            CreateLights(layout, cellSize, wallHeight, lightSpacingCells, root.transform);
-            CreateExitMarker(layout, wallHeight, root.transform);
-            HashSet<Vector2Int> columnCells = CreateColumns(layout, cellSize, wallHeight, root.transform);
+            _fixtures.CreateLights(layout, cellSize, wallHeight, lightSpacingCells, _theme,
+                root.transform);
+            CreateStairwells(layout, wallHeight, root.transform);
+
+            HashSet<Vector2Int> columnCells =
+                _fixtures.CreateColumns(layout, cellSize, wallHeight, _theme, root.transform);
             _decorator.Decorate(layout, _theme, layout.Width * 31 + layout.Height, root.transform,
                 columnCells);
 
@@ -70,133 +74,45 @@ namespace Backrooms.MazeManager.Internal.Geometry
         }
 
         /// <summary>
-        /// Places a glowing green marker in the exit cell so the player has something to find. The
-        /// marker is a trigger-free visual only; reaching the exit is decided by distance in the
-        /// gameplay layer.
+        /// Builds the floor: a rendered surface with a hole cut for every stairwell, plus a separate,
+        /// unbroken collider. Keeping the collider whole is deliberate — the stairwells are set
+        /// dressing for a floor change that fires on proximity, and a player who fell into one would
+        /// be stuck in a decorative pit with no way out.
         /// </summary>
-        /// <param name="layout">The maze, used to locate the exit cell.</param>
-        /// <param name="wallHeight">Wall height in metres.</param>
-        /// <param name="parent">Parent transform for the marker.</param>
-        private static void CreateExitMarker(MazeLayout layout, float wallHeight, Transform parent)
-        {
-            Vector3 pos = layout.CellCenterToWorld(layout.Exit);
-
-            var marker = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            marker.name = "ExitMarker";
-            Object.Destroy(marker.GetComponent<BoxCollider>());
-            marker.transform.SetParent(parent, worldPositionStays: false);
-            marker.transform.position = new Vector3(pos.x, wallHeight * 0.45f, pos.z);
-            marker.transform.localScale = new Vector3(0.6f, wallHeight * 0.9f, 0.6f);
-
-            var exitColor = new Color(0.35f, 1f, 0.45f);
-            Shader shader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
-            var mat = new Material(shader);
-            if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", exitColor);
-            if (mat.HasProperty("_Color")) mat.SetColor("_Color", exitColor);
-            mat.EnableKeyword("_EMISSION");
-            if (mat.HasProperty("_EmissionColor")) mat.SetColor("_EmissionColor", exitColor * 2.5f);
-            marker.GetComponent<MeshRenderer>().sharedMaterial = mat;
-
-            var glow = new GameObject("ExitGlow");
-            glow.transform.SetParent(marker.transform, worldPositionStays: false);
-            var light = glow.AddComponent<Light>();
-            light.type = LightType.Point;
-            light.color = exitColor;
-            // A 12m range washed green through three cells of solid wall and gave the exit away.
-            light.intensity = 2.5f;
-            light.range = 5f;
-            light.shadows = LightShadows.None;
-        }
-
-        /// <summary>
-        /// Raises structural columns through the larger open spaces. These are architecture rather
-        /// than furniture: a hall several cells wide with an unbroken ceiling reads as a void, and a
-        /// regular grid of columns gives it scale and something to navigate by.
-        /// </summary>
-        /// <param name="layout">The floor being built.</param>
+        /// <param name="layout">The maze being built.</param>
         /// <param name="cellSize">World size of one cell in metres.</param>
-        /// <param name="wallHeight">Floor-to-ceiling height in metres.</param>
-        /// <param name="parent">Parent transform for the columns.</param>
-        /// <returns>The cells a column now occupies, so nothing else is placed in them.</returns>
-        private HashSet<Vector2Int> CreateColumns(MazeLayout layout, float cellSize, float wallHeight,
+        /// <param name="worldWidth">Grid width in metres.</param>
+        /// <param name="worldDepth">Grid depth in metres.</param>
+        /// <param name="parent">Parent transform.</param>
+        private void CreateFloor(MazeLayout layout, float cellSize, float worldWidth, float worldDepth,
             Transform parent)
         {
-            var occupied = new HashSet<Vector2Int>();
-            var root = new GameObject("Columns");
+            var holes = new HashSet<Vector2Int>(layout.Stairs);
+            CreateTexturedMeshObject("Floor", parent,
+                _meshBuilder.BuildFloorWithHoles(layout.Width, layout.Height, cellSize, holes),
+                _theme.Floor, ProceduralTextures.Carpet(_theme.Floor, _themeSeed), addCollider: false);
+
+            var collider = new GameObject("FloorCollider");
+            collider.transform.SetParent(parent, worldPositionStays: false);
+            collider.AddComponent<MeshCollider>().sharedMesh =
+                _meshBuilder.BuildPlane(worldWidth, worldDepth, 0f, faceUp: true, "MazeFloorCollider");
+        }
+
+        /// <summary>
+        /// Sinks a stairwell into every cell the layout marks as one.
+        /// </summary>
+        /// <param name="layout">The maze being built.</param>
+        /// <param name="wallHeight">Floor-to-ceiling height in metres.</param>
+        /// <param name="parent">Parent transform.</param>
+        private void CreateStairwells(MazeLayout layout, float wallHeight, Transform parent)
+        {
+            var root = new GameObject("Stairwells");
             root.transform.SetParent(parent, worldPositionStays: false);
 
-            Material shaft = CreateMaterial(_theme.Wall);
-            Material trim = CreateMaterial(_theme.Trim);
-            const float width = 0.42f;
-
-            // Every third cell, and only where the space is open on all sides, so columns land in
-            // halls rather than blocking a corridor.
-            // Offset from the ceiling-light lattice (which starts at spacing/2 = 1 and also steps
-            // by 3). Sharing it put a point light inside every column capital, which then rendered
-            // black because its faces were near-coplanar with the light origin.
-            for (int y = 2; y < layout.Height - 1; y += 3)
+            foreach (Vector2Int cell in layout.Stairs)
             {
-                for (int x = 2; x < layout.Width - 1; x += 3)
-                {
-                    if (new Vector2Int(x, y) == layout.Spawn) continue;
-                    if (new Vector2Int(x, y) == layout.Exit) continue;
-
-                    bool openAllRound = true;
-                    foreach (Direction dir in Directions.All)
-                    {
-                        if (!layout.CanMove(x, y, dir)) openAllRound = false;
-                    }
-
-                    if (!openAllRound) continue;
-
-                    var cell = new Vector2Int(x, y);
-                    Vector3 pos = layout.CellCenterToWorld(cell);
-                    Column(root.transform, pos, width, wallHeight, shaft, trim);
-                    occupied.Add(cell);
-                }
+                _stairwells.Build(layout, cell, wallHeight, _theme, root.transform);
             }
-
-            return occupied;
-        }
-
-        /// <summary>
-        /// Builds one column: a full-height shaft with a base and capital.
-        /// </summary>
-        /// <param name="parent">Parent transform.</param>
-        /// <param name="pos">Floor-level position.</param>
-        /// <param name="width">Shaft width in metres.</param>
-        /// <param name="height">Floor-to-ceiling height in metres.</param>
-        /// <param name="shaft">Material for the shaft.</param>
-        /// <param name="trim">Material for base and capital.</param>
-        private static void Column(Transform parent, Vector3 pos, float width, float height,
-            Material shaft, Material trim)
-        {
-            Cube(parent, "Column", pos + Vector3.up * height * 0.5f,
-                new Vector3(width, height, width), shaft);
-            Cube(parent, "ColumnBase", pos + Vector3.up * 0.16f,
-                new Vector3(width * 1.4f, 0.32f, width * 1.4f), trim);
-            Cube(parent, "ColumnCapital", pos + Vector3.up * (height - 0.16f),
-                new Vector3(width * 1.4f, 0.32f, width * 1.4f), trim);
-        }
-
-        /// <summary>
-        /// Creates a collider-free cube with the given material.
-        /// </summary>
-        /// <param name="parent">Parent transform.</param>
-        /// <param name="name">Object name.</param>
-        /// <param name="centre">World centre.</param>
-        /// <param name="size">Full size on each axis.</param>
-        /// <param name="material">Material to render with.</param>
-        private static void Cube(Transform parent, string name, Vector3 centre, Vector3 size,
-            Material material)
-        {
-            var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            go.name = name;
-            Object.Destroy(go.GetComponent<BoxCollider>());
-            go.transform.SetParent(parent, worldPositionStays: false);
-            go.transform.position = centre;
-            go.transform.localScale = size;
-            go.GetComponent<MeshRenderer>().sharedMaterial = material;
         }
 
         /// <summary>
@@ -238,7 +154,7 @@ namespace Backrooms.MazeManager.Internal.Geometry
             var wallsRoot = new GameObject("Walls");
             wallsRoot.transform.SetParent(parent, worldPositionStays: false);
 
-            Material shared = CreateTexturedMaterial(
+            Material shared = MazeMaterials.Textured(
                 _theme.Wall, ProceduralTextures.Wall(_theme.Wall, _themeSeed));
             foreach (KeyValuePair<Vector2Int, List<WallSegment>> chunk in chunks)
             {
@@ -267,7 +183,7 @@ namespace Backrooms.MazeManager.Internal.Geometry
             var go = new GameObject(name);
             go.transform.SetParent(parent, worldPositionStays: false);
             go.AddComponent<MeshFilter>().sharedMesh = mesh;
-            go.AddComponent<MeshRenderer>().sharedMaterial = CreateTexturedMaterial(colour, texture);
+            go.AddComponent<MeshRenderer>().sharedMaterial = MazeMaterials.Textured(colour, texture);
             if (addCollider) go.AddComponent<MeshCollider>().sharedMesh = mesh;
         }
 
@@ -286,126 +202,8 @@ namespace Backrooms.MazeManager.Internal.Geometry
             var go = new GameObject(name);
             go.transform.SetParent(parent, worldPositionStays: false);
             go.AddComponent<MeshFilter>().sharedMesh = mesh;
-            go.AddComponent<MeshRenderer>().sharedMaterial = CreateMaterial(color);
+            go.AddComponent<MeshRenderer>().sharedMaterial = MazeMaterials.Lit(color);
             if (addCollider) go.AddComponent<MeshCollider>().sharedMesh = mesh;
-        }
-
-        /// <summary>
-        /// Creates a URP-lit material carrying a generated texture, so surfaces have grain and
-        /// pattern instead of reading as flat blocks of colour.
-        /// </summary>
-        /// <param name="colour">Base colour.</param>
-        /// <param name="texture">Generated surface texture.</param>
-        /// <returns>A new textured material.</returns>
-        private static Material CreateTexturedMaterial(Color colour, Texture2D texture)
-        {
-            Material mat = CreateMaterial(colour);
-            if (mat.HasProperty("_BaseMap")) mat.SetTexture("_BaseMap", texture);
-            mat.mainTexture = texture;
-            return mat;
-        }
-
-        /// <summary>
-        /// Creates an opaque URP-lit material. Falls back to the legacy standard shader only if the
-        /// URP shader is unavailable, so the geometry never renders as magenta.
-        /// </summary>
-        /// <param name="color">Base colour.</param>
-        /// <returns>A new material instance.</returns>
-        private static Material CreateMaterial(Color color)
-        {
-            Shader shader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
-            if (shader == null)
-            {
-                // In a player build a shader reached only via Shader.Find is stripped unless it is
-                // in Graphics Settings' always-included list, and Unity silently swaps in the
-                // magenta error shader. Say so loudly instead of shipping a pink level.
-                Debug.LogError("[Maze] URP Lit shader missing from the build — geometry will render "
-                               + "magenta. Run Backrooms/Ensure Always-Included Shaders.");
-                return new Material(Shader.Find("Sprites/Default"));
-            }
-
-            var mat = new Material(shader);
-            if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", color);
-            if (mat.HasProperty("_Color")) mat.SetColor("_Color", color);
-            if (mat.HasProperty("_Smoothness")) mat.SetFloat("_Smoothness", 0.05f);
-            if (mat.HasProperty("_Glossiness")) mat.SetFloat("_Glossiness", 0.05f);
-            return mat;
-        }
-
-        /// <summary>
-        /// Scatters point lights below the ceiling on a regular grid so the corridors are lit by
-        /// distinct pools of light rather than uniform ambience.
-        /// </summary>
-        /// <param name="layout">The maze, used for grid extents.</param>
-        /// <param name="cellSize">World size of one cell in metres.</param>
-        /// <param name="wallHeight">Wall height in metres.</param>
-        /// <param name="spacingCells">Light spacing in cells on both axes.</param>
-        /// <param name="parent">Parent transform for the light objects.</param>
-        private void CreateLights(MazeLayout layout, float cellSize, float wallHeight,
-            int spacingCells, Transform parent)
-        {
-            int spacing = spacingCells < 1 ? 1 : spacingCells;
-            var lightsRoot = new GameObject("Lights");
-            lightsRoot.transform.SetParent(parent, worldPositionStays: false);
-
-            for (int y = spacing / 2; y < layout.Height; y += spacing)
-            {
-                for (int x = spacing / 2; x < layout.Width; x += spacing)
-                {
-                    var go = new GameObject($"CeilingLight_{x}_{y}");
-                    go.transform.SetParent(lightsRoot.transform, worldPositionStays: false);
-                    // Hung 15cm below the ceiling, N.L collapsed to 0.15 a metre out and the
-                    // ceiling — the signature Backrooms surface — was the darkest thing in frame.
-                    go.transform.position = new Vector3(
-                        x * cellSize + cellSize * 0.5f,
-                        wallHeight - 0.45f,
-                        y * cellSize + cellSize * 0.5f);
-
-                    var light = go.AddComponent<Light>();
-                    light.type = LightType.Point;
-                    light.color = _theme.Light;
-                    light.intensity = 7.5f;
-
-                    // Range must cover at least three quarters of the fixture pitch or pools cannot
-                    // meet: at 7.6m range on a 12m pitch, the point between four fixtures received no
-                    // direct light at all. Overshooting the other way lights through walls.
-                    light.range = cellSize * spacing * 0.92f;
-                    light.shadows = LightShadows.None;
-
-                    CreateLightPanel(go.transform, cellSize);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Adds the visible fluorescent fixture under a ceiling light: a flat emissive panel, so the
-        /// player sees where the buzzing light is coming from rather than an unexplained glow.
-        /// </summary>
-        /// <param name="lightTransform">Transform of the point light to attach the panel to.</param>
-        /// <param name="cellSize">World size of one cell in metres.</param>
-        private void CreateLightPanel(Transform lightTransform, float cellSize)
-        {
-            var panel = GameObject.CreatePrimitive(PrimitiveType.Quad);
-            panel.name = "LightPanel";
-            Object.Destroy(panel.GetComponent<MeshCollider>());
-            panel.transform.SetParent(lightTransform, worldPositionStays: false);
-            // A Unity quad's normal is -Z. Euler(90) aimed it at the ceiling, so the fixture was
-            // backface-culled for anyone standing under it and only visible from outside the level.
-            panel.transform.localPosition = new Vector3(0f, 0.40f, 0f);
-            panel.transform.localRotation = Quaternion.Euler(-90f, 0f, 0f);
-
-            // A real fluorescent troffer is 1.2m x 0.6m; the panels were nearly twice that.
-            panel.transform.localScale = new Vector3(1.2f, 0.6f, 1f);
-
-            Shader shader = Shader.Find("Universal Render Pipeline/Unlit")
-                            ?? Shader.Find("Universal Render Pipeline/Lit")
-                            ?? Shader.Find("Standard");
-            var mat = new Material(shader);
-            // Unlit has no emission, so the panel's brightness has to come from its base colour.
-            // Pushing it past 1 gives the fixture HDR headroom to read as a light source.
-            if (mat.HasProperty("_BaseColor")) mat.SetColor("_BaseColor", _theme.Light * 3.5f);
-            if (mat.HasProperty("_Color")) mat.SetColor("_Color", _theme.Light * 3.5f);
-            panel.GetComponent<MeshRenderer>().sharedMaterial = mat;
         }
     }
 }

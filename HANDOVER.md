@@ -19,12 +19,12 @@ browser.
 
 | | |
 |---|---|
-| Tests | **50 green** (26 maze, 7 player, 7 HUD, 6 Dweller, 4 E2E), console clean |
-| Gameplay | Descend themed floors; find the exit to go deeper; a Dweller hunts you; caught = run over |
-| Floors | Yellow Rooms → Abandoned Mall → Janky Laundromat → Twisted Carnival → Condemned Asylum, then wraps |
-| Art | Procedural wallpaper/carpet/ceiling textures, skirting, structural columns, Kenney CC0 furniture |
+| Tests | **59 green** (35 maze, 7 player, 7 HUD, 6 Dweller, 4 E2E), console clean |
+| Gameplay | Descend themed floors; find any of **three stairwells** to go deeper; a Dweller hunts you; caught = run over |
+| Floors | **24×24 cells (96 m square)**. Yellow Rooms → Abandoned Mall → Janky Laundromat → Twisted Carnival → Condemned Asylum, then wraps |
+| Art | Procedural wallpaper/carpet/ceiling textures, skirting, structural columns, Kenney CC0 furniture laid along wall runs |
 | Controls | Phone: left half = virtual stick, right half = look. Desktop: WASD + hold-LMB to look, Shift sprint |
-| Confirmed | Runs on the user's phone; corridors navigable; touch controls work |
+| Confirmed | Runs on the user's phone; corridors navigable; touch controls work — **all at the old 12×12 size** |
 
 ## Verified environment
 
@@ -48,18 +48,15 @@ These come from three exploratory reviewers (art direction, level design, techni
 twice over screenshots + code. Their findings are summarised here; the reasoning is in `DECISIONS.md`
 D11.
 
-**H1 — Place wall props along continuous wall runs, not per cell.** *Biggest visual win.*
-Every prop currently sits dead-centre in a 4 m cell, so the level reads as a lattice. Fixing the
-placement *errors* in round 1 unmasked this. Collect collinear closed sides into runs, lay pieces
-end-to-end at continuous offsets (gap 0.15–2.4 m), target ~35% wall coverage, yaw ±6°, and skip a
-1.2 m band at every doorway. Clustering, surface clutter and rugs all want this model underneath
-them.
+**~~H1~~ — DONE 2026-08-01.** Wall props are laid along continuous `WallRun`s (see `DECISIONS.md`
+D15). `WallRunPlanner` collects the runs, `WallRunDresser` fills them, `WallRunTests` covers the
+planner. Prop counts are logged by `FloorLookTests` — read them before changing coverage.
 
-**H2 — Fix the overlap-rejection rule before building clustering on it.**
-`PropDecorator` scans row-major and destroys the *later* of any conflicting pair, so south/west
-always wins and there is no retry. Harmless today (<3% fire rate) but it will deterministically gut
-clusters from the north-east inward. Build all candidate placements, shuffle with the seeded RNG,
-then place; retry with a smaller model on collision.
+**H2 — Fix the overlap-rejection rule.** *Partly done.* Runs are now shuffled with the seeded RNG
+before dressing, so the row-major "south and west always win" bias is gone, and a run retries up to
+three model draws when one is too wide. Still outstanding: on an actual *collision* the piece is
+destroyed and the slot left empty rather than retried with a smaller model. Matters most where two
+runs meet at an inside corner.
 
 **H3 — Tall props on every floor.**
 Four of five floors have nothing above **1.1 m** against a 3 m wall, so nothing ever breaks a
@@ -79,8 +76,11 @@ is fixed at build time. Track created objects and destroy them in `RebuildGeomet
 area budget and may touch the border, so ~45% of a floor can merge into one shapeless hall. Cap the
 room-cell union at ~25%, inset from the border, and add partition stubs inside large rooms.
 
-**H7 — Chunk floor and ceiling like the walls.** They are single level-spanning quads, so URP's
-per-renderer additional-light limit means they receive only a handful of lights.
+**H7 — Chunk floor and ceiling like the walls.** The **ceiling** is still one level-spanning quad, so
+URP's per-renderer additional-light limit means it receives only a handful of lights — and it is four
+times the area it used to be. The floor is now built per cell (to cut stairwell holes) but still
+emitted as one mesh; grouping those cells into chunks is a small change in
+`MazeMeshBuilder.BuildFloorWithHoles`.
 
 **H8 — Per-floor prop tinting.** The same orange Kenney chair appears on all five floors, which reads
 as an asset flip. Lerp albedo toward the floor palette via `MaterialPropertyBlock`; reserve high
@@ -93,9 +93,13 @@ Perlin puts a 2 m grid on wall/floor textures; walls are zero-thickness with no 
 
 ## Questions outstanding for the user
 
+- **Does one Dweller still threaten a 24×24 floor?** It has 5 cells of sense range and starts in a
+  far corner; the floor is now four times the area it was tuned on. Untested at this size — the
+  honest options are a second Dweller, a longer sense range, or leaving it as ambience.
+- **Do 500–760 props per floor cost too much on a phone?** Fog and a 45 m far clip bound what is
+  drawn per frame, but not instantiation or the fixed WebGL heap. `FloorLookTests` logs the count.
 - Is it **too dark to navigate** on a phone in daylight? Last change dropped ambient substantially.
-- Does the Dweller feel tense or annoying? Is ~5 cells of sense range right?
-- Is a 12×12 floor the right size for a blind run?
+- Are three stairwells the right number, and is the green ceiling sign findable enough across 96 m?
 
 ---
 

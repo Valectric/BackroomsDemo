@@ -116,8 +116,17 @@ namespace Backrooms.MazeManager.Tests
                 Object.Destroy(eyeShot);
             }
 
-            Assert.IsNotNull(GameObject.Find("Props"), "the floor should be furnished with props");
+            GameObject props = GameObject.Find("Props");
+            Assert.IsNotNull(props, "the floor should be furnished with props");
             Assert.IsNotNull(GameObject.Find("Trim"), "the floor should have skirting trim");
+
+            // Furniture count is the one number that decides both how dressed a floor looks and how
+            // much a phone has to draw, and neither screenshot shows it. Log it so tuning coverage is
+            // done against a measurement rather than an impression.
+            MooseRunnerFacade.Log(
+                $"floor {floor} ({theme.Name}): {props.transform.childCount} props over "
+                + $"{layout.Width}x{layout.Height} cells");
+            Assert.Greater(props.transform.childCount, 0, "the floor should have furniture on it");
         }
 
         /// <summary>
@@ -198,6 +207,98 @@ namespace Backrooms.MazeManager.Tests
                 string path = Path.GetFullPath(Path.Combine(dir, "facing-bookcase.png"));
                 File.WriteAllBytes(path, shot.EncodeToPNG());
                 MooseRunnerFacade.Log($"bookcase {bookcase.name} photographed -> {path}");
+            }
+            finally
+            {
+                Object.Destroy(shot);
+            }
+        }
+
+        /// <summary>
+        /// Photographs a stairwell from the approach and from above. A hole cut in the floor mesh,
+        /// a shaft lining and a flight of treads are three separate pieces of geometry that have to
+        /// line up in world space; nothing asserts that they do, and a gap between them shows as a
+        /// view straight out of the level.
+        /// </summary>
+        [Test]
+        public async UniTask Stairwell_ReadsAsAWayDown(CancellationToken ct)
+        {
+            FloorTheme theme = FloorThemes.ForFloor(1);
+            FloorAtmosphere.Apply(theme);
+
+            var mazeGo = new GameObject("MazeManager");
+            MazeFacade maze = mazeGo.AddComponent<MazeFacade>();
+            maze.GenerateAndBuild(977, theme);
+
+            MazeLayout layout = maze.CurrentLayout;
+            Assert.IsNotEmpty(layout.Stairs, "the floor should carry stairwells");
+
+            Vector2Int cell = layout.Stairs[0];
+            Vector3 centre = layout.CellCenterToWorld(cell);
+            MooseRunnerFacade.Log($"stairwell at cell {cell}, {layout.Stairs.Count} on this floor");
+
+            var camGo = new GameObject("InspectionCamera");
+            var cam = camGo.AddComponent<Camera>();
+            cam.fieldOfView = 66f;
+            cam.farClipPlane = 60f;
+
+            // Stand in the neighbouring cell so the approach is not photographed through a wall.
+            Vector3 approach = ApproachOffset(layout, cell) * layout.CellSize * 0.95f;
+            camGo.transform.position = centre + approach + Vector3.up * 1.7f;
+            camGo.transform.rotation = Quaternion.LookRotation(centre + Vector3.up * 0.2f
+                                                               - camGo.transform.position);
+
+            for (int i = 0; i < 4; i++) await UniTask.Yield(ct);
+            await UniTask.WaitForEndOfFrame(ct);
+            await Capture("stairs-approach", ct);
+
+            // Fog hides the bottom of the shaft from the approach; look straight in without it.
+            bool fogWas = RenderSettings.fog;
+            RenderSettings.fog = false;
+            camGo.transform.position = centre + approach * 0.45f + Vector3.up * 3.6f;
+            camGo.transform.rotation = Quaternion.LookRotation(centre + Vector3.down * 1.5f
+                                                               - camGo.transform.position);
+
+            for (int i = 0; i < 3; i++) await UniTask.Yield(ct);
+            await UniTask.WaitForEndOfFrame(ct);
+            await Capture("stairs-shaft", ct);
+            RenderSettings.fog = fogWas;
+        }
+
+        /// <summary>
+        /// A unit offset towards a cell the player could approach a stairwell from.
+        /// </summary>
+        /// <param name="layout">The floor being photographed.</param>
+        /// <param name="cell">The stairwell's cell.</param>
+        /// <returns>A unit world offset, defaulting to south if the cell is walled in.</returns>
+        private static Vector3 ApproachOffset(MazeLayout layout, Vector2Int cell)
+        {
+            foreach (Direction dir in Directions.All)
+            {
+                if (!layout.CanMove(cell.x, cell.y, dir)) continue;
+                Vector2Int d = Directions.Delta(dir);
+                return new Vector3(d.x, 0f, d.y);
+            }
+
+            return Vector3.back;
+        }
+
+        /// <summary>
+        /// Writes the current frame into <c>Screenshots/</c> under a given name.
+        /// </summary>
+        /// <param name="name">File name without extension.</param>
+        /// <param name="ct">Cancellation token supplied by the runner.</param>
+        private static async UniTask Capture(string name, CancellationToken ct)
+        {
+            await UniTask.WaitForEndOfFrame(ct);
+            Texture2D shot = ScreenCapture.CaptureScreenshotAsTexture();
+            try
+            {
+                string dir = Path.Combine(UnityEngine.Application.dataPath, "..", "Screenshots");
+                Directory.CreateDirectory(dir);
+                string path = Path.GetFullPath(Path.Combine(dir, $"{name}.png"));
+                File.WriteAllBytes(path, shot.EncodeToPNG());
+                MooseRunnerFacade.Log($"captured {name} -> {path}");
             }
             finally
             {

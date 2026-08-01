@@ -1,3 +1,5 @@
+using UnityEngine;
+
 namespace Backrooms.MazeManager
 {
     /// <summary>
@@ -21,9 +23,17 @@ namespace Backrooms.MazeManager
 
         /// <summary>
         /// How many open rooms to carve into the grid. Rooms break up the corridors so a floor is not
-        /// wall-to-wall passages.
+        /// wall-to-wall passages. Defaults to one room per 64 cells, so room <i>density</i> stays
+        /// constant as the grid grows rather than a big floor being all corridor.
         /// </summary>
         public int RoomCount { get; set; } = 4;
+
+        /// <summary>
+        /// How many stairwells down to the next floor the grid carries. More than one is what makes a
+        /// large floor playable: a single exit on a 32-cell grid is a long blind search, whereas three
+        /// means there is usually one within reach of wherever the player ends up.
+        /// </summary>
+        public int StairCount { get; set; } = 3;
 
         /// <summary>Smallest room side, in cells.</summary>
         public int RoomMinSize { get; set; } = 3;
@@ -52,6 +62,7 @@ namespace Backrooms.MazeManager
             Height = height < 2 ? 2 : height;
             Seed = seed;
             CellSize = cellSize < 0.1f ? 0.1f : cellSize;
+            RoomCount = Mathf.Max(3, Width * Height / 64);
         }
     }
 }
