@@ -21,7 +21,7 @@ namespace Backrooms.EntityManager
         [SerializeField] private int senseRangeCells = 12;
 
         [Tooltip("How close, in metres, counts as catching the player.")]
-        [SerializeField] private float catchRadius = 1.1f;
+        [SerializeField] private float catchRadius = 1.35f;
 
         [Tooltip("Hard ceiling on hunting speed. Must stay under the player's sprint (5.6) at any depth.")]
         [SerializeField] private float maxChaseMetresPerSecond = 5.1f;
@@ -31,6 +31,12 @@ namespace Backrooms.EntityManager
 
         /// <summary>Speed while hunting, in metres per second.</summary>
         private float _chaseSpeed = 2.2f;
+
+        /// <summary>
+        /// Distance at which a hunting Dweller stops following the grid and steers straight at the
+        /// player. Wider than a cell half-width, so hugging a wall cannot put anyone out of reach.
+        /// </summary>
+        private const float CloseInMetres = 3f;
 
         private readonly DwellerRouter _router = new DwellerRouter();
         private readonly DwellerBody _shape = new DwellerBody();
@@ -137,16 +143,39 @@ namespace Backrooms.EntityManager
             _router.UpdateState(playerCell);
 
             metresPerSecond = _router.IsChasing ? _chaseSpeed : _patrolSpeed;
-
-            Vector3 targetPos = _router.Layout.CellCenterToWorld(_router.TargetCell);
             Vector3 here = transform.position;
+
+            // Once it is in the player's own cell, steer at the player rather than at the cell
+            // centre. Pathing is a grid, but the player is not on it: standing against a wall puts
+            // them 2m off centre on a 4m cell, and a Dweller that only ever walks centre-to-centre
+            // passes by at arm's length and never lands a catch. The last stride has to be
+            // continuous or the whole chase can fail on geometry.
+            float toPlayerFlat = Vector3.Distance(
+                new Vector3(here.x, 0f, here.z),
+                new Vector3(_target.position.x, 0f, _target.position.z));
+
+            // Cell equality alone is not enough: a player standing exactly on a boundary belongs to
+            // one cell while being physically closer to the Dweller in the next one. Home on
+            // proximity as well, so the final stride never depends on which cell a coordinate
+            // rounds into.
+            bool closing = _router.IsChasing
+                           && (_router.Cell == playerCell || toPlayerFlat <= CloseInMetres);
+            Vector3 targetPos = closing
+                ? new Vector3(_target.position.x, 0f, _target.position.z)
+                : _router.Layout.CellCenterToWorld(_router.TargetCell);
             float step = metresPerSecond * Time.fixedDeltaTime;
 
             if (Vector3.Distance(new Vector3(here.x, 0f, here.z), targetPos) <= step)
             {
                 transform.position = targetPos;
-                _router.ArriveAtTarget();
-                _router.ChooseNextCell(playerCell);
+
+                // Only a grid target counts as arriving somewhere; homing on the player is a stride
+                // within the cell it already occupies.
+                if (!closing)
+                {
+                    _router.ArriveAtTarget();
+                    _router.ChooseNextCell(playerCell);
+                }
             }
             else
             {

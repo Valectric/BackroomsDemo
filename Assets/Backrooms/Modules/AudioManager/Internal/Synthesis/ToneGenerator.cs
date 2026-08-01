@@ -101,27 +101,38 @@ namespace Backrooms.AudioManager.Internal.Synthesis
             var samples = new float[length];
             var rng = new System.Random(seed);
 
-            // Two one-pole low passes in series, cut far lower than one. A single gentle filter left
-            // enough upper content that every step read as a slap on a hard floor rather than a
-            // footfall felt through it; cascading them rolls that off at twice the rate.
+            // Three one-pole low passes in series, cut very low. Each stage halves what gets
+            // through again, and at this cutoff almost nothing above the bottom octaves survives —
+            // the noise is there for the scuff of the contact, not to be heard as noise.
             float stage1 = 0f;
             float stage2 = 0f;
+            float stage3 = 0f;
 
-            // A short sub-bass thump underneath, which is what actually carries a footstep on a
-            // phone speaker — the noise alone is all texture and no body.
-            const float BodyHz = 62f;
+            // The body is the sound. A real footfall on a floor is felt more than heard, and on a
+            // phone speaker only the bottom of it survives at all, so the thump carries the weight
+            // and the filtered noise only takes the edge off its attack.
+            const float BodyStartHz = 78f;
+            const float BodyEndHz = 42f;
 
+            double phase = 0.0;
             for (int i = 0; i < length; i++)
             {
                 var noise = (float)(rng.NextDouble() * 2.0 - 1.0);
-                stage1 += (noise - stage1) * 0.05f;
-                stage2 += (stage1 - stage2) * 0.05f;
+                stage1 += (noise - stage1) * 0.022f;
+                stage2 += (stage1 - stage2) * 0.022f;
+                stage3 += (stage2 - stage3) * 0.022f;
 
-                float t = i / (float)SampleRate;
-                float body = Mathf.Sin(2f * Mathf.PI * BodyHz * t) * Mathf.Exp(-26f * i / length);
+                float t = i / (float)length;
 
-                float decay = Mathf.Exp(-13f * i / length);
-                samples[i] = (stage2 * 5.2f * decay + body * 0.5f) * amplitude;
+                // Sweep the body downward like a struck surface settling, rather than holding one
+                // pitch, which reads as a tone instead of an impact.
+                float frequency = Mathf.Lerp(BodyStartHz, BodyEndHz, Mathf.Sqrt(t));
+                phase += 2.0 * Mathf.PI * frequency / SampleRate;
+
+                float body = Mathf.Sin((float)phase) * Mathf.Exp(-11f * t);
+                float scuff = stage3 * Mathf.Exp(-24f * t);
+
+                samples[i] = (body * 0.95f + scuff * 3.2f) * amplitude;
             }
 
             return Clamped(samples);
