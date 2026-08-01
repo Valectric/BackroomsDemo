@@ -64,7 +64,7 @@ namespace Backrooms.EntityManager.Tests
             dweller.SetSenseRange(3);
 
             // A cell three corridor-steps away must be noticed.
-            List<Vector2Int> path = dweller.PathBetween(layout, Vector2Int.zero, layout.Exit);
+            List<Vector2Int> path = dweller.PathBetween(layout, Vector2Int.zero, layout.Stairs[0]);
             Assert.IsNotNull(path, "exit is reachable");
             Vector2Int near = path[2];
 
@@ -82,10 +82,10 @@ namespace Backrooms.EntityManager.Tests
             (MazeLayout layout, DwellerManagerTestFacade dweller) = NewDweller(7, Vector2Int.zero);
             dweller.SetSenseRange(2);
 
-            int distance = dweller.DistanceTo(layout.Exit);
+            int distance = dweller.DistanceTo(layout.Stairs[0]);
             Assert.Greater(distance, 2, "the exit is further than the sense range for this seed");
 
-            dweller.UpdateState(layout.Exit);
+            dweller.UpdateState(layout.Stairs[0]);
             Assert.AreEqual(DwellerState.Patrol, dweller.State, "does not notice a distant player");
         }
 
@@ -99,7 +99,7 @@ namespace Backrooms.EntityManager.Tests
             (MazeLayout layout, DwellerManagerTestFacade dweller) = NewDweller(3, Vector2Int.zero);
             dweller.SetSenseRange(999);
 
-            Vector2Int player = layout.Exit;
+            Vector2Int player = layout.Stairs[0];
             int previous = dweller.DistanceTo(player);
 
             for (int step = 0; step < 8 && previous > 0; step++)
@@ -123,7 +123,7 @@ namespace Backrooms.EntityManager.Tests
             (MazeLayout layout, DwellerManagerTestFacade dweller) = NewDweller(11, Vector2Int.zero);
             dweller.SetSenseRange(2);
 
-            Vector2Int player = layout.Exit;
+            Vector2Int player = layout.Stairs[0];
             for (int step = 0; step < 40; step++)
             {
                 Vector2Int before = dweller.Cell;
@@ -155,11 +155,11 @@ namespace Backrooms.EntityManager.Tests
 
             // Drive the shared router into the caught state through the production path.
             probe.SetSenseRange(0);
-            probe.UpdateState(layout.Exit);
+            probe.UpdateState(layout.Stairs[0]);
             Assert.AreEqual(DwellerState.Patrol, probe.State, "far player leaves it patrolling");
 
             dweller.SetSenseRange(999);
-            dweller.UpdateState(layout.Exit);
+            dweller.UpdateState(layout.Stairs[0]);
             Assert.AreEqual(DwellerState.Chase, dweller.State, "close player triggers a chase");
         }
 

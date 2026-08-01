@@ -180,9 +180,9 @@ namespace Backrooms.MazeManager.Tests
             MazeLayout layout = facade.Generate(new MazeSettings(9, 9, seed: 3, cellSize: 4f));
 
             Vector3 spawn = facade.GetSpawnPosition();
-            Vector3 exit = facade.GetExitPosition();
+            Vector3 exit = facade.GetNearestStairsPosition(spawn);
 
-            Assert.AreNotEqual(spawn, exit, "spawn and exit must differ");
+            Assert.AreNotEqual(spawn, exit, "the nearest stairwell must not be the spawn cell");
             float maxX = layout.Width * layout.CellSize;
             float maxZ = layout.Height * layout.CellSize;
             foreach (Vector3 p in new[] { spawn, exit })

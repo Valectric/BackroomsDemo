@@ -15,6 +15,7 @@ namespace Backrooms.MazeManager.Internal
     {
         private readonly MazeGenerator _generator = new MazeGenerator();
         private readonly MazeWallPlanner _planner = new MazeWallPlanner();
+        private readonly WallRunPlanner _runPlanner = new WallRunPlanner();
         private readonly MazeGeometryBuilder _geometry = new MazeGeometryBuilder();
 
         /// <summary>
@@ -32,6 +33,15 @@ namespace Backrooms.MazeManager.Internal
         /// <returns>The planned wall segments.</returns>
         public List<WallSegment> PlanWalls(MazeLayout layout, float cellSize)
             => _planner.Plan(layout, cellSize);
+
+        /// <summary>
+        /// Collects the layout's continuous wall runs by delegating to the wall-run planner.
+        /// </summary>
+        /// <param name="layout">The layout to scan.</param>
+        /// <param name="excluded">Cells whose walls must be left bare, or <c>null</c>.</param>
+        /// <returns>The planned wall runs.</returns>
+        public List<WallRun> PlanWallRuns(MazeLayout layout, HashSet<Vector2Int> excluded)
+            => _runPlanner.Plan(layout, excluded);
 
         /// <summary>
         /// Builds scene geometry for a layout by delegating to the geometry builder.

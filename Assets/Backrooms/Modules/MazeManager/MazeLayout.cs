@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Backrooms.MazeManager
@@ -11,6 +12,7 @@ namespace Backrooms.MazeManager
     public sealed class MazeLayout
     {
         private readonly MazeCell[] _cells;
+        private readonly Vector2Int[] _stairs;
 
         /// <summary>Grid width in cells.</summary>
         public int Width { get; }
@@ -21,8 +23,11 @@ namespace Backrooms.MazeManager
         /// <summary>The cell the player starts in.</summary>
         public Vector2Int Spawn { get; }
 
-        /// <summary>The cell that ends the run (the exit) when reached.</summary>
-        public Vector2Int Exit { get; }
+        /// <summary>
+        /// The cells holding a stairwell down to the next floor. Reaching any of them ends the floor;
+        /// they are spread across the grid so a big level always has one within reach.
+        /// </summary>
+        public IReadOnlyList<Vector2Int> Stairs => _stairs;
 
         /// <summary>World size of one cell in metres, as used when building geometry.</summary>
         public float CellSize { get; }
@@ -36,17 +41,54 @@ namespace Backrooms.MazeManager
         /// <param name="height">Grid height in cells.</param>
         /// <param name="cells">Row-major cell array of length width*height.</param>
         /// <param name="spawn">Spawn cell coordinate.</param>
-        /// <param name="exit">Exit cell coordinate.</param>
+        /// <param name="stairs">Cells holding a stairwell down to the next floor.</param>
         /// <param name="cellSize">World size of one cell in metres.</param>
-        internal MazeLayout(int width, int height, MazeCell[] cells, Vector2Int spawn, Vector2Int exit,
-            float cellSize)
+        internal MazeLayout(int width, int height, MazeCell[] cells, Vector2Int spawn,
+            Vector2Int[] stairs, float cellSize)
         {
             Width = width;
             Height = height;
             _cells = cells;
             Spawn = spawn;
-            Exit = exit;
+            _stairs = stairs;
             CellSize = cellSize;
+        }
+
+        /// <summary>
+        /// Whether a cell holds a stairwell down to the next floor.
+        /// </summary>
+        /// <param name="cell">Cell coordinate to test.</param>
+        /// <returns><c>true</c> if the cell is a stairwell.</returns>
+        public bool IsStairs(Vector2Int cell)
+        {
+            foreach (Vector2Int stair in _stairs)
+            {
+                if (stair == cell) return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// The stairwell closest to a cell as the crow flies. Used to point the player at the nearest
+        /// way down rather than at an arbitrary one on the far side of the floor.
+        /// </summary>
+        /// <param name="from">Cell to measure from.</param>
+        /// <returns>The nearest stairwell cell, or <paramref name="from"/> if the floor has none.</returns>
+        public Vector2Int NearestStairs(Vector2Int from)
+        {
+            Vector2Int best = from;
+            float bestDistance = float.PositiveInfinity;
+
+            foreach (Vector2Int stair in _stairs)
+            {
+                float distance = (stair - from).sqrMagnitude;
+                if (distance >= bestDistance) continue;
+                bestDistance = distance;
+                best = stair;
+            }
+
+            return best;
         }
 
         /// <summary>

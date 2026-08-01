@@ -52,10 +52,12 @@ namespace Backrooms.Editor
             MazeFacade maze = mazeGo.AddComponent<MazeFacade>();
             SetPrivateBool(maze, "buildOnStart", false);
 
-            // A 12x12 grid keeps a blind run to roughly one to three minutes, which is the length a
-            // shared browser demo needs to be.
-            SetPrivateInt(maze, "width", 12);
-            SetPrivateInt(maze, "height", 12);
+            // A 24x24 grid is four times the area of the 12x12 floor this replaced — a 96m square
+            // that takes real exploring. What keeps a blind run to a few minutes is that the floor
+            // carries three stairwells down rather than one, so there is usually a way down within
+            // reach of wherever the player has ended up.
+            SetPrivateInt(maze, "width", 24);
+            SetPrivateInt(maze, "height", 24);
 
             var playerGo = new GameObject("Player");
             playerGo.transform.position = new Vector3(2f, 0.1f, 2f);

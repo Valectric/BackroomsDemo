@@ -135,3 +135,51 @@ every floor into `Screenshots/`, and a head-on furniture facing check.
 per-renderer light limits (flat lighting), model facing (furniture backwards). Only a frame catches
 them. The earlier perspective-through-fog "overhead" shots were useless for auditing layout.
 **Rules out:** treating a green suite as sufficient verification for anything visual.
+
+## 2026-08-01 — D15. Wall furniture is laid along wall *runs*, not per cell
+
+**Decided:** collect collinear closed cell-sides into maximal `WallRun`s and lay furniture end-to-end
+along them at free offsets — coverage-driven, gaps scattered from the leftover length, yaw ±6°, 1.2 m
+clear at doorways. Per-cell placement is gone for wall pieces; islands survive but are jittered off
+the cell centre.
+**Why:** every prop sat dead-centre in a 4 m cell, so the floor read as a lattice — the same grid as
+the walls, drawn a second time in furniture. Fixing the placement *errors* in the reviewer round only
+made the grid clearer.
+**Load-bearing detail:** a run stops where the two cells stop being mutually reachable, or it lays a
+sideboard through a perpendicular wall into the next room. It also records *why* each end stopped —
+doorway or corner — because only a doorway needs the 1.2 m inset.
+**Rules out:** per-cell furniture density as a tuning knob. Density is now coverage per run plus a
+length-weighted skip: 4 m stubs are mostly left bare (80%), long walls mostly dressed (70%), which is
+what produces furnished stretches next to empty ones instead of one piece on every wall.
+**Wrong if:** prop counts (494–762 per 24×24 floor, logged by `FloorLookTests`) turn out to cost too
+much on a real phone. Lower `MinCoverage`/`MaxCoverage` in `WallRunDresser` first — that thins every
+wall evenly; raise the skip chances to leave whole walls bare instead.
+
+## 2026-08-01 — D16. Floors are 24×24 with three stairwells down
+
+**Decided:** the shipping floor goes from 12×12 to 24×24 (four times the area, a 96 m square), and
+the single exit becomes three stairwells scattered across it. `MazeLayout.Exit` is replaced by
+`Stairs`; reaching *any* of them descends.
+**Why:** user request. The two halves are one decision: a 4× floor with one exit is a long blind
+search, and three ways down keep a floor to a few minutes. The E2E's route from spawn to the nearest
+stairwell came out at 18 cells, versus a 24×24 floor's worst case of ~46.
+**Detail that matters:** stairwells are placed with a spacing requirement (half the grid span from
+spawn, 0.45 of it from each other) that is *relaxed in steps* until the count is met — a fixed
+threshold cannot be satisfied on a small grid and the generator still has to return three.
+**Also changed:** `MazeSettings.RoomCount` now derives from area (one room per 64 cells) so room
+density holds as the grid grows; it still evaluates to 4 at 16×16, so nothing about the old floors
+moved.
+**Wrong if:** one Dweller wandering 4× the area never finds the player. Its sense range is 5 cells
+and it starts in a far corner — that tuning is untested at this size.
+
+## 2026-08-01 — D17. Stairwells are a real hole in the floor, over an intact collider
+
+**Decided:** the floor mesh is built per cell and omits the stairwell cells, so the shaft, its lining
+and a six-tread flight are genuinely visible. A *separate*, unbroken plane carries the mesh collider.
+**Why:** "stairs" has to look like stairs, and a green pillar did not. But a player who could fall
+into the hole would be stuck in a decorative pit — descending is triggered by proximity at 2 m, which
+fires as they cross the cell edge, long before the invisible span matters.
+**Second-order win:** the per-cell floor mesh is the same code H7 wants for chunking the floor.
+**Trap found:** with no tonemapping in the pipeline, an unlit material brighter than 1.0 clips the
+green channel first, so the stairs sign rendered as a blank white slab. Emissive markers that carry
+meaning through *colour* must stay at strength 1 until H4 lands.

@@ -81,7 +81,7 @@ namespace Backrooms.MazeManager.Tests
             Assert.AreEqual(a.Width, b.Width, "width must match");
             Assert.AreEqual(a.Height, b.Height, "height must match");
             Assert.AreEqual(a.Spawn, b.Spawn, "spawn must match");
-            Assert.AreEqual(a.Exit, b.Exit, "exit must match");
+            CollectionAssert.AreEqual(a.Stairs, b.Stairs, "stairs must match");
 
             for (int y = 0; y < a.Height; y++)
             {
@@ -138,8 +138,12 @@ namespace Backrooms.MazeManager.Tests
             {
                 MazeLayout layout = NewMaze().Generate(new MazeSettings(16, 16, seed));
                 HashSet<int> reachable = ReachableFromSpawn(layout);
-                int exitKey = layout.Exit.y * layout.Width + layout.Exit.x;
-                Assert.IsTrue(reachable.Contains(exitKey), $"exit unreachable for seed {seed}");
+                foreach (Vector2Int stairs in layout.Stairs)
+                {
+                    int key = stairs.y * layout.Width + stairs.x;
+                    Assert.IsTrue(reachable.Contains(key),
+                        $"stairwell {stairs} unreachable for seed {seed}");
+                }
             }
         }
 
@@ -167,8 +171,12 @@ namespace Backrooms.MazeManager.Tests
             Assert.AreEqual(24, layout.Width, "width matches settings");
             Assert.AreEqual(18, layout.Height, "height matches settings");
             Assert.IsTrue(layout.InBounds(layout.Spawn.x, layout.Spawn.y), "spawn in bounds");
-            Assert.IsTrue(layout.InBounds(layout.Exit.x, layout.Exit.y), "exit in bounds");
-            Assert.AreNotEqual(layout.Spawn, layout.Exit, "spawn and exit must differ");
+            Assert.AreEqual(3, layout.Stairs.Count, "a floor carries three ways down");
+            foreach (Vector2Int stairs in layout.Stairs)
+            {
+                Assert.IsTrue(layout.InBounds(stairs.x, stairs.y), $"stairwell {stairs} in bounds");
+                Assert.AreNotEqual(layout.Spawn, stairs, "no stairwell may sit on the spawn");
+            }
         }
 
         /// <summary>

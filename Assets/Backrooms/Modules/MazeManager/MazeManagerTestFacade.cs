@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Backrooms.MazeManager.Internal;
+using UnityEngine;
 
 namespace Backrooms.MazeManager
 {
@@ -38,5 +39,15 @@ namespace Backrooms.MazeManager
         /// <returns>The planned wall segments.</returns>
         public List<WallSegment> PlanWalls(MazeLayout layout)
             => _router.PlanWalls(layout, layout.CellSize);
+
+        /// <summary>
+        /// Collects the layout's continuous wall runs without building any scene geometry, so tests
+        /// can assert on how furniture will be laid out before any of it is instantiated.
+        /// </summary>
+        /// <param name="layout">The layout to scan.</param>
+        /// <param name="excluded">Cells whose walls must be left bare, or <c>null</c> for none.</param>
+        /// <returns>The planned wall runs.</returns>
+        public List<WallRun> PlanWallRuns(MazeLayout layout, HashSet<Vector2Int> excluded = null)
+            => _router.PlanWallRuns(layout, excluded);
     }
 }

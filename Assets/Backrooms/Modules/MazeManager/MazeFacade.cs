@@ -12,8 +12,11 @@ namespace Backrooms.MazeManager
     public sealed class MazeFacade : MonoBehaviour
     {
         [Header("Maze")]
-        [SerializeField] private int width = 16;
-        [SerializeField] private int height = 16;
+        [Tooltip("Grid width in cells. 24x24 at 4m per cell is a 96m floor.")]
+        [SerializeField] private int width = 24;
+
+        [Tooltip("Grid height in cells.")]
+        [SerializeField] private int height = 24;
         [SerializeField] private int seed = 1;
         [SerializeField] private float cellSize = 4f;
 
@@ -116,11 +119,17 @@ namespace Backrooms.MazeManager
             => CurrentLayout == null ? Vector3.zero : CurrentLayout.CellCenterToWorld(CurrentLayout.Spawn);
 
         /// <summary>
-        /// World-space position of the exit, at floor level in the exit cell.
+        /// World-space position of the stairwell nearest a point, at floor level in its cell. A floor
+        /// carries several ways down, so "the exit" is whichever one the player is closest to.
         /// </summary>
-        /// <returns>The exit position, or <see cref="Vector3.zero"/> if no layout exists.</returns>
-        public Vector3 GetExitPosition()
-            => CurrentLayout == null ? Vector3.zero : CurrentLayout.CellCenterToWorld(CurrentLayout.Exit);
+        /// <param name="from">World position to measure from.</param>
+        /// <returns>The nearest stairwell position, or <see cref="Vector3.zero"/> if no layout exists.</returns>
+        public Vector3 GetNearestStairsPosition(Vector3 from)
+        {
+            if (CurrentLayout == null) return Vector3.zero;
+            Vector2Int nearest = CurrentLayout.NearestStairs(CurrentLayout.WorldToCell(from));
+            return CurrentLayout.CellCenterToWorld(nearest);
+        }
 
         /// <summary>
         /// Returns the module's test seam, creating it lazily. Not intended for production use —

@@ -104,9 +104,11 @@ namespace Backrooms.Gameplay.Tests
         public async UniTask Step3_WalkToExit_GameReportsEscape(CancellationToken ct)
         {
             MazeLayout layout = _maze.CurrentLayout;
-            List<Vector2Int> route = FindRoute(layout, layout.WorldToCell(_player.Position), layout.Exit);
-            Assert.IsNotNull(route, "a route to the exit must exist in a perfect maze");
-            MooseRunnerFacade.Log($"route to exit is {route.Count} cells");
+            Vector2Int from = layout.WorldToCell(_player.Position);
+            Vector2Int stairs = layout.NearestStairs(from);
+            List<Vector2Int> route = FindRoute(layout, from, stairs);
+            Assert.IsNotNull(route, "a route to the stairs must exist in a connected maze");
+            MooseRunnerFacade.Log($"route to stairs at {stairs} is {route.Count} cells");
 
             int startFloor = _controller.CurrentFloor;
             int index = 0;

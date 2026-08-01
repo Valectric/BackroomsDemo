@@ -14,9 +14,9 @@ namespace Backrooms.MazeManager.Internal.Generation
     internal sealed class MazeGenerator
     {
         /// <summary>
-        /// Generates the maze layout for the given settings. Spawn is the bottom-left cell (0,0) and
-        /// the exit is the top-right cell (Width-1, Height-1). Deterministic for a fixed seed and
-        /// size.
+        /// Generates the maze layout for the given settings. Spawn is the bottom-left cell (0,0);
+        /// the stairwells down to the next floor are scattered across the grid. Deterministic for a
+        /// fixed seed and size.
         /// </summary>
         /// <param name="settings">Grid size and seed.</param>
         /// <returns>A fully-connected maze layout.</returns>
@@ -29,7 +29,6 @@ namespace Backrooms.MazeManager.Internal.Generation
             var rng = new System.Random(settings.Seed);
 
             var spawn = new Vector2Int(0, 0);
-            var exit = new Vector2Int(w - 1, h - 1);
 
             var stack = new Stack<Vector2Int>();
             visited[Index(spawn.x, spawn.y, w)] = true;
@@ -76,7 +75,100 @@ namespace Backrooms.MazeManager.Internal.Generation
             CarveRooms(cells, w, h, settings, rng);
             Braid(cells, w, h, settings, rng);
 
-            return new MazeLayout(w, h, cells, spawn, exit, settings.CellSize);
+            Vector2Int[] stairs = ChooseStairs(w, h, spawn, settings.StairCount, rng);
+            return new MazeLayout(w, h, cells, spawn, stairs, settings.CellSize);
+        }
+
+        /// <summary>
+        /// Picks the cells that get a stairwell down. Two properties matter and neither survives
+        /// picking at random: a stairwell must be far enough from the spawn that the floor is not
+        /// over the moment it starts, and the stairwells must be far enough from each other that they
+        /// cover different parts of the grid instead of clustering into one shortcut.
+        /// </summary>
+        /// <remarks>
+        /// The spacing requirement is relaxed in steps rather than enforced absolutely, because a
+        /// small grid cannot satisfy it and the generator must still return the requested count. In
+        /// the worst case the last pass accepts anything that is not the spawn.
+        /// </remarks>
+        /// <param name="w">Grid width.</param>
+        /// <param name="h">Grid height.</param>
+        /// <param name="spawn">Cell the player starts in.</param>
+        /// <param name="count">How many stairwells to place.</param>
+        /// <param name="rng">Seeded generator, so a floor's stairs land in the same cells every time.</param>
+        /// <returns>The chosen cells, at least one and at most <paramref name="count"/>.</returns>
+        private static Vector2Int[] ChooseStairs(int w, int h, Vector2Int spawn, int count,
+            System.Random rng)
+        {
+            count = Mathf.Clamp(count, 1, w * h - 1);
+            float span = Mathf.Max(w, h);
+
+            var candidates = new List<Vector2Int>(w * h);
+            for (int y = 0; y < h; y++)
+            {
+                for (int x = 0; x < w; x++)
+                {
+                    if (x != spawn.x || y != spawn.y) candidates.Add(new Vector2Int(x, y));
+                }
+            }
+
+            Shuffle(candidates, rng);
+
+            var chosen = new List<Vector2Int>(count);
+            foreach (float relax in Relaxations)
+            {
+                float minFromSpawn = span * 0.5f * relax;
+                float minApart = span * 0.45f * relax;
+
+                foreach (Vector2Int cell in candidates)
+                {
+                    if (chosen.Count == count) break;
+                    if (chosen.Contains(cell)) continue;
+                    if (Vector2Int.Distance(cell, spawn) < minFromSpawn) continue;
+                    if (!FarFromAll(cell, chosen, minApart)) continue;
+                    chosen.Add(cell);
+                }
+
+                if (chosen.Count == count) break;
+            }
+
+            return chosen.ToArray();
+        }
+
+        /// <summary>
+        /// Spacing multipliers tried in turn when placing stairwells, from the full requirement down
+        /// to none at all.
+        /// </summary>
+        private static readonly float[] Relaxations = { 1f, 0.7f, 0.45f, 0.2f, 0f };
+
+        /// <summary>
+        /// Whether a cell is at least a given distance from every cell already chosen.
+        /// </summary>
+        /// <param name="cell">Cell under consideration.</param>
+        /// <param name="chosen">Cells already accepted.</param>
+        /// <param name="minDistance">Required separation in cells.</param>
+        /// <returns><c>true</c> if the cell clears them all.</returns>
+        private static bool FarFromAll(Vector2Int cell, List<Vector2Int> chosen, float minDistance)
+        {
+            foreach (Vector2Int other in chosen)
+            {
+                if (Vector2Int.Distance(cell, other) < minDistance) return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Shuffles a list in place with a seeded generator, so the order is random but reproducible.
+        /// </summary>
+        /// <param name="items">List to shuffle.</param>
+        /// <param name="rng">Seeded generator.</param>
+        private static void Shuffle(List<Vector2Int> items, System.Random rng)
+        {
+            for (int i = items.Count - 1; i > 0; i--)
+            {
+                int j = rng.Next(i + 1);
+                (items[i], items[j]) = (items[j], items[i]);
+            }
         }
 
         /// <summary>
