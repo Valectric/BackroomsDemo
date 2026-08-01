@@ -108,11 +108,17 @@ namespace Backrooms.AudioManager.Internal.Synthesis
             float stage2 = 0f;
             float stage3 = 0f;
 
-            // The body is the sound. A real footfall on a floor is felt more than heard, and on a
-            // phone speaker only the bottom of it survives at all, so the thump carries the weight
-            // and the filtered noise only takes the edge off its attack.
-            const float BodyStartHz = 78f;
-            const float BodyEndHz = 42f;
+            // The body is the sound, but it has to sit where a phone can actually produce it. A
+            // small speaker rolls off steeply below about 200Hz and puts out essentially nothing
+            // under 100, so a 42Hz thump is not a deep footstep — it is silence. Sweeping 165Hz down
+            // to 85Hz keeps the weight while staying inside what the hardware can move.
+            const float BodyStartHz = 165f;
+            const float BodyEndHz = 85f;
+
+            // A quiet octave above the body. Phones cannot reproduce the fundamental, but given the
+            // harmonic the ear supplies the missing pitch itself, so the step still reads as low
+            // through a speaker that physically cannot play low.
+            const float HarmonicLevel = 0.28f;
 
             double phase = 0.0;
             for (int i = 0; i < length; i++)
@@ -129,10 +135,12 @@ namespace Backrooms.AudioManager.Internal.Synthesis
                 float frequency = Mathf.Lerp(BodyStartHz, BodyEndHz, Mathf.Sqrt(t));
                 phase += 2.0 * Mathf.PI * frequency / SampleRate;
 
-                float body = Mathf.Sin((float)phase) * Mathf.Exp(-11f * t);
+                float envelope = Mathf.Exp(-11f * t);
+                float body = Mathf.Sin((float)phase) * envelope;
+                float harmonic = Mathf.Sin((float)(phase * 2.0)) * envelope * HarmonicLevel;
                 float scuff = stage3 * Mathf.Exp(-24f * t);
 
-                samples[i] = (body * 0.95f + scuff * 3.2f) * amplitude;
+                samples[i] = (body * 0.95f + harmonic + scuff * 2.6f) * amplitude;
             }
 
             return Clamped(samples);

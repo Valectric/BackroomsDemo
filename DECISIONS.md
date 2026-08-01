@@ -442,3 +442,45 @@ attack.
 A footfall is felt more than heard, and on a phone speaker only the bottom of it survives at all, so
 anything spent above that band is spent on nothing.
 
+## 2026-08-01 — D36. Stairs go both ways, and arrival is guarded
+
+**Decided:** reaching a way up climbs a floor, mirroring the way down. Both trigger on proximity, and
+an `ArrivalGuard` suppresses the staircase the player is standing on until they walk off it.
+**Why:** user report — "I can't walk up a stair". The geometry was there and did nothing.
+**The guard is not optional.** The player always arrives standing on a staircase: on a way up when
+descending, on a way down when climbing. Without the guard the two triggers fight and the player
+ping-pongs between floors on the first frame.
+**Floor 1 has no way up.** It is where the player noclipped in; there is nothing above it. Its up
+stairwells stay as the thing they emerged from.
+**Free property:** each floor's seed is derived from its number, so climbing returns to the same
+building the player left rather than generating a new one.
+
+## 2026-08-01 — D37. A fresh seed per run
+
+**Decided:** every run draws a new seed, logged so it can be replayed by pinning it in the inspector.
+**Why:** user report — the seed was a serialized 1, so every run was the same building. Generation
+staying deterministic *given a seed* is the property that matters; always choosing the same seed is
+not that property, it is just one level.
+**Watch for:** the E2E now walks a different floor each run. It computes its route from the layout so
+it is floor-agnostic by construction, but a flake there would be a genuine robustness signal rather
+than noise.
+
+## 2026-08-01 — D38. Dwellers start far from wherever the player arrives
+
+**Decided:** Dweller start cells are sorted by distance from the arrival point and anything within 9
+cells is refused.
+**Why:** user report — a Dweller could be standing on the player at the start. The starts were fixed
+corners chosen before arrival moved to whichever way up the floor picked, so the two could coincide.
+Measured after the fix: the nearest Dweller at run start is 51.9 m, and `EscapeLevel0E2E` fails below
+25 m.
+
+## 2026-08-01 — D39. Footsteps must sit where a phone can play them
+
+**Decided:** the body sweeps 165 Hz down to 85 Hz, with a quiet octave above it, played at roughly
+three times the previous level.
+**Why:** user report — the footsteps disappeared entirely. Chasing "more bass" had pushed the body to
+42–78 Hz, and a phone speaker rolls off steeply below about 200 Hz and produces essentially nothing
+under 100. A 42 Hz thump on a phone is not a deep footstep, it is silence.
+**The trick that keeps it sounding low:** give the ear the octave above and it supplies the missing
+fundamental itself, so the step still reads as deep through hardware that physically cannot play deep.
+
