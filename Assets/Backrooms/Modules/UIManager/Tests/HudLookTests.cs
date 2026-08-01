@@ -44,6 +44,23 @@ namespace Backrooms.UIManager.Tests
             hud.SetElapsed(74f);
             hud.ShowFloor(3, "JANKY LAUNDROMAT", 1);
 
+            // The compass arrows and carried list, which only appear once relics are held.
+            hud.SetCompass(new[]
+            {
+                new CompassMark(-38f, 21f, new Color(1f, 0.35f, 0.75f)),
+                new CompassMark(4f, 63f, new Color(0.45f, 1f, 0.8f)),
+                new CompassMark(72f, 44f, new Color(0.72f, 0.42f, 1f))
+            });
+            hud.SetCarried(
+                new[] { "WARD  x1", "BANISHER  x3", "BLINK SHARD" },
+                new[]
+                {
+                    new Color(1f, 0.92f, 0.55f),
+                    new Color(1f, 0.62f, 0.25f),
+                    new Color(0.55f, 0.78f, 1f)
+                });
+            await Capture("hud-powers", ct);
+
             hud.SetHunted(true, 0.15f);
             await Capture("hud-hunted-far", ct);
 

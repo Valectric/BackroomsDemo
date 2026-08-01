@@ -20,6 +20,12 @@ namespace Backrooms.PlayerManager.Internal.Input
         /// <summary>Drag distance in pixels that corresponds to full stick deflection.</summary>
         private const float StickRadiusPixels = 140f;
 
+        /// <summary>Recognises a double tap on the movement half of the screen.</summary>
+        private readonly DoubleTapDetector _moveSideTaps = new DoubleTapDetector();
+
+        /// <summary>Recognises a double tap on the look half of the screen.</summary>
+        private readonly DoubleTapDetector _lookSideTaps = new DoubleTapDetector();
+
         /// <summary>Touch drag beyond this distance from its start counts as sprinting.</summary>
         private const float SprintStickThreshold = 0.85f;
 
@@ -61,11 +67,28 @@ namespace Backrooms.PlayerManager.Internal.Input
         /// lock because pointer lock is unreliable inside a WebGL canvas on some browsers.
         /// </summary>
         /// <param name="state">Input state being accumulated.</param>
-        private static void ReadMouse(ref PlayerInputState state)
+        private void ReadMouse(ref PlayerInputState state)
         {
             Mouse mouse = Mouse.current;
             if (mouse == null) return;
-            if (mouse.leftButton.wasPressedThisFrame) state.Confirm = true;
+
+            if (mouse.leftButton.wasPressedThisFrame)
+            {
+                state.Confirm = true;
+
+                // Desktop gets the same gestures as touch, split on the same halves, so a relic
+                // power is not something only phone players can use.
+                bool lookSide = mouse.position.ReadValue().x >= Screen.width * 0.5f;
+                if (lookSide)
+                {
+                    if (_lookSideTaps.Press(Time.unscaledTime)) state.DoubleTapLookSide = true;
+                }
+                else if (_moveSideTaps.Press(Time.unscaledTime))
+                {
+                    state.DoubleTapMoveSide = true;
+                }
+            }
+
             if (!mouse.leftButton.isPressed) return;
             state.Look += mouse.delta.ReadValue();
         }
@@ -75,7 +98,7 @@ namespace Backrooms.PlayerManager.Internal.Input
         /// first landed, right-half touches drive the camera.
         /// </summary>
         /// <param name="state">Input state being accumulated.</param>
-        private static void ReadTouch(ref PlayerInputState state)
+        private void ReadTouch(ref PlayerInputState state)
         {
             Touchscreen touch = Touchscreen.current;
             if (touch == null) return;
@@ -84,7 +107,22 @@ namespace Backrooms.PlayerManager.Internal.Input
 
             foreach (TouchControl t in touch.touches)
             {
-                if (t.press.wasPressedThisFrame) state.Confirm = true;
+                if (t.press.wasPressedThisFrame)
+                {
+                    state.Confirm = true;
+
+                    // Judge the gesture by where the finger landed, not where it has dragged to.
+                    bool onMoveSide = t.startPosition.ReadValue().x < halfWidth;
+                    if (onMoveSide)
+                    {
+                        if (_moveSideTaps.Press(Time.unscaledTime)) state.DoubleTapMoveSide = true;
+                    }
+                    else if (_lookSideTaps.Press(Time.unscaledTime))
+                    {
+                        state.DoubleTapLookSide = true;
+                    }
+                }
+
                 if (!t.press.isPressed) continue;
 
                 Vector2 start = t.startPosition.ReadValue();

@@ -182,18 +182,25 @@ namespace Backrooms.MazeManager.Tests
 
             Assert.IsNotNull(bookcase, "the office floor should place bookcases against walls");
 
+            // Read the name now, not after the awaits below. Props rejected for overlapping a
+            // neighbour are destroyed with Object.Destroy, which Unity defers to the end of the
+            // frame — so a prop can still be found, and still be gone a frame later. Holding a
+            // reference across a yield and then touching it is what made this test flaky.
+            string bookcaseName = bookcase.name;
+            Vector3 bookcaseAt = bookcase.transform.position;
+
             // Stand in front of the piece, looking back at it from inside the room.
             // The piece's forward now aims at the wall, so step back the opposite way to stand in
             // the room looking at its front.
             Vector3 front = bookcase.transform.forward;
-            Vector3 eye = bookcase.transform.position - front * 2.4f + Vector3.up * 1.5f;
-            MooseRunnerFacade.Log($"bookcase at {bookcase.transform.position}, camera at {eye}");
+            Vector3 eye = bookcaseAt - front * 2.4f + Vector3.up * 1.5f;
+            MooseRunnerFacade.Log($"bookcase at {bookcaseAt}, camera at {eye}");
 
             var camGo = new GameObject("InspectionCamera");
             var cam = camGo.AddComponent<Camera>();
             camGo.transform.position = eye;
             camGo.transform.rotation = Quaternion.LookRotation(
-                bookcase.transform.position + Vector3.up * 0.9f - eye);
+                bookcaseAt + Vector3.up * 0.9f - eye);
             cam.fieldOfView = 55f;
 
             for (int i = 0; i < 4; i++) await UniTask.Yield(ct);
@@ -206,7 +213,7 @@ namespace Backrooms.MazeManager.Tests
                 Directory.CreateDirectory(dir);
                 string path = Path.GetFullPath(Path.Combine(dir, "facing-bookcase.png"));
                 File.WriteAllBytes(path, shot.EncodeToPNG());
-                MooseRunnerFacade.Log($"bookcase {bookcase.name} photographed -> {path}");
+                MooseRunnerFacade.Log($"bookcase {bookcaseName} photographed -> {path}");
             }
             finally
             {

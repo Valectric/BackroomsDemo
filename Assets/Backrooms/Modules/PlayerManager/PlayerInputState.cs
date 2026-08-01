@@ -28,13 +28,25 @@ namespace Backrooms.PlayerManager
         /// </summary>
         public bool Confirm;
 
+        /// <summary>
+        /// Whether a double tap landed on the movement side of the screen this frame. Relic powers
+        /// are bound to gestures rather than buttons because the touch scheme deliberately has no
+        /// on-screen widgets to hit.
+        /// </summary>
+        public bool DoubleTapMoveSide;
+
+        /// <summary>Whether a double tap landed on the look side of the screen this frame.</summary>
+        public bool DoubleTapLookSide;
+
         /// <summary>Input representing "no intent at all".</summary>
         public static PlayerInputState None => new PlayerInputState
         {
             Move = Vector2.zero,
             Look = Vector2.zero,
             Sprint = false,
-            Confirm = false
+            Confirm = false,
+            DoubleTapMoveSide = false,
+            DoubleTapLookSide = false
         };
     }
 }

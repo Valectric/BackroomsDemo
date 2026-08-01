@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Backrooms.UIManager.Internal
@@ -9,6 +10,69 @@ namespace Backrooms.UIManager.Internal
     internal sealed class UIRouter
     {
         private readonly HudRenderer _renderer = new HudRenderer();
+        private readonly HudOverlays _overlays = new HudOverlays();
+
+        /// <summary>Compass arrows to draw this frame.</summary>
+        private IReadOnlyList<CompassMark> _compass = new CompassMark[0];
+
+        /// <summary>Lines describing what the player is carrying.</summary>
+        private IReadOnlyList<string> _carriedLines = new string[0];
+
+        /// <summary>Colour for each carried line.</summary>
+        private IReadOnlyList<Color> _carriedColours = new Color[0];
+
+        /// <summary>How long the player has done nothing at all, in seconds.</summary>
+        private float _idleSeconds;
+
+        /// <summary>
+        /// How long a player has to be doing nothing before the controls are explained to them.
+        /// </summary>
+        /// <remarks>
+        /// Idle-triggered rather than shown on arrival. Someone who is already walking around knows
+        /// how to walk around, and telling them anyway is clutter over the one part of the screen a
+        /// horror game needs left alone. Someone who has stopped dead is either lost or has not
+        /// worked out that the screen halves do different things — and that is exactly who the hint
+        /// is for.
+        /// </remarks>
+        private const float IdleBeforeHintSeconds = 10f;
+
+        /// <summary>How long the hints take to fade up once they are due, in seconds.</summary>
+        private const float HintFadeSeconds = 0.8f;
+
+        /// <summary>
+        /// Reports whether the player is doing anything, which decides if the control hints appear.
+        /// </summary>
+        /// <param name="active">Whether the player gave any input this frame.</param>
+        /// <param name="deltaTime">Seconds since the last update.</param>
+        public void TickActivity(bool active, float deltaTime)
+        {
+            _idleSeconds = active ? 0f : _idleSeconds + deltaTime;
+        }
+
+        /// <summary>How visible the control hints should be right now, 0 to 1.</summary>
+        public float HintStrength => Mathf.Clamp01(
+            (_idleSeconds - IdleBeforeHintSeconds) / HintFadeSeconds);
+
+        /// <summary>
+        /// Sets the compass arrows for this frame.
+        /// </summary>
+        /// <param name="marks">One mark per compass relic with something to point at.</param>
+        public void SetCompass(IReadOnlyList<CompassMark> marks)
+            => _compass = marks ?? new CompassMark[0];
+
+        /// <summary>
+        /// Sets the list of what the player is carrying.
+        /// </summary>
+        /// <param name="lines">One line per carried relic.</param>
+        /// <param name="colours">Colour for each line, same order.</param>
+        public void SetCarried(IReadOnlyList<string> lines, IReadOnlyList<Color> colours)
+        {
+            _carriedLines = lines ?? new string[0];
+            _carriedColours = colours ?? new Color[0];
+        }
+
+        /// <summary>Whether the screen is taller than it is wide.</summary>
+        public static bool IsPortrait => Screen.height > Screen.width;
 
         /// <summary>How long the floor-arrival banner stays on screen, in seconds.</summary>
         private const float BannerSeconds = 2.5f;
@@ -115,6 +179,9 @@ namespace Backrooms.UIManager.Internal
             FloorName = name;
             Relics = relics;
             BannerRemaining = BannerSeconds;
+
+            // Arriving on a floor is not idling, so do not immediately start counting towards a hint.
+            _idleSeconds = 0f;
         }
 
         /// <summary>
@@ -154,6 +221,7 @@ namespace Backrooms.UIManager.Internal
             ElapsedSeconds = 0f;
             EscapedShown = false;
             CaughtShown = false;
+            _idleSeconds = 0f;
             Relics = 0;
             RelicFlashRemaining = 0f;
             HuntedShown = false;
@@ -169,6 +237,14 @@ namespace Backrooms.UIManager.Internal
         /// </summary>
         public void Draw()
         {
+            // Before anything else: a portrait phone cannot play this, so say so and draw nothing
+            // underneath that would suggest otherwise.
+            if (IsPortrait)
+            {
+                _overlays.DrawRotatePrompt();
+                return;
+            }
+
             if (CaughtShown)
             {
                 _renderer.DrawCaught(Floor, ElapsedSeconds, Relics, BestFloors, BestRelics);
@@ -185,6 +261,11 @@ namespace Backrooms.UIManager.Internal
             // stays visible during the banner — arriving on a floor next to a Dweller is exactly when
             // the player most needs telling.
             if (HuntedShown) _renderer.DrawHunted(HunterName, HuntedCloseness, ElapsedSeconds);
+
+            _overlays.DrawPadHints(HintStrength);
+
+            _overlays.DrawCompass(_compass);
+            _overlays.DrawCarried(_carriedLines, _carriedColours);
 
             _renderer.DrawStatus(ElapsedSeconds, Floor, Relics);
             if (BannerShown) _renderer.DrawFloorBanner(Floor, FloorName);

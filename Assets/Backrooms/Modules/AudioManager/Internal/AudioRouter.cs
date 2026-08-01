@@ -60,7 +60,7 @@ namespace Backrooms.AudioManager.Internal
             _footsteps = new AudioClip[FootstepVariants];
             for (int i = 0; i < FootstepVariants; i++)
             {
-                _footsteps[i] = Clip($"Footstep{i}", ToneGenerator.Footstep(0.16f, 4021 + i, 0.5f));
+                _footsteps[i] = Clip($"Footstep{i}", ToneGenerator.Footstep(0.22f, 4021 + i, 0.5f));
             }
 
             _chime = Clip("RelicChime", ToneGenerator.Chime(784f, 1.5f, 0.5f));
@@ -123,8 +123,9 @@ namespace Backrooms.AudioManager.Internal
 
             _stepTimer = 0f;
             _stepIndex = (_stepIndex + 1) % _footsteps.Length;
-            _steps.pitch = sprinting ? 1.12f : 1f;
-            _steps.PlayOneShot(_footsteps[_stepIndex], sprinting ? 0.55f : 0.4f);
+            _steps.pitch = sprinting ? 1.06f : 0.94f;
+            // Quieter than it was: footsteps are a floor under the mix, not an event in it.
+            _steps.PlayOneShot(_footsteps[_stepIndex], sprinting ? 0.3f : 0.2f);
         }
 
         /// <summary>

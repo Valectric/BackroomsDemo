@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Backrooms.UIManager.Internal;
 using UnityEngine;
 
@@ -77,6 +78,32 @@ namespace Backrooms.UIManager
 
         /// <summary>What the nearest hunting Dweller is called.</summary>
         public string HunterName => Router.HunterName;
+
+        /// <summary>
+        /// Sets the compass arrows for this frame.
+        /// </summary>
+        /// <param name="marks">One mark per compass relic with something to point at.</param>
+        public void SetCompass(IReadOnlyList<CompassMark> marks) => Router.SetCompass(marks);
+
+        /// <summary>
+        /// Sets the list of what the player is carrying.
+        /// </summary>
+        /// <param name="lines">One line per carried relic.</param>
+        /// <param name="colours">Colour for each line, same order.</param>
+        public void SetCarried(IReadOnlyList<string> lines, IReadOnlyList<Color> colours)
+            => Router.SetCarried(lines, colours);
+
+        /// <summary>
+        /// Reports whether the player is doing anything, which decides if the control hints appear.
+        /// </summary>
+        /// <param name="active">Whether the player gave any input this frame.</param>
+        public void SetPlayerActive(bool active) => Router.TickActivity(active, Time.deltaTime);
+
+        /// <summary>How visible the control hints are right now, 0 to 1.</summary>
+        public float HintStrength => Router.HintStrength;
+
+        /// <summary>Whether the screen is currently portrait, so the game is asking to be rotated.</summary>
+        public bool ShowingRotatePrompt => UIRouter.IsPortrait;
 
         /// <summary>Whether the pursuit warning is showing.</summary>
         public bool HuntedShown => Router.HuntedShown;

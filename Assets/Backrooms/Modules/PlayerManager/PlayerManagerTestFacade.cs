@@ -61,6 +61,17 @@ namespace Backrooms.PlayerManager
         /// <summary>
         /// Clears simulated intent so the player stands still.
         /// </summary>
+        /// <summary>
+        /// Drives a double-tap detector directly with a timestamp, so gesture recognition can be
+        /// tested through any timing without a device or a wall clock.
+        /// </summary>
+        /// <param name="time">Time of the press, in seconds.</param>
+        /// <returns><c>true</c> if this press completed a double tap.</returns>
+        public bool PressForDoubleTap(float time) => _taps.Press(time);
+
+        /// <summary>Detector the gesture tests drive.</summary>
+        private readonly Internal.Input.DoubleTapDetector _taps = new Internal.Input.DoubleTapDetector();
+
         public void ClearInput() => _router.SetSimulatedInput(PlayerInputState.None);
     }
 }

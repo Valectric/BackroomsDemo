@@ -18,6 +18,16 @@ namespace Backrooms.RelicManager.Internal
         private readonly Dictionary<Vector2Int, GameObject> _standing =
             new Dictionary<Vector2Int, GameObject>();
 
+        /// <summary>Which kind stands in each uncollected cell.</summary>
+        private readonly Dictionary<Vector2Int, RelicKind> _kinds =
+            new Dictionary<Vector2Int, RelicKind>();
+
+        /// <summary>Relics the player is carrying, and how many uses each has left.</summary>
+        private readonly Dictionary<RelicKind, int> _held = new Dictionary<RelicKind, int>();
+
+        /// <summary>The kind collected by the most recent successful collect.</summary>
+        public RelicKind LastCollected { get; private set; }
+
         /// <summary>The floor the relics were placed on, or <c>null</c> before placement.</summary>
         public MazeLayout Layout { get; private set; }
 
@@ -33,9 +43,11 @@ namespace Backrooms.RelicManager.Internal
         /// <param name="layout">The floor to place on.</param>
         /// <param name="count">How many relics to place.</param>
         /// <param name="seed">Seed for deterministic placement.</param>
+        /// <param name="firstKind">Index into the roster for this floor's first relic.</param>
         /// <param name="parent">Transform to parent the relics under.</param>
         /// <returns>The cells that received a relic.</returns>
-        public List<Vector2Int> Place(MazeLayout layout, int count, int seed, Transform parent)
+        public List<Vector2Int> Place(MazeLayout layout, int count, int seed, int firstKind,
+            Transform parent)
         {
             ClearStanding();
             Layout = layout;
@@ -43,13 +55,86 @@ namespace Backrooms.RelicManager.Internal
             var placed = new List<Vector2Int>();
             if (layout == null) return placed;
 
+            int offered = 0;
             foreach (Vector2Int cell in _planner.Plan(layout, count, new System.Random(seed)))
             {
-                _standing[cell] = _builder.Build(layout, cell, parent);
+                // Deal the roster out in turn as the player descends, skipping anything already
+                // carried: being offered a second Wayfinder Stone is being offered nothing.
+                RelicKind kind = NextUnheld(firstKind + offered);
+                offered++;
+
+                _kinds[cell] = kind;
+                _standing[cell] = _builder.Build(layout, cell, RelicArchetypes.For(kind), parent);
                 placed.Add(cell);
             }
 
             return placed;
+        }
+
+        /// <summary>
+        /// The first kind at or after an index that the player is not already carrying.
+        /// </summary>
+        /// <param name="index">Where to start looking in the roster.</param>
+        /// <returns>A kind worth offering.</returns>
+        private RelicKind NextUnheld(int index)
+        {
+            for (int step = 0; step < RelicArchetypes.Count; step++)
+            {
+                RelicKind kind = RelicArchetypes.AtIndex(index + step);
+                if (!Holds(kind)) return kind;
+            }
+
+            // Everything is already carried: offer the Banisher, the only one worth stacking.
+            return RelicKind.Banisher;
+        }
+
+        /// <summary>
+        /// Whether the player is carrying a kind of relic with uses left.
+        /// </summary>
+        /// <param name="kind">Kind to test.</param>
+        /// <returns><c>true</c> if it is held and not spent.</returns>
+        public bool Holds(RelicKind kind) => _held.TryGetValue(kind, out int left) && left != 0;
+
+        /// <summary>
+        /// How many uses of a kind remain.
+        /// </summary>
+        /// <param name="kind">Kind to query.</param>
+        /// <returns>Uses left, 0 if not held or spent, -1 if unlimited.</returns>
+        public int ChargesOf(RelicKind kind) => _held.TryGetValue(kind, out int left) ? left : 0;
+
+        /// <summary>
+        /// Spends one use of a relic.
+        /// </summary>
+        /// <param name="kind">Kind to spend.</param>
+        /// <returns><c>true</c> if a use was available and has now been spent.</returns>
+        public bool Spend(RelicKind kind)
+        {
+            if (!Holds(kind)) return false;
+            int left = _held[kind];
+            if (left > 0) _held[kind] = left - 1;
+            return true;
+        }
+
+        /// <summary>Every kind the player is carrying with uses left.</summary>
+        public IEnumerable<RelicKind> Carried
+        {
+            get
+            {
+                foreach (KeyValuePair<RelicKind, int> entry in _held)
+                {
+                    if (entry.Value != 0) yield return entry.Key;
+                }
+            }
+        }
+
+        /// <summary>
+        /// World positions of every relic still standing, for the relic compass.
+        /// </summary>
+        /// <returns>The positions.</returns>
+        public IEnumerable<Vector3> StandingPositions()
+        {
+            if (Layout == null) yield break;
+            foreach (Vector2Int cell in _standing.Keys) yield return Layout.CellCenterToWorld(cell);
         }
 
         /// <summary>
@@ -79,8 +164,34 @@ namespace Backrooms.RelicManager.Internal
 
             if (collected != null) Object.Destroy(collected);
             _standing.Remove(reached);
+
+            RelicKind kind = _kinds.TryGetValue(reached, out RelicKind found) ? found : RelicKind.Ward;
+            _kinds.Remove(reached);
+            LastCollected = kind;
+            Take(kind);
+
             Collected++;
             return true;
+        }
+
+        /// <summary>
+        /// Adds a relic to what the player carries. Unlimited relics are stored as -1 so they never
+        /// run down; charged ones stack, so a second Banisher is five more shots rather than a
+        /// duplicate that does nothing.
+        /// </summary>
+        /// <param name="kind">Kind collected.</param>
+        private void Take(RelicKind kind)
+        {
+            int gained = RelicArchetypes.For(kind).Charges;
+            if (gained == 0)
+            {
+                _held[kind] = -1;
+                return;
+            }
+
+            _held[kind] = _held.TryGetValue(kind, out int existing) && existing > 0
+                ? existing + gained
+                : gained;
         }
 
         /// <summary>
@@ -96,6 +207,7 @@ namespace Backrooms.RelicManager.Internal
         public void ResetRun()
         {
             Collected = 0;
+            _held.Clear();
             ClearStanding();
             Layout = null;
         }
@@ -111,6 +223,7 @@ namespace Backrooms.RelicManager.Internal
             }
 
             _standing.Clear();
+            _kinds.Clear();
         }
     }
 }

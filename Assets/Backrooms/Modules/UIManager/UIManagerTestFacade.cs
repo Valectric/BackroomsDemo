@@ -51,5 +51,13 @@ namespace Backrooms.UIManager
         /// <param name="seconds">Duration in seconds.</param>
         /// <returns>The formatted duration, for example <c>01:07</c>.</returns>
         public string FormatTime(float seconds) => _router.FormatTime(seconds);
+
+        /// <summary>
+        /// Drives the idle timer that decides whether control hints show, with an explicit time step
+        /// so the behaviour can be tested without waiting ten real seconds.
+        /// </summary>
+        /// <param name="active">Whether the player gave any input this step.</param>
+        /// <param name="deltaTime">Seconds elapsed in this step.</param>
+        public void TickActivity(bool active, float deltaTime) => _router.TickActivity(active, deltaTime);
     }
 }

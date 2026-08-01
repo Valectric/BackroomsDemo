@@ -112,6 +112,83 @@ namespace Backrooms.Gameplay
         }
 
         /// <summary>
+        /// The position of the nearest Dweller still on the floor, hunting or not.
+        /// </summary>
+        /// <param name="from">World position to measure from.</param>
+        /// <param name="position">Receives its position.</param>
+        /// <returns><c>true</c> if any Dweller is on the floor.</returns>
+        public bool TryGetNearestPosition(Vector3 from, out Vector3 position)
+        {
+            position = Vector3.zero;
+            float best = float.PositiveInfinity;
+
+            var flat = new Vector3(from.x, 0f, from.z);
+            foreach (DwellerFacade d in _dwellers)
+            {
+                if (d == null || !d.IsActive) continue;
+
+                Vector3 at = d.transform.position;
+                float away = Vector3.Distance(flat, new Vector3(at.x, 0f, at.z));
+                if (away >= best) continue;
+
+                best = away;
+                position = at;
+            }
+
+            return !float.IsPositiveInfinity(best);
+        }
+
+        /// <summary>
+        /// Unmakes the nearest Dweller inside a cone in front of the player.
+        /// </summary>
+        /// <param name="origin">Where the shot comes from.</param>
+        /// <param name="forward">Direction the player is facing, flattened and normalised.</param>
+        /// <param name="range">How far the shot reaches, in metres.</param>
+        /// <param name="halfAngle">Half-width of the cone, in degrees.</param>
+        /// <returns><c>true</c> if something was hit.</returns>
+        public bool TryBanishInFront(Vector3 origin, Vector3 forward, float range, float halfAngle)
+        {
+            DwellerFacade hit = null;
+            float best = float.PositiveInfinity;
+
+            var flat = new Vector3(origin.x, 0f, origin.z);
+            foreach (DwellerFacade d in _dwellers)
+            {
+                if (d == null || !d.IsActive) continue;
+
+                Vector3 at = d.transform.position;
+                Vector3 to = new Vector3(at.x, 0f, at.z) - flat;
+                float away = to.magnitude;
+                if (away > range || away >= best) continue;
+                if (Vector3.Angle(forward, to.normalized) > halfAngle) continue;
+
+                best = away;
+                hit = d;
+            }
+
+            if (hit == null) return false;
+            hit.Banish();
+            return true;
+        }
+
+        /// <summary>
+        /// Unmakes whichever Dweller has reached the player, so a ward that saves them does not
+        /// leave the creature standing on top of them to catch them again next frame.
+        /// </summary>
+        /// <returns><c>true</c> if one was removed.</returns>
+        public bool BanishWhicheverCaughtThePlayer()
+        {
+            foreach (DwellerFacade d in _dwellers)
+            {
+                if (d == null || !d.HasCaught) continue;
+                d.Banish();
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
         /// Finds the nearest Dweller that is hunting the player.
         /// </summary>
         /// <param name="playerPosition">World position of the player.</param>
