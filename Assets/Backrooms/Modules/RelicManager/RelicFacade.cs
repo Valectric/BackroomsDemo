@@ -18,8 +18,8 @@ namespace Backrooms.RelicManager
     public sealed class RelicFacade : MonoBehaviour
     {
         [Header("Relics")]
-        [Tooltip("How many relics each floor carries.")]
-        [SerializeField] private int relicsPerFloor = 1;
+        [Tooltip("Relics per floor. Left at 0, a floor carries one per way down.")]
+        [SerializeField] private int relicsPerFloor;
 
         [Tooltip("How close to a relic counts as collecting it, in metres.")]
         [SerializeField] private float collectRadius = 1.6f;
@@ -41,7 +41,29 @@ namespace Backrooms.RelicManager
         /// <param name="firstKind">Index into the roster for this floor's relic.</param>
         /// <returns>The cells that received a relic.</returns>
         public List<Vector2Int> PlaceForFloor(MazeLayout layout, int seed, int firstKind = 0)
-            => _router.Place(layout, relicsPerFloor, seed, firstKind, transform);
+            => _router.Place(layout, RelicsFor(layout), seed, firstKind, transform);
+
+        /// <summary>
+        /// How many relics a floor should carry: one per way down unless the scene pins a number.
+        /// </summary>
+        /// <remarks>
+        /// Tying the count to the stairwells keeps the two in step by construction rather than as two
+        /// magic numbers that drift apart. It also means a single relic per floor no longer rations
+        /// the powers so hard that most of a run is spent carrying nothing: the roster is dealt out
+        /// in turn and skips anything already held, so a floor with three relics offers three
+        /// different ones.
+        /// </remarks>
+        /// <param name="layout">The floor being placed on.</param>
+        /// <returns>How many relics to place.</returns>
+        private int RelicsFor(MazeLayout layout)
+        {
+            if (relicsPerFloor > 0) return relicsPerFloor;
+            return layout == null || layout.Stairs.Count == 0 ? DefaultRelicsPerFloor
+                : layout.Stairs.Count;
+        }
+
+        /// <summary>Relics to place when a floor somehow reports no ways down.</summary>
+        private const int DefaultRelicsPerFloor = 3;
 
         /// <summary>
         /// Collects a relic if the player has reached one.

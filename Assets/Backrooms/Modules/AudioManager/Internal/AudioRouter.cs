@@ -39,8 +39,20 @@ namespace Backrooms.AudioManager.Internal
         /// <summary>Whether a user gesture has happened, so the browser will let sound out.</summary>
         private bool _unlocked;
 
+        /// <summary>Whether the audio engine has been seen to actually run.</summary>
+        private bool _running;
+
+        /// <summary>Previous DSP clock reading, or -1 before the first look.</summary>
+        private double _lastDspTime = -1.0;
+
+        /// <summary>Seconds since the loops were last re-issued while waiting for the engine.</summary>
+        private float _retryTimer;
+
         /// <summary>Whether sound is allowed to play yet.</summary>
         public bool Unlocked => _unlocked;
+
+        /// <summary>Whether the audio engine has been seen to actually produce time.</summary>
+        public bool Running => _running;
 
         /// <summary>Volume the pursuit drone is currently at.</summary>
         public float DroneVolume => _drone == null ? 0f : _drone.volume;
@@ -188,15 +200,49 @@ namespace Backrooms.AudioManager.Internal
         }
 
         /// <summary>
-        /// Restarts any loop that has fallen silent. A browser tab that was backgrounded, or an
-        /// audio context that resumed late, can leave a looping source stopped.
+        /// Keeps re-issuing the loops until the audio engine is observed running, then restarts any
+        /// that later fall silent.
         /// </summary>
-        public void KeepLoopsAlive()
+        /// <remarks>
+        /// A browser resumes its audio context asynchronously, some frames after the gesture that
+        /// permits it. A source started on that same frame is begun against a context that is still
+        /// suspended, and Unity then reports it as playing while it produces nothing — so asking
+        /// isPlaying can never notice the failure. The DSP clock can: it only advances while the
+        /// engine is genuinely running, which makes it the one honest signal available here. This is
+        /// why the game still had no sound on the first run even after the first tap started the
+        /// loops, and why dying fixed it — restarting happened long after the context had come up.
+        /// </remarks>
+        /// <param name="deltaTime">Seconds since the last update, unaffected by pausing.</param>
+        public void KeepLoopsAlive(float deltaTime)
         {
             if (!_unlocked || _hum == null) return;
-            if (_wantedFloor > 0 && !_hum.isPlaying && _hum.clip != null) _hum.Play();
-            if (!_drone.isPlaying && _drone.clip != null) _drone.Play();
+
+            double dsp = AudioSettings.dspTime;
+            if (!_running && _lastDspTime >= 0.0 && dsp > _lastDspTime + 1e-4) _running = true;
+            _lastDspTime = dsp;
+
+            if (_running)
+            {
+                // A backgrounded tab leaves looping sources stopped, so they still need watching.
+                if (_wantedFloor > 0 && !_hum.isPlaying && _hum.clip != null) _hum.Play();
+                if (!_drone.isPlaying && _drone.clip != null) _drone.Play();
+                return;
+            }
+
+            _retryTimer += deltaTime;
+            if (_retryTimer < RetrySeconds) return;
+
+            _retryTimer = 0f;
+            AudioListener.pause = false;
+            if (_wantedFloor > 0 && _hum.clip != null) _hum.Play();
+            if (_drone.clip != null) _drone.Play();
         }
+
+        /// <summary>
+        /// How often to re-issue the loops while waiting for the engine. Short enough that the wait
+        /// is imperceptible, long enough not to thrash a loop that is about to start.
+        /// </summary>
+        private const float RetrySeconds = 0.25f;
 
         /// <summary>
         /// Creates one audio source on the host.
