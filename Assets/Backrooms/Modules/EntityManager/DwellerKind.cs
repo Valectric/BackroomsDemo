@@ -32,8 +32,15 @@ namespace Backrooms.EntityManager
         /// <summary>Name shown to the player when this Dweller gives chase.</summary>
         public string DisplayName { get; }
 
-        /// <summary>Movement speed relative to the floor's base Dweller speed.</summary>
+        /// <summary>Patrol speed relative to the floor's base Dweller speed.</summary>
         public float SpeedMultiplier { get; }
+
+        /// <summary>
+        /// Speed relative to the base while hunting. Every kind must land above the player's walk and
+        /// below their sprint, or the chase is not a chase: below walk it can never close, and above
+        /// sprint it can never be escaped.
+        /// </summary>
+        public float ChaseMultiplier { get; }
 
         /// <summary>Sense range relative to the base sense range.</summary>
         public float SenseMultiplier { get; }
@@ -67,7 +74,8 @@ namespace Backrooms.EntityManager
         /// </summary>
         /// <param name="kind">Which kind this describes.</param>
         /// <param name="displayName">Name shown to the player.</param>
-        /// <param name="speed">Speed relative to the floor's base Dweller speed.</param>
+        /// <param name="speed">Patrol speed relative to the floor's base Dweller speed.</param>
+        /// <param name="chase">Hunting speed relative to the floor's base Dweller speed.</param>
         /// <param name="sense">Sense range relative to the base.</param>
         /// <param name="patrol">Patrol span relative to the base.</param>
         /// <param name="width">Body width in metres.</param>
@@ -77,13 +85,14 @@ namespace Backrooms.EntityManager
         /// <param name="glow">Eye and chase-light colour.</param>
         /// <param name="eyes">How many eyes it opens.</param>
         /// <param name="eyeSize">Radius of one eye in metres.</param>
-        public DwellerArchetype(DwellerKind kind, string displayName, float speed, float sense,
-            float patrol, float width, float height, Color lurking, Color hunting, Color glow,
-            int eyes, float eyeSize)
+        public DwellerArchetype(DwellerKind kind, string displayName, float speed, float chase,
+            float sense, float patrol, float width, float height, Color lurking, Color hunting,
+            Color glow, int eyes, float eyeSize)
         {
             Kind = kind;
             DisplayName = displayName;
             SpeedMultiplier = speed;
+            ChaseMultiplier = chase;
             SenseMultiplier = sense;
             PatrolMultiplier = patrol;
             BodyWidth = width;
@@ -111,7 +120,7 @@ namespace Backrooms.EntityManager
         private static readonly DwellerArchetype[] Roster =
         {
             new DwellerArchetype(DwellerKind.Lurker, "LURKER",
-                speed: 1f, sense: 1f, patrol: 1f,
+                speed: 1f, chase: 1.77f, sense: 1f, patrol: 1f,
                 width: 0.7f, height: 2.2f,
                 lurking: new Color(0.06f, 0.05f, 0.07f),
                 hunting: new Color(0.16f, 0.03f, 0.04f),
@@ -119,8 +128,9 @@ namespace Backrooms.EntityManager
                 eyes: 2, eyeSize: 0.12f),
 
             new DwellerArchetype(DwellerKind.Watcher, "WATCHER",
-                // Slow enough to outrun, but it sees half the floor and does not give up.
-                speed: 0.72f, sense: 1.5f, patrol: 1.4f,
+                // Ambles while unaware, but once it has seen you it closes faster than a walk. Its
+                // slowness is meant to be something you exploit, not something that makes it harmless.
+                speed: 0.72f, chase: 1.55f, sense: 1.5f, patrol: 1.4f,
                 width: 0.5f, height: 2.85f,
                 lurking: new Color(0.62f, 0.60f, 0.55f),
                 hunting: new Color(0.74f, 0.72f, 0.66f),
@@ -128,8 +138,9 @@ namespace Backrooms.EntityManager
                 eyes: 2, eyeSize: 0.15f),
 
             new DwellerArchetype(DwellerKind.Skitter, "SKITTER",
-                // Faster than a walk but slower than a sprint, and nearly blind until you are close.
-                speed: 1.5f, sense: 0.55f, patrol: 0.6f,
+                // Lurks slowly and nearly blind, then bursts: the fastest of the three once it has
+                // seen you, and the slowest of the three before it does.
+                speed: 0.8f, chase: 2.1f, sense: 0.55f, patrol: 0.6f,
                 width: 1.15f, height: 1.05f,
                 lurking: new Color(0.11f, 0.06f, 0.05f),
                 hunting: new Color(0.26f, 0.08f, 0.04f),

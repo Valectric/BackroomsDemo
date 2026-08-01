@@ -1,0 +1,184 @@
+using System.Collections.Generic;
+using MooseRunner;
+using MooseRunner.helper;
+using NUnit.Framework;
+using UnityEngine;
+
+namespace Backrooms.MazeManager.Tests
+{
+    /// <summary>
+    /// Measures how far a player can end up from the nearest way down. Stairwell placement enforces
+    /// a minimum separation between stairwells, which is not the same thing as covering the floor —
+    /// three well-spaced stairwells can still leave a whole quadrant stranded.
+    /// </summary>
+    /// <remarks>
+    /// Separation and coverage are different properties, and only one of them was being enforced. The
+    /// walk a player actually faces is the <i>worst</i> distance to the <i>nearest</i> stairwell, over
+    /// every cell they might be standing in, measured through the maze rather than across it.
+    /// </remarks>
+    public class StairsCoverageTests
+    {
+        /// <summary>Floor size the game ships.</summary>
+        private const int FloorCells = 24;
+
+        /// <summary>
+        /// Cleans the scene before each test so every test starts from a known, empty state.
+        /// </summary>
+        [SetUp]
+        public void SetUp()
+        {
+            DoNotDestroyOnTeardown.CleanSceneImmediate();
+        }
+
+        /// <summary>
+        /// Creates a fresh MazeManager module and returns its test facade.
+        /// </summary>
+        /// <returns>A test facade over a new MazeManager module.</returns>
+        private static MazeManagerTestFacade NewMaze()
+        {
+            var go = new GameObject("MazeManager");
+            return go.AddComponent<MazeFacade>().GetTestFacade();
+        }
+
+        /// <summary>
+        /// Walking distance in cells from every cell to the nearest stairwell, by breadth-first
+        /// search outward from all stairwells at once.
+        /// </summary>
+        /// <param name="layout">The floor to measure.</param>
+        /// <returns>Distance per cell, indexed y * width + x; -1 where unreachable.</returns>
+        private static int[] DistanceToNearestStairs(MazeLayout layout)
+        {
+            var distance = new int[layout.Width * layout.Height];
+            for (int i = 0; i < distance.Length; i++) distance[i] = -1;
+
+            var queue = new Queue<Vector2Int>();
+            foreach (Vector2Int stairs in layout.Stairs)
+            {
+                distance[stairs.y * layout.Width + stairs.x] = 0;
+                queue.Enqueue(stairs);
+            }
+
+            while (queue.Count > 0)
+            {
+                Vector2Int cur = queue.Dequeue();
+                int here = distance[cur.y * layout.Width + cur.x];
+
+                foreach (Direction dir in Directions.All)
+                {
+                    if (!layout.CanMove(cur.x, cur.y, dir)) continue;
+                    Vector2Int d = Directions.Delta(dir);
+                    var next = new Vector2Int(cur.x + d.x, cur.y + d.y);
+                    int index = next.y * layout.Width + next.x;
+                    if (distance[index] != -1) continue;
+
+                    distance[index] = here + 1;
+                    queue.Enqueue(next);
+                }
+            }
+
+            return distance;
+        }
+
+        /// <summary>
+        /// The worst walk to a way down, over every cell of a floor.
+        /// </summary>
+        /// <param name="layout">The floor to measure.</param>
+        /// <returns>The largest distance-to-nearest-stairwell, in cells.</returns>
+        private static int WorstWalk(MazeLayout layout)
+        {
+            int worst = 0;
+            foreach (int d in DistanceToNearestStairs(layout)) worst = Mathf.Max(worst, d);
+            return worst;
+        }
+
+        /// <summary>
+        /// No cell on a floor may be an unreasonable walk from the nearest way down. Three stairwells
+        /// exist so that one is usually close; a floor where a quarter of the cells are 30-plus cells
+        /// of walking from any of them delivers the cost of a big level with none of the benefit.
+        /// </summary>
+        [Test]
+        public void NoCell_IsAnUnreasonableWalkFromAWayDown()
+        {
+            var facade = NewMaze();
+            int worstSeen = 0;
+            int worstSeed = 0;
+            float total = 0f;
+
+            const int seeds = 30;
+            for (int seed = 0; seed < seeds; seed++)
+            {
+                MazeLayout layout = facade.Generate(new MazeSettings(FloorCells, FloorCells, seed));
+                int worst = WorstWalk(layout);
+                total += worst;
+                if (worst <= worstSeen) continue;
+                worstSeen = worst;
+                worstSeed = seed;
+            }
+
+            MooseRunnerFacade.Log(
+                $"worst walk to a way down: {worstSeen} cells (seed {worstSeed}); "
+                + $"mean across {seeds} seeds {total / seeds:F1} cells");
+
+            // Measured after the placement fix: worst 31 cells, mean 24.4 across these 30 seeds,
+            // against worst 47 and mean 33.4 for the separation rule this replaced. The bar sits just
+            // above the measured worst so it catches a regression towards the old behaviour — every
+            // strategy that measured worse during that work landed at 33 or above.
+            Assert.LessOrEqual(worstSeen, 33,
+                $"seed {worstSeed} strands a cell {worstSeen} cells ({worstSeen * 4}m) from any stairwell");
+        }
+
+        /// <summary>
+        /// Every stairwell must be reachable, and the floor must carry the number it was asked for.
+        /// </summary>
+        [Test]
+        public void EveryStairwell_IsReachableFromEverywhere()
+        {
+            var facade = NewMaze();
+            for (int seed = 0; seed < 10; seed++)
+            {
+                MazeLayout layout = facade.Generate(new MazeSettings(FloorCells, FloorCells, seed));
+                Assert.AreEqual(3, layout.Stairs.Count, $"seed {seed}: three ways down");
+
+                foreach (int d in DistanceToNearestStairs(layout))
+                {
+                    Assert.GreaterOrEqual(d, 0, $"seed {seed}: a cell cannot reach any stairwell");
+                }
+            }
+        }
+
+        /// <summary>
+        /// The three stairwells must not all cluster into one part of the grid. Measured as the
+        /// spread of their positions: if all three sit in the same half on both axes, one corner of
+        /// the floor is necessarily stranded however far apart they are from each other.
+        /// </summary>
+        [Test]
+        public void Stairwells_DoNotAllSitInTheSameHalfOfTheFloor()
+        {
+            var facade = NewMaze();
+            int lopsided = 0;
+
+            const int seeds = 30;
+            for (int seed = 0; seed < seeds; seed++)
+            {
+                MazeLayout layout = facade.Generate(new MazeSettings(FloorCells, FloorCells, seed));
+                int half = layout.Width / 2;
+
+                bool allLeft = true, allRight = true, allLow = true, allHigh = true;
+                foreach (Vector2Int s in layout.Stairs)
+                {
+                    if (s.x >= half) allLeft = false;
+                    if (s.x < half) allRight = false;
+                    if (s.y >= half) allLow = false;
+                    if (s.y < half) allHigh = false;
+                }
+
+                if (allLeft || allRight || allLow || allHigh) lopsided++;
+            }
+
+            float rate = (float)lopsided / seeds;
+            MooseRunnerFacade.Log($"floors with all three stairwells in one half: {rate:P0}");
+            Assert.Less(rate, 0.25f,
+                $"{rate:P0} of floors put every way down in the same half of the grid");
+        }
+    }
+}
