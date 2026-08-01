@@ -1,3 +1,5 @@
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using MooseRunner;
 using MooseRunner.helper;
 using NUnit.Framework;
@@ -214,6 +216,41 @@ namespace Backrooms.AudioManager.Tests
             audio.NoteInteraction(true);
 
             Assert.IsTrue(audio.HumPlaying, "the floor asked for before the gesture should sound");
+        }
+
+        /// <summary>
+        /// After a gesture, the module must go on working at the loops until the audio engine is
+        /// observed actually running — and must then stop, rather than restarting them forever.
+        /// </summary>
+        /// <remarks>
+        /// This is the fault that survived the first fix. A browser resumes its audio context some
+        /// frames after the gesture that permits it, so the loops started on that frame were begun
+        /// against a suspended context and produced nothing, while Unity reported them as playing —
+        /// so the old retry, which asked isPlaying, could never fire. In the editor the engine is
+        /// already running, so what this can prove is the other half: that the detector terminates.
+        /// A Running that stays false would mean the loops are restarted every quarter second for
+        /// the whole run, which is audible as a stutter and is the obvious way to get this wrong.
+        /// </remarks>
+        [Test]
+        public async UniTask AudioEngine_IsObservedRunning_AfterAGesture(CancellationToken ct)
+        {
+            var go = new GameObject("Audio");
+            AudioFacade audio = go.AddComponent<AudioFacade>();
+
+            audio.SetFloor(1);
+            Assert.IsFalse(audio.Running, "nothing has been observed before the first look");
+
+            audio.NoteInteraction(true);
+
+            // Two readings of the DSP clock are needed to see it move, so give it real frames.
+            for (int i = 0; i < 30 && !audio.Running; i++)
+            {
+                audio.NoteInteraction(true);
+                await UniTask.Yield(ct);
+            }
+
+            Assert.IsTrue(audio.Running,
+                "the engine runs in the editor, so it must be seen to run and the retry must stop");
         }
 
         /// <summary>

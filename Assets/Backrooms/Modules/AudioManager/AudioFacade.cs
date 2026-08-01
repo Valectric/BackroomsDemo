@@ -29,15 +29,21 @@ namespace Backrooms.AudioManager
         public bool Unlocked => _router.Unlocked;
 
         /// <summary>
-        /// Notes that the player has interacted. Browsers keep audio suspended until a real gesture,
-        /// so nothing is started until this has been true once.
+        /// Whether the audio engine has been observed actually running, rather than merely started.
+        /// </summary>
+        public bool Running => _router.Running;
+
+        /// <summary>
+        /// Notes that the player has interacted, and keeps working at the loops until the audio
+        /// engine comes up under them. Browsers keep audio suspended until a real gesture, so
+        /// nothing is started until this has been true once.
         /// </summary>
         /// <param name="interacted">Whether the player did anything this frame.</param>
         public void NoteInteraction(bool interacted)
         {
             _router.Build(transform);
             _router.NoteInteraction(interacted);
-            _router.KeepLoopsAlive();
+            _router.KeepLoopsAlive(Time.unscaledDeltaTime);
         }
 
         /// <summary>

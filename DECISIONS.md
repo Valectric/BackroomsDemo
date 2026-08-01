@@ -484,3 +484,30 @@ under 100. A 42 Hz thump on a phone is not a deep footstep, it is silence.
 **The trick that keeps it sounding low:** give the ear the octave above and it supplies the missing
 fundamental itself, so the step still reads as deep through hardware that physically cannot play deep.
 
+## 2026-08-01 — D40. Audio waits for the engine, not for permission
+
+**Decided:** after the first gesture the module keeps re-issuing the loops every 0.25s until
+`AudioSettings.dspTime` is seen to advance, and only then stops.
+**Why:** the first fix — start the loops on the first gesture — was not enough, and the game still
+had no sound on the first run. A browser resumes its audio context *asynchronously*, some frames
+after the gesture that permits it, so loops started on that same frame are begun against a context
+that is still suspended. **Unity then reports those sources as `isPlaying` while they produce
+nothing**, so the retry that asked `isPlaying` could never fire. Dying worked around it because
+restarting re-issued `Play` long after the context had come up.
+**The DSP clock is the only honest signal available here.** It advances only while the audio engine
+is genuinely running, so it can distinguish "started" from "actually playing" where `isPlaying`
+cannot.
+**Limit of the test:** in the editor the engine is already running, so `AudioEngine_IsObservedRunning`
+can only prove the detector *terminates* — a `Running` stuck false would restart the loops four times
+a second for the whole run. The suspended-context case itself is only reachable in a browser.
+
+## 2026-08-01 — D41. One relic per way down
+
+**Decided:** a floor carries as many relics as it has stairwells down (3), derived from the layout
+rather than configured. The inspector field is an override, left at 0.
+**Why:** at one relic per floor most of a run was spent carrying nothing, and with six kinds it took
+six floors to see them all. The roster is dealt out in turn and skips anything already held, so three
+relics on a floor offer three *different* powers.
+**Derived, not duplicated:** tying the count to `layout.Stairs.Count` keeps the two in step by
+construction instead of leaving two magic numbers to drift apart.
+
