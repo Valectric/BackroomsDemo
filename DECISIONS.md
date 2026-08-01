@@ -256,3 +256,36 @@ floors with **no Dweller visible at all**, on a build measured to hunt the playe
 **Note:** NUnit skips `[Explicit]` tests even under `--class` selection, so recording footage means
 removing the attribute for the run and restoring it after.
 
+## 2026-08-01 — D23. A chase must be able to end
+
+**Decided:** hunting speed is a separate number from patrol speed — Lurker 3.89, Watcher 3.41,
+Skitter 4.62 m/s, hard-capped at 5.1 so a sprint always escapes however deep the floor.
+**Why:** every Dweller was slower than the player's 3.2 m/s walk. Only the Skitter beat it, by
+0.1 m/s; the Lurker did not until floor 10 and the Watcher not until floor 20. The game reported the
+player hunted on 88% of crossings and killed nobody, because a hunt was a flag rather than a pursuit.
+Found by a reviewer watching recorded footage, not by any test.
+**The test that should have caught it** asserted only that speed stayed *below* a sprint. An upper
+bound says a chase is survivable; it takes both bounds to say a chase is a chase. Replaced with
+`HuntingSpeed_CatchesAWalker_ButNotASprinter`, plus `AWalkingPlayer_IsSometimesCaught`, which
+measures **catches** rather than hunts — the quantity that was never measured.
+
+## 2026-08-01 — D24. Stairwell placement optimises coverage, not separation
+
+**Decided:** stairwells are placed by furthest-point seeding plus a local search that minimises the
+**longest walk any cell faces to the nearest way down**, bounded by a minimum distance from spawn.
+**Why:** the old rule enforced a minimum *separation* between stairwells, which is a different
+property from covering the floor and does not imply it. Measured over 30 seeds: worst cell 47 cells
+from any way down, mean 33.4 — 188 m of walking on a 96 m floor. Now worst 29, mean 24.9. A reviewer
+predicted this from the plan views before it was measured.
+**Three strategies that measured worse — do not re-attempt:**
+- Pure furthest-point selection drives stairwells to the extremes, close to the worst shape for
+  coverage (mean 37.2, worse than the rule it replaced).
+- Repeatedly relocating a stairwell onto the single worst-served cell stalls on its first pass: with
+  only three, vacating any one opens a hole at least as big as the one it fills.
+- Sampling candidates biased towards badly-served cells is backwards — the best site for a stairwell
+  is a well-connected middle cell, so the bias rejects the cells worth trying.
+**Coupling worth knowing:** shorter routes mean less exposure, so this change alone dropped the
+Dweller hunt rate from 96% to 28%. A minimum spawn distance of 16 cells recovers it to 44% while
+keeping the coverage win. Stairwell placement, floor size and Dweller sensing are one system; tuning
+any of them alone moves the others.
+

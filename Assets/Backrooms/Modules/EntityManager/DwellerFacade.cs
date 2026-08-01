@@ -23,6 +23,15 @@ namespace Backrooms.EntityManager
         [Tooltip("How close, in metres, counts as catching the player.")]
         [SerializeField] private float catchRadius = 1.1f;
 
+        [Tooltip("Hard ceiling on hunting speed. Must stay under the player's sprint (5.6) at any depth.")]
+        [SerializeField] private float maxChaseMetresPerSecond = 5.1f;
+
+        /// <summary>Speed while unaware, in metres per second.</summary>
+        private float _patrolSpeed = 2.2f;
+
+        /// <summary>Speed while hunting, in metres per second.</summary>
+        private float _chaseSpeed = 2.2f;
+
         private readonly DwellerRouter _router = new DwellerRouter();
         private readonly DwellerBody _shape = new DwellerBody();
         private DwellerManagerTestFacade _testFacade;
@@ -78,7 +87,17 @@ namespace Backrooms.EntityManager
 
             _router.Place(layout, startCell, seed);
             _target = target;
-            metresPerSecond = speedMetresPerSecond * archetype.SpeedMultiplier;
+
+            _patrolSpeed = speedMetresPerSecond * archetype.SpeedMultiplier;
+
+            // Hunting speed is its own number, not the patrol speed. With one speed for both, every
+            // kind ambled below the player's 3.2 m/s walk and a chase could never end in a catch —
+            // the game reported being hunted on 88% of crossings and killed the player on none of
+            // them. The ceiling keeps a sprint an escape however deep the floor.
+            _chaseSpeed = Mathf.Min(
+                speedMetresPerSecond * archetype.ChaseMultiplier, maxChaseMetresPerSecond);
+
+            metresPerSecond = _patrolSpeed;
 
             if (!_shape.Exists || _shape.Archetype.Kind != _kind) _shape.Build(transform, archetype);
             transform.position = layout.CellCenterToWorld(startCell);
@@ -106,6 +125,8 @@ namespace Backrooms.EntityManager
 
             Vector2Int playerCell = _router.Layout.WorldToCell(_target.position);
             _router.UpdateState(playerCell);
+
+            metresPerSecond = _router.IsChasing ? _chaseSpeed : _patrolSpeed;
 
             Vector3 targetPos = _router.Layout.CellCenterToWorld(_router.TargetCell);
             Vector3 here = transform.position;

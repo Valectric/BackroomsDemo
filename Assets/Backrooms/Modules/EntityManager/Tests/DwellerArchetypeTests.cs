@@ -100,21 +100,66 @@ namespace Backrooms.EntityManager.Tests
         }
 
         /// <summary>
-        /// Even the fastest kind must stay below the player's sprint, or a chase becomes an
-        /// unavoidable death rather than something to escape.
+        /// A hunting Dweller must be able to catch a player who only walks, and must not be able to
+        /// catch one who sprints.
         /// </summary>
+        /// <remarks>
+        /// This test replaces one that asserted only the upper bound, and that omission cost a
+        /// working fail state. Every kind was slower than the player's walk, so no chase could ever
+        /// end in a catch; the suite was green, the encounter rate measured 88%, and the game killed
+        /// nobody. An upper bound alone says a chase is survivable. It takes both bounds to say a
+        /// chase is a chase.
+        /// </remarks>
         [Test]
-        public void EvenTheFastestKind_CanBeOutrunBySprinting()
+        public void HuntingSpeed_CatchesAWalker_ButNotASprinter()
         {
             const float baseSpeed = 2.2f;
+            const float walk = 3.2f;
             const float sprint = 5.6f;
 
             foreach (DwellerKind kind in System.Enum.GetValues(typeof(DwellerKind)))
             {
                 DwellerArchetype a = DwellerArchetypes.For(kind);
-                float speed = baseSpeed * a.SpeedMultiplier;
-                Assert.Less(speed, sprint,
-                    $"{kind} moves at {speed:F2} m/s against a {sprint} m/s sprint — inescapable on floor 1");
+                float chase = baseSpeed * a.ChaseMultiplier;
+
+                Assert.Greater(chase, walk,
+                    $"{kind} hunts at {chase:F2} m/s against a {walk} m/s walk — it can never close");
+                Assert.Less(chase, sprint,
+                    $"{kind} hunts at {chase:F2} m/s against a {sprint} m/s sprint — inescapable");
+            }
+        }
+
+        /// <summary>
+        /// Every kind must be slower while unaware than while hunting, so noticing the player is a
+        /// visible change in behaviour and not just a change of colour.
+        /// </summary>
+        [Test]
+        public void EveryKind_SpeedsUpWhenItStartsHunting()
+        {
+            foreach (DwellerKind kind in System.Enum.GetValues(typeof(DwellerKind)))
+            {
+                DwellerArchetype a = DwellerArchetypes.For(kind);
+                Assert.Greater(a.ChaseMultiplier, a.SpeedMultiplier,
+                    $"{kind} moves no faster hunting ({a.ChaseMultiplier}) than patrolling ({a.SpeedMultiplier})");
+            }
+        }
+
+        /// <summary>
+        /// A patrolling Dweller must be slow enough that the player can cross a floor without being
+        /// run down by something that has not even noticed them.
+        /// </summary>
+        [Test]
+        public void PatrollingSpeed_StaysBelowAWalk()
+        {
+            const float baseSpeed = 2.2f;
+            const float walk = 3.2f;
+
+            foreach (DwellerKind kind in System.Enum.GetValues(typeof(DwellerKind)))
+            {
+                DwellerArchetype a = DwellerArchetypes.For(kind);
+                float patrol = baseSpeed * a.SpeedMultiplier;
+                Assert.Less(patrol, walk,
+                    $"{kind} patrols at {patrol:F2} m/s, which outruns a walking player unprovoked");
             }
         }
 

@@ -19,8 +19,8 @@ browser.
 
 | | |
 |---|---|
-| Tests | **68 green** (36 maze, 7 player, 10 HUD, 11 Dweller, 4 E2E), console clean |
-| Gameplay | Descend themed floors; find any of **three stairwells** to go deeper; **three Dwellers** hunt you; caught = run over, tap to retry |
+| Tests | **81 green** (39 maze, 7 player, 10 HUD, 21 Dweller, 4 E2E), console clean |
+| Gameplay | Descend themed floors; find any of **three stairwells** to go deeper; a **Lurker, a Watcher and a Skitter** hunt you; caught = run over, tap to retry |
 | Floors | **24×24 cells (96 m square)**. Yellow Rooms → Abandoned Mall → Janky Laundromat → Twisted Carnival → Condemned Asylum, then wraps |
 | Art | Procedural wallpaper/carpet/ceiling textures, skirting, structural columns, Kenney CC0 furniture laid along wall runs |
 | Controls | Phone: left half = virtual stick, right half = look. Desktop: WASD + hold-LMB to look, Shift sprint |
@@ -93,16 +93,28 @@ Perlin puts a 2 m grid on wall/floor textures; walls are zero-thickness with no 
 
 ## Questions outstanding for the user
 
-- **Is 84% too relentless?** A player crossing a floor is now hunted on 84% of runs, up from a
-  measured 12%. That was the fix for "I don't see any dwellers", but it has not been played. Lower
-  `senseRangeCells` (12) before touching the count — the sweep in `DECISIONS.md` D18 shows sense
-  range is the only lever that moves the number much.
+- **The threat numbers do not meet, and this is the biggest open design question.** A Watcher
+  notices you at 72 m but closes on a walking player at 0.21 m/s, so it needs ~343 s to reach you;
+  the Lurker needs ~69 s. A floor takes 20-60 s to cross and fog hides everything past ~25 m. So a
+  chase starts outside the visible world and usually cannot resolve. Current measured state: hunted
+  on 44% of crossings, caught on 12%. The reviewers' fix is to cut sense range towards fog distance
+  (~6 cells) so chases begin where they can be seen and end before the floor does — at the cost of a
+  lower hunt rate. Not done: it is a difficulty decision for the user.
 - **Do 500–760 props per floor cost too much on a phone?** Fog and a 45 m far clip bound what is
   drawn per frame, but not instantiation or the fixed WebGL heap. `FloorLookTests` logs the count.
 - Is it **too dark to navigate** on a phone in daylight? Last change dropped ambient substantially.
 - Are three stairwells the right number, and is the green ceiling sign findable enough across 96 m?
 
 ---
+
+## Recording footage
+
+`PlaythroughRecording` plays the shipped scene and records it with SessionRecorder to
+`.mooserunner/Recordings/playthrough` (video.mp4 + per-object motion). It is `[Explicit]` — **NUnit
+skips Explicit tests even under `--class` selection**, so remove the attribute for the run and put it
+back afterwards. `MooseRunner/.env` carries `FFMPEG_PATH` and a `GEMINI_API_KEY` (copied from CADcog,
+2026-08-01), so `recording_extract_and_analyze` works for whole-segment video critique. For a frame
+contact sheet, call ffmpeg directly — one CLI round-trip per frame is far slower.
 
 ## How to work on this
 
