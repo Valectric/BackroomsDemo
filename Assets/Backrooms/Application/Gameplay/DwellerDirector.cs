@@ -30,6 +30,13 @@ namespace Backrooms.Gameplay
         private readonly Transform _host;
 
         /// <summary>
+        /// How far from the player's arrival point a Dweller must start, in cells. Arriving on a
+        /// floor face to face with one is not a threat, it is an ambush the player could not have
+        /// avoided.
+        /// </summary>
+        private const float MinCellsFromArrival = 9f;
+
+        /// <summary>
         /// Creates the director.
         /// </summary>
         /// <param name="host">Transform new Dwellers are created alongside.</param>
@@ -240,13 +247,23 @@ namespace Backrooms.Gameplay
                 new Vector2Int(right / 2, top / 2)
             };
 
+            // Sort the candidates by how far they are from where the player arrives, furthest
+            // first, and refuse anything close. The player used to appear with a Dweller already on
+            // top of them, because the corners were fixed while the arrival point moved to whichever
+            // way up the floor chose.
+            candidates.Sort((a, b) =>
+                (b - layout.Spawn).sqrMagnitude.CompareTo((a - layout.Spawn).sqrMagnitude));
+
             var starts = new List<Vector2Int>(wanted);
-            for (int i = 0; i < candidates.Count && starts.Count < wanted; i++)
+            foreach (Vector2Int cell in candidates)
             {
-                Vector2Int cell = candidates[(i + floor) % candidates.Count];
+                if (starts.Count == wanted) break;
                 if (cell == layout.Spawn) continue;
-                if (layout.IsStairs(cell)) continue;
+                if (layout.IsStairs(cell) || layout.IsStairsUp(cell)) continue;
                 if (starts.Contains(cell)) continue;
+
+                float away = (cell - layout.Spawn).magnitude;
+                if (away < MinCellsFromArrival) continue;
                 starts.Add(cell);
             }
 

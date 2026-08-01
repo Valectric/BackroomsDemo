@@ -117,6 +117,27 @@ namespace Backrooms.MazeManager
         }
 
         /// <summary>
+        /// The way up closest to a cell as the crow flies.
+        /// </summary>
+        /// <param name="from">Cell to measure from.</param>
+        /// <returns>The nearest way up, or <paramref name="from"/> if the floor has none.</returns>
+        public Vector2Int NearestStairsUp(Vector2Int from)
+        {
+            Vector2Int best = from;
+            float bestDistance = float.PositiveInfinity;
+
+            foreach (Vector2Int stair in _stairsUp)
+            {
+                float distance = (stair - from).sqrMagnitude;
+                if (distance >= bestDistance) continue;
+                bestDistance = distance;
+                best = stair;
+            }
+
+            return best;
+        }
+
+        /// <summary>
         /// World-space centre of a cell at floor level. The grid maps to the world XZ plane
         /// (grid X → world X, grid Y → world Z).
         /// </summary>

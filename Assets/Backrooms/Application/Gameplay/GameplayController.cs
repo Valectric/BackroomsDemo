@@ -48,6 +48,9 @@ namespace Backrooms.Gameplay
         /// <summary>Turns carried relics into compass arrows and usable powers.</summary>
         private readonly PowerDirector _powers = new PowerDirector();
 
+        /// <summary>Keeps the staircase the player arrived by from firing under their feet.</summary>
+        private readonly ArrivalGuard _arrival = new ArrivalGuard();
+
         /// <summary>Reused each frame so the HUD is not handed fresh lists sixty times a second.</summary>
         private readonly List<string> _carriedLines = new List<string>();
 
@@ -55,8 +58,11 @@ namespace Backrooms.Gameplay
         private readonly List<Color> _carriedColours = new List<Color>();
 
         [Header("Run")]
-        [Tooltip("Seed for the maze. Change for a different layout.")]
-        [SerializeField] private int seed = 1;
+        [Tooltip("Seed for the maze. Left at 0 a fresh one is drawn for every run.")]
+        [SerializeField] private int seed;
+
+        [Tooltip("Draw a new seed for each run, so no two runs are the same building.")]
+        [SerializeField] private bool randomiseSeed = true;
 
         [Tooltip("How close to a stairwell's centre counts as descending, in metres.")]
         [SerializeField] private float stairsRadius = 2f;
@@ -89,6 +95,26 @@ namespace Backrooms.Gameplay
 
         /// <summary>How many Dwellers are roaming the current floor.</summary>
         public int DwellerCount => _director == null ? 0 : _director.Count;
+
+        /// <summary>
+        /// Distance to the nearest Dweller on the floor, in metres, or infinity if there are none.
+        /// Exposed so a test can assert the player never arrives face to face with one.
+        /// </summary>
+        public float NearestDwellerMetres
+        {
+            get
+            {
+                if (_director == null || player == null) return float.PositiveInfinity;
+                if (!_director.TryGetNearestPosition(player.Position, out Vector3 at))
+                {
+                    return float.PositiveInfinity;
+                }
+
+                return Vector3.Distance(
+                    new Vector3(player.Position.x, 0f, player.Position.z),
+                    new Vector3(at.x, 0f, at.z));
+            }
+        }
 
         /// <summary>Whether any Dweller is currently hunting the player.</summary>
         public bool IsHunted => _director != null && _director.AnyHunting;
@@ -229,7 +255,7 @@ namespace Backrooms.Gameplay
         /// </summary>
         private void Start()
         {
-            StartRun(seed);
+            StartRun(NextSeed());
             WaitOnTitle();
         }
 
@@ -298,24 +324,89 @@ namespace Backrooms.Gameplay
             CurrentFloor++;
             HasEscaped = false;
 
+            FloorTheme theme = BuildFloor();
+            player.SpawnAt(maze.GetSpawnPosition());
+            _arrival.Arrived(maze.CurrentLayout.Spawn);
+
+            if (audioModule != null && CurrentFloor > 1) audioModule.PlayDescend();
+            Announce(theme);
+        }
+
+        /// <summary>
+        /// Climbs back to the floor above, arriving out of one of its ways down.
+        /// </summary>
+        /// <remarks>
+        /// The mirror of descending, and the reason the stairs go both ways: you came down a
+        /// staircase, so climbing one puts you back where that staircase came from. Every floor is
+        /// rebuilt from a seed derived from its number, so the floor above is the same building the
+        /// player left rather than a new one.
+        /// </remarks>
+        public void AscendToPreviousFloor()
+        {
+            if (CurrentFloor <= 1) return;
+
+            CurrentFloor--;
+            HasEscaped = false;
+
+            FloorTheme theme = BuildFloor();
+
+            // Emerging from a way down: the staircase the player originally descended.
+            MazeLayout layout = maze.CurrentLayout;
+            Vector2Int arrival = layout.Stairs.Count > 0 ? layout.Stairs[0] : layout.Spawn;
+            player.SpawnAt(layout.CellCenterToWorld(arrival));
+            _arrival.Arrived(arrival);
+
+            Announce(theme);
+        }
+
+        /// <summary>
+        /// Generates and populates the current floor, without deciding where the player stands.
+        /// </summary>
+        /// <returns>The palette the floor was built with.</returns>
+        private FloorTheme BuildFloor()
+        {
             FloorTheme theme = FloorThemes.ForFloor(CurrentFloor);
             maze.GenerateAndBuild(seed + CurrentFloor * 977, theme);
-            player.SpawnAt(maze.GetSpawnPosition());
             FloorAtmosphere.Apply(theme);
 
             _director.PopulateFloor(maze.CurrentLayout, CurrentFloor, player.transform,
                 dwellerBaseSpeed + (CurrentFloor - 1) * dwellerSpeedPerFloor, seed);
-            if (relics != null) relics.PlaceForFloor(maze.CurrentLayout, seed + CurrentFloor * 613,
-                CurrentFloor - 1);
-
-            if (audioModule != null)
+            if (relics != null)
             {
-                audioModule.SetFloor(CurrentFloor);
-                if (CurrentFloor > 1) audioModule.PlayDescend();
+                relics.PlaceForFloor(maze.CurrentLayout, seed + CurrentFloor * 613, CurrentFloor - 1);
             }
 
+            if (audioModule != null) audioModule.SetFloor(CurrentFloor);
+            return theme;
+        }
+
+        /// <summary>
+        /// Shows the arrival banner and logs the floor.
+        /// </summary>
+        /// <param name="theme">The palette the floor was built with.</param>
+        private void Announce(FloorTheme theme)
+        {
             if (hud != null) hud.ShowFloor(CurrentFloor, theme.Name, RelicsCollected);
             Debug.Log($"[Gameplay] Floor {CurrentFloor}: {theme.Name}");
+        }
+
+        /// <summary>
+        /// The seed the next run should use: a fresh one unless the scene pins it.
+        /// </summary>
+        /// <remarks>
+        /// Generation stays deterministic — the same seed always builds the same building — but a run
+        /// that always starts from seed 1 is the same building every time, which is the opposite of
+        /// what a 999-floor dungeon is for. The drawn seed is logged so any run can be replayed by
+        /// pinning it in the inspector.
+        /// </remarks>
+        /// <returns>The seed to build with.</returns>
+        private int NextSeed()
+        {
+            if (!randomiseSeed && seed != 0) return seed;
+
+            int drawn = UnityEngine.Random.Range(1, int.MaxValue);
+            Debug.Log($"[Gameplay] Run seed {drawn}");
+            return drawn;
         }
 
         /// <summary>
@@ -344,7 +435,7 @@ namespace Backrooms.Gameplay
                 // A death screen you cannot leave is not a losing condition, it is a dead end.
                 if (player.ConfirmPressed)
                 {
-                    StartRun(seed);
+                    StartRun(NextSeed());
                     BeginRun();
                 }
 
@@ -386,11 +477,25 @@ namespace Backrooms.Gameplay
             ReportCarried();
             if (hud != null) hud.SetPlayerActive(player.HasInput);
 
+            _arrival.Update(maze.CurrentLayout.WorldToCell(player.Position));
+            if (_arrival.StillOnArrivalStairs) return;
+
             if (DistanceToStairs <= stairsRadius)
             {
                 HasEscaped = true;
                 DescendToNextFloor();
+                return;
             }
+
+            // Climbing is only possible from the second floor down. Floor 1 is where the player
+            // noclipped in; there is nothing above it to climb back to.
+            if (CurrentFloor <= 1) return;
+
+            Vector3 up = maze.GetNearestStairsUpPosition(player.Position);
+            float toUp = Vector3.Distance(
+                new Vector3(player.Position.x, 0f, player.Position.z),
+                new Vector3(up.x, 0f, up.z));
+            if (toUp <= stairsRadius) AscendToPreviousFloor();
         }
     }
 }

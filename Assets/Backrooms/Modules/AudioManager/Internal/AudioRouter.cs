@@ -157,8 +157,9 @@ namespace Backrooms.AudioManager.Internal
             _stepTimer = 0f;
             _stepIndex = (_stepIndex + 1) % _footsteps.Length;
             _steps.pitch = sprinting ? 1.06f : 0.94f;
-            // Quieter than it was: footsteps are a floor under the mix, not an event in it.
-            _steps.PlayOneShot(_footsteps[_stepIndex], sprinting ? 0.3f : 0.2f);
+            // Present, but under the mix rather than on top of it. Dropping this too far is how
+            // the footsteps vanished entirely once the body moved down into the sub-bass.
+            _steps.PlayOneShot(_footsteps[_stepIndex], sprinting ? 0.75f : 0.55f);
         }
 
         /// <summary>

@@ -61,6 +61,14 @@ namespace Backrooms.Gameplay.Tests
 
             Assert.IsFalse(_controller.IsAwaitingStart, "tapping the title should start the run");
 
+            // Arriving face to face with a Dweller is not a threat, it is an ambush the player could
+            // not have avoided. They used to start in fixed corners while the arrival point moved to
+            // whichever way up the floor chose, so the two could land on top of each other.
+            float nearest = _controller.NearestDwellerMetres;
+            MooseRunnerFacade.Log($"nearest Dweller at the start of the run: {nearest:F1}m");
+            Assert.Greater(nearest, 25f,
+                $"the run began with a Dweller only {nearest:F1}m away");
+
             // NOTE: SessionRecorder video capture used to run here and produced a usable
             // walkthrough, but Unity Recorder logs "AudioRender ... called while system was not
             // recording" errors on stop, and a suite that leaves errors in the console is not a

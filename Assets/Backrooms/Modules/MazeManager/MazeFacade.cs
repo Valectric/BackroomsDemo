@@ -132,6 +132,18 @@ namespace Backrooms.MazeManager
         }
 
         /// <summary>
+        /// World-space position of the way up nearest a point, at floor level in its cell.
+        /// </summary>
+        /// <param name="from">World position to measure from.</param>
+        /// <returns>The nearest way up, or <see cref="Vector3.zero"/> if no layout exists.</returns>
+        public Vector3 GetNearestStairsUpPosition(Vector3 from)
+        {
+            if (CurrentLayout == null) return Vector3.zero;
+            Vector2Int nearest = CurrentLayout.NearestStairsUp(CurrentLayout.WorldToCell(from));
+            return CurrentLayout.CellCenterToWorld(nearest);
+        }
+
+        /// <summary>
         /// Returns the module's test seam, creating it lazily. Not intended for production use —
         /// only for automated testing.
         /// </summary>
