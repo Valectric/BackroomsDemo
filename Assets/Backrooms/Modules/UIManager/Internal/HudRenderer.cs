@@ -112,6 +112,47 @@ namespace Backrooms.UIManager.Internal
                 "TAP OR CLICK TO TRY AGAIN", hint, TextAnchor.UpperCenter);
         }
 
+        /// <summary>
+        /// Draws the title screen the game waits on before a run begins.
+        /// </summary>
+        /// <remarks>
+        /// This exists for two reasons at once. It is a front door, and it is the user gesture a
+        /// browser demands before it will let any sound out — the game was silent until the player
+        /// died once, because the tap to retry was the first gesture it ever received.
+        /// </remarks>
+        /// <param name="bestFloors">Deepest floor reached in any run, or 0 if none yet.</param>
+        /// <param name="bestRelics">Most relics carried in any run.</param>
+        public void DrawTitle(int bestFloors, int bestRelics)
+        {
+            Color previous = GUI.color;
+            GUI.color = new Color(0f, 0f, 0f, 0.55f);
+            GUI.DrawTexture(new Rect(0f, 0f, Screen.width, Screen.height), Texture2D.whiteTexture);
+            GUI.color = previous;
+
+            int size = Mathf.Max(24, Mathf.RoundToInt(Screen.height * 0.085f));
+            DrawLabel(new Rect(0f, Screen.height * 0.26f, Screen.width, size * 2f),
+                "THE BACKROOMS", size, TextAnchor.UpperCenter);
+
+            int sub = Mathf.Max(13, Mathf.RoundToInt(Screen.height * 0.028f));
+            DrawLabel(new Rect(0f, Screen.height * 0.40f, Screen.width, sub * 2f),
+                "Find the stairs. Something else is already here.", sub, TextAnchor.UpperCenter,
+                new Color(TextColor.r, TextColor.g, TextColor.b, 0.75f));
+
+            int button = Mathf.Max(20, Mathf.RoundToInt(Screen.height * 0.055f));
+            DrawLabel(new Rect(0f, Screen.height * 0.55f, Screen.width, button * 2f),
+                "▶  START RUN", button, TextAnchor.UpperCenter);
+
+            int hint = Mathf.Max(12, Mathf.RoundToInt(Screen.height * 0.026f));
+            DrawLabel(new Rect(0f, Screen.height * 0.65f, Screen.width, hint * 2f),
+                "tap or click anywhere", hint, TextAnchor.UpperCenter,
+                new Color(TextColor.r, TextColor.g, TextColor.b, 0.55f));
+
+            if (bestFloors <= 0) return;
+            DrawLabel(new Rect(0f, Screen.height * 0.76f, Screen.width, hint * 2f),
+                $"BEST    {bestFloors} FLOORS    {RelicMark} {bestRelics}", hint,
+                TextAnchor.UpperCenter, new Color(TextColor.r, TextColor.g, TextColor.b, 0.7f));
+        }
+
         /// <summary>Warning colour for the pursuit alert.</summary>
         private static readonly Color AlertColor = new Color(0.95f, 0.24f, 0.18f);
 

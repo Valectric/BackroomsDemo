@@ -56,8 +56,11 @@ namespace Backrooms.MazeManager.Internal.Geometry
 
             CreateFloor(layout, cellSize, worldWidth, worldDepth, root.transform);
 
+            // The ceiling is cut for the ways up, exactly as the floor is cut for the ways down.
+            var risers = new HashSet<Vector2Int>(layout.StairsUp);
             CreateTexturedMeshObject("Ceiling", root.transform,
-                _meshBuilder.BuildPlane(worldWidth, worldDepth, wallHeight, faceUp: false, "MazeCeiling"),
+                _meshBuilder.BuildFloorWithHoles(layout.Width, layout.Height, cellSize, risers,
+                    wallHeight, faceUp: false),
                 _theme.Ceiling, ProceduralTextures.CeilingTiles(_theme.Ceiling, _themeSeed),
                 addCollider: false);
 
@@ -112,6 +115,11 @@ namespace Backrooms.MazeManager.Internal.Geometry
             foreach (Vector2Int cell in layout.Stairs)
             {
                 _stairwells.Build(layout, cell, wallHeight, _theme, root.transform);
+            }
+
+            foreach (Vector2Int cell in layout.StairsUp)
+            {
+                _stairwells.BuildUp(layout, cell, wallHeight, _theme, root.transform);
             }
         }
 

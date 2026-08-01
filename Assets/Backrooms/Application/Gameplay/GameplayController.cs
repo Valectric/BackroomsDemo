@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using Backrooms.EntityManager;
 using Backrooms.MazeManager;
 using Backrooms.PlayerManager;
-using System.Collections.Generic;
 using Backrooms.RelicManager;
 using Backrooms.UIManager;
 using Backrooms.AudioManager;
@@ -77,6 +76,17 @@ namespace Backrooms.Gameplay
         /// <summary>Whether a Dweller has caught the player and ended the run.</summary>
         public bool IsCaught { get; private set; }
 
+        /// <summary>
+        /// Whether the game is sitting on the title screen waiting to be started.
+        /// </summary>
+        /// <remarks>
+        /// The level is built and standing behind the title, so the first thing a player sees is the
+        /// game rather than a loading colour — but the clock is stopped, the player cannot move, and
+        /// nothing hunts. It also gives the browser the user gesture it insists on before it will
+        /// play a sound, which is why the game used to be silent until the first death.
+        /// </remarks>
+        public bool IsAwaitingStart { get; private set; }
+
         /// <summary>How many Dwellers are roaming the current floor.</summary>
         public int DwellerCount => _director == null ? 0 : _director.Count;
 
@@ -87,29 +97,17 @@ namespace Backrooms.Gameplay
         public int RelicsCollected => relics == null ? 0 : relics.Collected;
 
         /// <summary>Deepest floor reached in any run on this device.</summary>
-        public int BestFloors { get; private set; }
+        public int BestFloors => _record?.BestFloors ?? 0;
 
         /// <summary>Most relics carried in any run on this device.</summary>
-        public int BestRelics { get; private set; }
-
-        /// <summary>Where the best run is remembered between sessions.</summary>
-        private const string BestFloorsKey = "Backrooms.BestFloors";
-
-        /// <summary>Where the best relic haul is remembered between sessions.</summary>
-        private const string BestRelicsKey = "Backrooms.BestRelics";
+        public int BestRelics => _record?.BestRelics ?? 0;
 
         /// <summary>
-        /// Records the run that just ended if it beat the stored best. A relic the player never gets
-        /// to compare against anything is just a noise and a number.
+        /// Remembers the best run this device has managed. Created in Awake rather than as a field
+        /// initializer: those run inside the MonoBehaviour constructor, and Unity forbids reading
+        /// PlayerPrefs there — it threw on every start, and the stored best never loaded.
         /// </summary>
-        private void RecordBest()
-        {
-            BestFloors = Mathf.Max(BestFloors, CurrentFloor);
-            BestRelics = Mathf.Max(BestRelics, RelicsCollected);
-            PlayerPrefs.SetInt(BestFloorsKey, BestFloors);
-            PlayerPrefs.SetInt(BestRelicsKey, BestRelics);
-            PlayerPrefs.Save();
-        }
+        private RunRecord _record;
 
         /// <summary>
         /// Updates the HUD and the audio from whichever Dweller is hunting and closest.
@@ -222,8 +220,7 @@ namespace Backrooms.Gameplay
             if (relics == null) relics = FindAnyObjectByType<RelicFacade>();
             if (audioModule == null) audioModule = FindAnyObjectByType<AudioFacade>();
 
-            BestFloors = PlayerPrefs.GetInt(BestFloorsKey, 0);
-            BestRelics = PlayerPrefs.GetInt(BestRelicsKey, 0);
+            _record = new RunRecord();
             _director = new DwellerDirector(transform.parent, dweller, cellsPerDweller, maxDwellers);
         }
 
@@ -233,6 +230,39 @@ namespace Backrooms.Gameplay
         private void Start()
         {
             StartRun(seed);
+            WaitOnTitle();
+        }
+
+        /// <summary>
+        /// Freezes the built run behind the title screen until the player starts it.
+        /// </summary>
+        private void WaitOnTitle()
+        {
+            IsAwaitingStart = true;
+            ElapsedSeconds = 0f;
+            if (player != null) player.MovementEnabled = false;
+            if (hud != null) hud.ShowTitle(BestFloors, BestRelics);
+        }
+
+        /// <summary>
+        /// Begins play from the title screen.
+        /// </summary>
+        public void BeginRun()
+        {
+            IsAwaitingStart = false;
+            if (player != null) player.MovementEnabled = true;
+            if (hud != null)
+            {
+                hud.HideTitle();
+                hud.ShowFloor(CurrentFloor, maze.CurrentTheme.Name, RelicsCollected);
+            }
+
+            // The tap that got here is the gesture the browser was waiting for.
+            if (audioModule != null)
+            {
+                audioModule.NoteInteraction(true);
+                audioModule.SetFloor(CurrentFloor);
+            }
         }
 
         /// <summary>
@@ -295,10 +325,29 @@ namespace Backrooms.Gameplay
         {
             if (maze == null || player == null) return;
 
+            // Before anything else: the browser will not let a sound out until the player has
+            // touched the screen once, so every frame gets a chance to notice that gesture —
+            // including the frames where the run is over or has not begun.
+            if (audioModule != null)
+            {
+                audioModule.NoteInteraction(player.HasInput || player.ConfirmPressed);
+            }
+
+            if (IsAwaitingStart)
+            {
+                if (player.ConfirmPressed) BeginRun();
+                return;
+            }
+
             if (IsCaught)
             {
                 // A death screen you cannot leave is not a losing condition, it is a dead end.
-                if (player.ConfirmPressed) StartRun(seed);
+                if (player.ConfirmPressed)
+                {
+                    StartRun(seed);
+                    BeginRun();
+                }
+
                 return;
             }
 
@@ -316,7 +365,7 @@ namespace Backrooms.Gameplay
             {
                 IsCaught = true;
                 player.MovementEnabled = false;
-                RecordBest();
+                _record?.Submit(CurrentFloor, RelicsCollected);
                 if (audioModule != null) audioModule.Silence();
                 if (hud != null)
                 {

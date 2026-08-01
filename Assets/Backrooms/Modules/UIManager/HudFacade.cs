@@ -67,6 +67,21 @@ namespace Backrooms.UIManager
         /// <summary>Whether the caught banner is showing.</summary>
         public bool CaughtShown => Router.CaughtShown;
 
+        /// <summary>Whether the game is waiting on the title screen.</summary>
+        public bool TitleShown => Router.TitleShown;
+
+        /// <summary>
+        /// Shows the title screen and waits there for the player to start a run.
+        /// </summary>
+        /// <param name="bestFloors">Deepest floor reached in any run.</param>
+        /// <param name="bestRelics">Most relics carried in any run.</param>
+        public void ShowTitle(int bestFloors, int bestRelics) => Router.ShowTitle(bestFloors, bestRelics);
+
+        /// <summary>
+        /// Leaves the title screen for a run in progress.
+        /// </summary>
+        public void HideTitle() => Router.HideTitle();
+
         /// <summary>
         /// Sets the pursuit warning shown while a Dweller is hunting the player.
         /// </summary>

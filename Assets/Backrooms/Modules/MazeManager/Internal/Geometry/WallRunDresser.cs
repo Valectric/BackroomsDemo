@@ -30,10 +30,10 @@ namespace Backrooms.MazeManager.Internal.Geometry
         private const float CornerClearance = 0.06f;
 
         /// <summary>Lowest share of a run's usable length covered by furniture.</summary>
-        private const float MinCoverage = 0.22f;
+        private const float MinCoverage = 0.09f;
 
         /// <summary>Highest share of a run's usable length covered by furniture.</summary>
-        private const float MaxCoverage = 0.34f;
+        private const float MaxCoverage = 0.17f;
 
         /// <summary>Largest yaw a piece is turned off true, in degrees.</summary>
         private const float MaxYawDegrees = 6f;
@@ -45,7 +45,7 @@ namespace Backrooms.MazeManager.Internal.Geometry
         private const float WallGap = 0.14f;
 
         /// <summary>Ceiling on pieces per run, so one long wall cannot swamp the floor's budget.</summary>
-        private const int MaxPieces = 10;
+        private const int MaxPieces = 3;
 
         /// <summary>Attempts to draw a model narrow enough to still fit the remaining length.</summary>
         private const int DrawAttempts = 3;

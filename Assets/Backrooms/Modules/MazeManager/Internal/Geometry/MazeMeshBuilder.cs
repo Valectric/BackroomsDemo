@@ -181,39 +181,49 @@ namespace Backrooms.MazeManager.Internal.Geometry
         /// <param name="width">Grid width in cells.</param>
         /// <param name="height">Grid height in cells.</param>
         /// <param name="cellSize">World size of one cell in metres.</param>
-        /// <param name="holes">Cells to leave out, or <c>null</c> for a solid floor.</param>
-        /// <returns>The floor mesh.</returns>
+        /// <param name="holes">Cells to leave out, or <c>null</c> for a solid surface.</param>
+        /// <param name="y">Height of the surface in metres.</param>
+        /// <param name="faceUp"><c>true</c> for a floor, <c>false</c> for a ceiling.</param>
+        /// <returns>The surface mesh.</returns>
         public Mesh BuildFloorWithHoles(int width, int height, float cellSize,
-            HashSet<Vector2Int> holes)
+            HashSet<Vector2Int> holes, float y = 0f, bool faceUp = true)
         {
             var verts = new List<Vector3>(width * height * 4);
             var uvs = new List<Vector2>(width * height * 4);
             var tris = new List<int>(width * height * 6);
 
-            for (int y = 0; y < height; y++)
+            for (int row = 0; row < height; row++)
             {
                 for (int x = 0; x < width; x++)
                 {
-                    if (holes != null && holes.Contains(new Vector2Int(x, y))) continue;
+                    if (holes != null && holes.Contains(new Vector2Int(x, row))) continue;
 
                     float x0 = x * cellSize;
-                    float z0 = y * cellSize;
+                    float z0 = row * cellSize;
                     float x1 = x0 + cellSize;
                     float z1 = z0 + cellSize;
                     int b = verts.Count;
 
-                    verts.Add(new Vector3(x0, 0f, z0));
-                    verts.Add(new Vector3(x1, 0f, z0));
-                    verts.Add(new Vector3(x1, 0f, z1));
-                    verts.Add(new Vector3(x0, 0f, z1));
+                    verts.Add(new Vector3(x0, y, z0));
+                    verts.Add(new Vector3(x1, y, z0));
+                    verts.Add(new Vector3(x1, y, z1));
+                    verts.Add(new Vector3(x0, y, z1));
 
                     uvs.Add(new Vector2(x0 / UvScale, z0 / UvScale));
                     uvs.Add(new Vector2(x1 / UvScale, z0 / UvScale));
                     uvs.Add(new Vector2(x1 / UvScale, z1 / UvScale));
                     uvs.Add(new Vector2(x0 / UvScale, z1 / UvScale));
 
-                    tris.Add(b + 0); tris.Add(b + 3); tris.Add(b + 2);
-                    tris.Add(b + 0); tris.Add(b + 2); tris.Add(b + 1);
+                    if (faceUp)
+                    {
+                        tris.Add(b + 0); tris.Add(b + 3); tris.Add(b + 2);
+                        tris.Add(b + 0); tris.Add(b + 2); tris.Add(b + 1);
+                    }
+                    else
+                    {
+                        tris.Add(b + 0); tris.Add(b + 1); tris.Add(b + 2);
+                        tris.Add(b + 0); tris.Add(b + 2); tris.Add(b + 3);
+                    }
                 }
             }
 

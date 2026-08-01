@@ -269,6 +269,21 @@ namespace Backrooms.MazeManager.Tests
             for (int i = 0; i < 3; i++) await UniTask.Yield(ct);
             await UniTask.WaitForEndOfFrame(ct);
             await Capture("stairs-shaft", ct);
+
+            // And the way up the player arrives out of, which is the spawn cell.
+            Vector2Int upCell = layout.Spawn;
+            Assert.IsTrue(layout.IsStairsUp(upCell), "the player should arrive out of a way up");
+
+            Vector3 upAt = layout.CellCenterToWorld(upCell);
+            Vector3 upApproach = ApproachOffset(layout, upCell) * layout.CellSize * 1.1f;
+            camGo.transform.position = upAt + upApproach + Vector3.up * 1.7f;
+            camGo.transform.rotation = Quaternion.LookRotation(upAt + Vector3.up * 2.2f
+                                                               - camGo.transform.position);
+
+            for (int i = 0; i < 3; i++) await UniTask.Yield(ct);
+            await UniTask.WaitForEndOfFrame(ct);
+            await Capture("stairs-up", ct);
+
             RenderSettings.fog = fogWas;
         }
 

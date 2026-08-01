@@ -378,3 +378,42 @@ quieter and pitched down.
 slap on a hard floor. On a phone speaker the sub-bass thump is what actually carries a footfall; the
 filtered noise alone is all texture and no body.
 
+## 2026-08-01 — D31. A title screen, which is also the audio unlock
+
+**Decided:** the game opens on a title screen and waits for a tap. The level is built and standing
+behind it, but the clock is stopped and the player cannot move.
+**Why:** user request, and it solves a real bug at the same time. Browsers keep the audio context
+suspended until a genuine user gesture, and anything started before that stays silent *even after the
+context resumes*, because the source was begun against a dead context. The game therefore had no
+sound at all until the player died once — the tap to retry was the first gesture it ever received,
+and restarting happened to re-issue Play. A front door makes the first gesture the thing that opens
+the audio, which is the shape browsers are asking for.
+**Rules out:** starting a run without an interaction. The E2E and the recorder now tap through the
+title exactly as a player does, via a simulated confirm press rather than by calling `BeginRun`.
+
+## 2026-08-01 — D32. Stairs go up as well as down
+
+**Decided:** every floor carries as many stairwells **up** as down, and the player always arrives out
+of one of the up ones. The ceiling is cut for the ways up exactly as the floor is cut for the ways
+down, and the flights are real geometry.
+**Why:** user request. It makes descending read as moving through a building rather than as a
+teleport — you came down a staircase, so when you look back there is a staircase.
+**Detail that decides whether it reads:** the flight has to climb *away* from the doorway. Built
+climbing towards it, the tallest step faces the player and the whole thing reads as a blank slab,
+which is what the first screenshot showed.
+**Colour:** the ways up are pale and dim next to the green of the ways down. The player never needs
+to find one, so it must not compete with the beacon that marks the way onward.
+**Also:** stair selection moved to `StairPlanner`, because the generator was at its size limit and
+now has to place two sets.
+
+## 2026-08-01 — D33. Furniture is sparse on purpose
+
+**Decided:** roughly 35–55 props per 24×24 floor, down from 500–760.
+**Why:** user direction — "reduce furniture a lot, maybe down to 5%". It is also the better read: a
+Backrooms floor feels abandoned because it is nearly empty, and a lone bench at the end of a corridor
+says more than a wall lined with them. The wall-run placement from D15 still does the work; it is
+just asked for far less.
+**Trap this exposed:** a test held a `GameObject` across a frame yield. Props rejected for
+overlapping are destroyed with `Object.Destroy`, which Unity defers to end of frame — so a prop can
+be found and be gone a frame later.
+

@@ -113,7 +113,7 @@ namespace Backrooms.MazeManager.Internal.Geometry
                 {
                     var cell = new Vector2Int(x, y);
                     if (cell == layout.Spawn) continue;
-                    if (layout.IsStairs(cell)) continue;
+                    if (layout.IsStairs(cell) || layout.IsStairsUp(cell)) continue;
 
                     bool openAllRound = true;
                     foreach (Direction dir in Directions.All)

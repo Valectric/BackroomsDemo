@@ -175,6 +175,48 @@ namespace Backrooms.AudioManager.Tests
         }
 
         /// <summary>
+        /// Nothing may sound before the player has touched the screen. Browsers keep the audio
+        /// context suspended until a real gesture, and anything begun against a dead context stays
+        /// silent even after it resumes — which is why the game had no sound at all until the player
+        /// died once and tapped to retry.
+        /// </summary>
+        [Test]
+        public void NothingSounds_UntilThePlayerHasInteracted()
+        {
+            var go = new GameObject("Audio");
+            AudioFacade audio = go.AddComponent<AudioFacade>();
+
+            audio.SetFloor(1);
+            Assert.IsFalse(audio.Unlocked, "no gesture has happened yet");
+            Assert.IsFalse(audio.HumPlaying, "so the room tone must not have started");
+
+            // Frames where the player does nothing must not unlock it either.
+            audio.NoteInteraction(false);
+            Assert.IsFalse(audio.Unlocked, "an idle frame is not a gesture");
+            Assert.IsFalse(audio.HumPlaying, "and still nothing is playing");
+
+            audio.NoteInteraction(true);
+            Assert.IsTrue(audio.Unlocked, "the first real input opens the audio");
+            Assert.IsTrue(audio.HumPlaying, "and the room tone starts with it");
+        }
+
+        /// <summary>
+        /// A floor tone asked for before the first gesture must still play once the gesture arrives,
+        /// rather than being lost.
+        /// </summary>
+        [Test]
+        public void AFloorToneAskedForTooEarly_StillPlaysOnceUnlocked()
+        {
+            var go = new GameObject("Audio");
+            AudioFacade audio = go.AddComponent<AudioFacade>();
+
+            audio.SetFloor(3);
+            audio.NoteInteraction(true);
+
+            Assert.IsTrue(audio.HumPlaying, "the floor asked for before the gesture should sound");
+        }
+
+        /// <summary>
         /// The pursuit drone must be silent until something is hunting, and must rise as it closes.
         /// The drone is the loudest thing in the mix, so a drone that leaks while nothing is chasing
         /// would sit under the whole game.

@@ -13,6 +13,7 @@ namespace Backrooms.MazeManager
     {
         private readonly MazeCell[] _cells;
         private readonly Vector2Int[] _stairs;
+        private readonly Vector2Int[] _stairsUp;
 
         /// <summary>Grid width in cells.</summary>
         public int Width { get; }
@@ -29,6 +30,13 @@ namespace Backrooms.MazeManager
         /// </summary>
         public IReadOnlyList<Vector2Int> Stairs => _stairs;
 
+        /// <summary>
+        /// The cells holding a stairwell up. The player arrives out of one of them, so a floor
+        /// always has the staircase you came down standing behind you. There are as many of these as
+        /// there are ways down.
+        /// </summary>
+        public IReadOnlyList<Vector2Int> StairsUp => _stairsUp;
+
         /// <summary>World size of one cell in metres, as used when building geometry.</summary>
         public float CellSize { get; }
 
@@ -42,16 +50,33 @@ namespace Backrooms.MazeManager
         /// <param name="cells">Row-major cell array of length width*height.</param>
         /// <param name="spawn">Spawn cell coordinate.</param>
         /// <param name="stairs">Cells holding a stairwell down to the next floor.</param>
+        /// <param name="stairsUp">Cells holding a stairwell up, one of which is the spawn.</param>
         /// <param name="cellSize">World size of one cell in metres.</param>
         internal MazeLayout(int width, int height, MazeCell[] cells, Vector2Int spawn,
-            Vector2Int[] stairs, float cellSize)
+            Vector2Int[] stairs, Vector2Int[] stairsUp, float cellSize)
         {
             Width = width;
             Height = height;
             _cells = cells;
             Spawn = spawn;
             _stairs = stairs;
+            _stairsUp = stairsUp;
             CellSize = cellSize;
+        }
+
+        /// <summary>
+        /// Whether a cell holds a stairwell up.
+        /// </summary>
+        /// <param name="cell">Cell coordinate to test.</param>
+        /// <returns><c>true</c> if the cell is a way up.</returns>
+        public bool IsStairsUp(Vector2Int cell)
+        {
+            foreach (Vector2Int stair in _stairsUp)
+            {
+                if (stair == cell) return true;
+            }
+
+            return false;
         }
 
         /// <summary>

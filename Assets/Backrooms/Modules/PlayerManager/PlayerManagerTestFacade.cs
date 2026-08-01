@@ -72,6 +72,18 @@ namespace Backrooms.PlayerManager
         /// <summary>Detector the gesture tests drive.</summary>
         private readonly Internal.Input.DoubleTapDetector _taps = new Internal.Input.DoubleTapDetector();
 
+        /// <summary>
+        /// Simulates a tap or click, the same press a player uses to start a run or to try again.
+        /// </summary>
+        /// <remarks>
+        /// Exposed so an end-to-end test can get past the title screen the way a player does, rather
+        /// than by calling a production method to cause the effect.
+        /// </remarks>
+        public void Tap()
+        {
+            _router.SetSimulatedInput(new PlayerInputState { Confirm = true });
+        }
+
         public void ClearInput() => _router.SetSimulatedInput(PlayerInputState.None);
     }
 }

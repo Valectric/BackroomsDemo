@@ -25,6 +25,21 @@ namespace Backrooms.AudioManager
         /// <summary>Whether the room hum is playing.</summary>
         public bool HumPlaying => _router.HumPlaying;
 
+        /// <summary>Whether a user gesture has happened, so the browser will let sound out.</summary>
+        public bool Unlocked => _router.Unlocked;
+
+        /// <summary>
+        /// Notes that the player has interacted. Browsers keep audio suspended until a real gesture,
+        /// so nothing is started until this has been true once.
+        /// </summary>
+        /// <param name="interacted">Whether the player did anything this frame.</param>
+        public void NoteInteraction(bool interacted)
+        {
+            _router.Build(transform);
+            _router.NoteInteraction(interacted);
+            _router.KeepLoopsAlive();
+        }
+
         /// <summary>
         /// Builds the voices and generates every clip before anything asks for one.
         /// </summary>
