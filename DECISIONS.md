@@ -417,3 +417,28 @@ just asked for far less.
 overlapping are destroyed with `Object.Destroy`, which Unity defers to end of frame — so a prop can
 be found and be gone a frame later.
 
+## 2026-08-01 — D34. A hunting Dweller leaves the grid for its last stride
+
+**Decided:** once a chasing Dweller is in the player's cell — or within 3 m of them — it steers at the
+player's actual position rather than at the cell centre it was pathing to.
+**Why:** user report, and a real defect. Pathing is a grid; the player is not on it. Standing against
+a wall puts them 1.7 m off centre on a 4 m cell, so a Dweller walking centre-to-centre passed at
+arm's length and could never land a catch. Reproduced and measured: without the fix it stalls **1.70 m
+away at a wall and 2.40 m in a corner**, forever. A corner was a safe square.
+**Why no test saw it:** every Dweller test worked in grid coordinates, where the player is a cell and
+the Dweller is a cell and reaching them is trivially true. The failure lived entirely in the gap
+between the grid and the world. `DwellerCatchTests` drives the real component through real physics
+steps with a target at a wall and in a corner; reverting the fix turns two of its three cases red,
+which is how it was confirmed to guard the bug rather than merely pass alongside it.
+**Also:** cell equality alone is not enough — a player on a boundary belongs to one cell while being
+physically nearer a Dweller in the next — so proximity is checked too.
+
+## 2026-08-01 — D35. Footsteps are almost entirely body
+
+**Decided:** three cascaded one-pole low passes at a very low cutoff over the noise, plus a sine that
+sweeps 78 Hz down to 42 Hz — the body carries the sound and the filtered noise only softens its
+attack.
+**Why:** user feedback, twice. The first pass still had too much mid and treble and read as a slap.
+A footfall is felt more than heard, and on a phone speaker only the bottom of it survives at all, so
+anything spent above that band is spent on nothing.
+
