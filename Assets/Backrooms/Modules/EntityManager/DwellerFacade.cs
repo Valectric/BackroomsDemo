@@ -40,6 +40,7 @@ namespace Backrooms.EntityManager
 
         private readonly DwellerRouter _router = new DwellerRouter();
         private readonly DwellerBody _shape = new DwellerBody();
+        private readonly DwellerGait _gait = new DwellerGait();
         private DwellerManagerTestFacade _testFacade;
         private Transform _target;
         private DwellerKind _kind = DwellerKind.Lurker;
@@ -142,8 +143,22 @@ namespace Backrooms.EntityManager
             Vector2Int playerCell = _router.Layout.WorldToCell(_target.position);
             _router.UpdateState(playerCell);
 
-            metresPerSecond = _router.IsChasing ? _chaseSpeed : _patrolSpeed;
+            // How fast, and whether it ignores the grid this frame, is the kind's own rule.
+            metresPerSecond = _gait.Step(DwellerArchetypes.For(_kind), transform.position,
+                _target.position, _target.forward, _router.IsChasing, _patrolSpeed, _chaseSpeed,
+                Time.fixedDeltaTime);
+
             Vector3 here = transform.position;
+
+            // A charge runs at a point it committed to, straight through the pathing. It is allowed
+            // to leave the grid because it only ever starts with a clear line to the player, so the
+            // line it takes is one the player could have seen coming.
+            if (_gait.StraightTarget.HasValue)
+            {
+                StepStraight(_gait.StraightTarget.Value);
+                Finish();
+                return;
+            }
 
             // Once it is in the player's own cell, steer at the player rather than at the cell
             // centre. Pathing is a grid, but the player is not on it: standing against a wall puts
@@ -184,12 +199,42 @@ namespace Backrooms.EntityManager
                 if (dir.sqrMagnitude > 0f) transform.rotation = Quaternion.LookRotation(dir);
             }
 
+            Finish();
+        }
+
+        /// <summary>
+        /// Runs directly at a committed point, ignoring the grid.
+        /// </summary>
+        /// <param name="target">The point being charged, at this Dweller's own height.</param>
+        private void StepStraight(Vector3 target)
+        {
+            Vector3 here = transform.position;
+            var flatTarget = new Vector3(target.x, here.y, target.z);
+            float step = metresPerSecond * Time.fixedDeltaTime;
+
+            Vector3 toTarget = flatTarget - here;
+            transform.position = toTarget.magnitude <= step ? flatTarget : here + toTarget.normalized * step;
+
+            Vector3 facing = new Vector3(toTarget.x, 0f, toTarget.z);
+            if (facing.sqrMagnitude > 1e-4f) transform.rotation = Quaternion.LookRotation(facing);
+
+            // The grid has to be told where the charge left it, or the next path step walks back to
+            // wherever it thought it still was.
+            _router.SnapTo(_router.Layout.WorldToCell(transform.position));
+        }
+
+        /// <summary>
+        /// Applies the catch test and the body's colours for this frame.
+        /// </summary>
+        private void Finish()
+        {
             float toPlayer = Vector3.Distance(
                 new Vector3(transform.position.x, 0f, transform.position.z),
                 new Vector3(_target.position.x, 0f, _target.position.z));
             if (toPlayer <= catchRadius) _router.MarkCaught();
 
             _shape.ShowPursuit(_router.IsChasing);
+            if (_gait.Alarmed || _router.IsChasing) _shape.ShowAlarm(_gait.Alarmed);
         }
 
         /// <summary>

@@ -46,6 +46,23 @@ namespace Backrooms.EntityManager.Internal.Behaviour
         /// Switches between lurking and hunting appearance.
         /// </summary>
         /// <param name="hunting">Whether the Dweller is chasing the player.</param>
+        public void ShowAlarm(bool alarmed)
+        {
+            if (_bodyMaterial == null || Archetype == null) return;
+
+            Color colour = alarmed ? AlarmColour : Archetype.HuntingColour;
+            if (_bodyMaterial.HasProperty("_BaseColor")) _bodyMaterial.SetColor("_BaseColor", colour);
+            if (_bodyMaterial.HasProperty("_Color")) _bodyMaterial.SetColor("_Color", colour);
+            if (_chaseLight != null) _chaseLight.color = alarmed ? AlarmColour : Archetype.GlowColour;
+        }
+
+        /// <summary>The warning colour a charger flashes before it commits.</summary>
+        private static readonly Color AlarmColour = new Color(1f, 0.05f, 0.04f);
+
+        /// <summary>
+        /// Switches the body between its lurking and hunting look.
+        /// </summary>
+        /// <param name="hunting">Whether it is hunting.</param>
         public void ShowPursuit(bool hunting)
         {
             if (_eyes != null) _eyes.SetActive(hunting);

@@ -13,6 +13,33 @@ namespace Backrooms.EntityManager
     /// </summary>
     public sealed class DwellerManagerTestFacade
     {
+        /// <summary>A gait to drive directly, so a kind's rule can be stepped without physics.</summary>
+        private readonly Internal.Behaviour.DwellerGait _gait = new Internal.Behaviour.DwellerGait();
+
+        /// <summary>
+        /// Steps a kind's movement rule. Not intended for production use — only for automated
+        /// testing.
+        /// </summary>
+        /// <param name="kind">The kind whose rule to step.</param>
+        /// <param name="self">Where the Dweller is.</param>
+        /// <param name="player">Where the player is.</param>
+        /// <param name="playerForward">Which way the player faces.</param>
+        /// <param name="chasing">Whether it has the player.</param>
+        /// <param name="patrolSpeed">Speed while unaware.</param>
+        /// <param name="chaseSpeed">Speed while hunting.</param>
+        /// <param name="deltaTime">Seconds to advance.</param>
+        /// <returns>Metres per second for this step.</returns>
+        public float StepGait(DwellerKind kind, Vector3 self, Vector3 player, Vector3 playerForward,
+            bool chasing, float patrolSpeed, float chaseSpeed, float deltaTime)
+            => _gait.Step(DwellerArchetypes.For(kind), self, player, playerForward, chasing,
+                patrolSpeed, chaseSpeed, deltaTime);
+
+        /// <summary>Whether the stepped gait is showing its warning colour.</summary>
+        public bool GaitAlarmed => _gait.Alarmed;
+
+        /// <summary>Whether the stepped gait is mid-charge.</summary>
+        public bool GaitCharging => _gait.Charging;
+
         private readonly DwellerRouter _router;
 
         /// <summary>

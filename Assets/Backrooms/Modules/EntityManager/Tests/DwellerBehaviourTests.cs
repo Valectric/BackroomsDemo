@@ -44,6 +44,87 @@ namespace Backrooms.EntityManager.Tests
         }
 
         /// <summary>
+        /// The Watcher must stand perfectly still while the player looks at it, and cover ground
+        /// faster than a sprint the moment they look away.
+        /// </summary>
+        /// <remarks>
+        /// Both halves matter. Standing still is what makes it a rule the player can use; being
+        /// faster than a sprint is what stops the rule being optional. If it could be outrun, looking
+        /// at it would never be worth the cost of not looking where you are going.
+        /// </remarks>
+        [Test]
+        public void TheWatcher_FreezesWhenWatched_AndOutrunsASprintWhenNotSeen()
+        {
+            (MazeLayout _, DwellerManagerTestFacade dweller) = NewDweller(3, Vector2Int.zero);
+
+            var self = new Vector3(10f, 0f, 0f);
+            var player = new Vector3(0f, 0f, 0f);
+            const float sprint = 5.6f;
+
+            float watched = dweller.StepGait(DwellerKind.Watcher, self, player,
+                Vector3.right, chasing: true, patrolSpeed: 1.6f, chaseSpeed: 3.4f, deltaTime: 0.02f);
+            Assert.AreEqual(0f, watched, 1e-4f, "looked straight at, it must not move at all");
+
+            float unseen = dweller.StepGait(DwellerKind.Watcher, self, player,
+                Vector3.left, chasing: true, patrolSpeed: 1.6f, chaseSpeed: 3.4f, deltaTime: 0.02f);
+            MooseRunnerFacade.Log($"watcher: watched {watched:F2} m/s, unseen {unseen:F2} m/s");
+            Assert.Greater(unseen, sprint,
+                $"unwatched it moves {unseen:F2} m/s, which a {sprint} m/s sprint escapes");
+        }
+
+        /// <summary>
+        /// The Skitter must creep, then stop and flash a warning three times, then run at far more
+        /// than a sprint.
+        /// </summary>
+        /// <remarks>
+        /// The flashes are the fairness. It is allowed to be unoutrunnable during the charge only
+        /// because it stands still first and says so.
+        /// </remarks>
+        [Test]
+        public void TheSkitter_Creeps_ThenFlashesThreeTimes_ThenChargesFasterThanASprint()
+        {
+            (MazeLayout _, DwellerManagerTestFacade dweller) = NewDweller(5, Vector2Int.zero);
+
+            var self = new Vector3(8f, 0f, 0f);
+            var player = Vector3.zero;
+            const float dt = 0.02f;
+            const float sprint = 5.6f;
+
+            float creep = dweller.StepGait(DwellerKind.Skitter, self, player, Vector3.right,
+                chasing: false, patrolSpeed: 1.6f, chaseSpeed: 4.2f, deltaTime: dt);
+            Assert.Less(creep, 3.2f, "it should be creeping before it sees anything worth charging");
+
+            // Drive the wind-up and count the flashes, then the charge itself.
+            int flashes = 0;
+            bool lit = false;
+            float fastest = 0f;
+            bool charged = false;
+
+            for (int step = 0; step < 300; step++)
+            {
+                float speed = dweller.StepGait(DwellerKind.Skitter, self, player, Vector3.right,
+                    chasing: true, patrolSpeed: 1.6f, chaseSpeed: 4.2f, deltaTime: dt);
+
+                if (dweller.GaitAlarmed && !lit) flashes++;
+                lit = dweller.GaitAlarmed;
+
+                if (dweller.GaitCharging)
+                {
+                    charged = true;
+                    fastest = Mathf.Max(fastest, speed);
+                }
+
+                if (charged && !dweller.GaitCharging) break;
+            }
+
+            MooseRunnerFacade.Log($"skitter: {flashes} flashes, charge peaked at {fastest:F2} m/s");
+            Assert.IsTrue(charged, "it should eventually commit to a charge");
+            Assert.GreaterOrEqual(flashes, 3, "it must flash a warning at least three times first");
+            Assert.Greater(fastest, sprint * 1.5f,
+                $"a charge at {fastest:F2} m/s is not a rush against a {sprint} m/s sprint");
+        }
+
+        /// <summary>
         /// A Dweller starts unaware of the player.
         /// </summary>
         [Test]

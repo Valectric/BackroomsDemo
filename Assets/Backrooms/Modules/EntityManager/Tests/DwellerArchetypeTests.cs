@@ -111,7 +111,7 @@ namespace Backrooms.EntityManager.Tests
         /// chase is a chase.
         /// </remarks>
         [Test]
-        public void HuntingSpeed_CatchesAWalker_ButNotASprinter()
+        public void EveryKind_HasAnAnswer_ButNotTheSameOne()
         {
             const float baseSpeed = 2.2f;
             const float walk = 3.2f;
@@ -124,8 +124,35 @@ namespace Backrooms.EntityManager.Tests
 
                 Assert.Greater(chase, walk,
                     $"{kind} hunts at {chase:F2} m/s against a {walk} m/s walk — it can never close");
-                Assert.Less(chase, sprint,
-                    $"{kind} hunts at {chase:F2} m/s against a {sprint} m/s sprint — inescapable");
+
+                switch (a.Movement)
+                {
+                    case DwellerMovement.Steady:
+                        // Nothing else to exploit, so the legs have to be the answer.
+                        Assert.Less(chase, sprint,
+                            $"{kind} has no rule to exploit, so it must be outrunnable");
+                        break;
+
+                    case DwellerMovement.Freezes:
+                        // The answer is your eyes, so the legs must NOT be — a freezer that can be
+                        // outrun makes looking at it optional and the rule decoration.
+                        Assert.Greater(a.UnobservedSpeed, sprint,
+                            $"{kind} must outrun a sprint, or watching it is pointless");
+                        break;
+
+                    case DwellerMovement.Charges:
+                        // The answer is the warning, so the charge is allowed to be unsurvivable —
+                        // but only because it announces itself first.
+                        Assert.Greater(a.ChargeSpeed, sprint,
+                            $"{kind} should be unoutrunnable mid-charge, or the charge is a jog");
+                        Assert.Less(a.StalkSpeed, walk,
+                            $"{kind} must creep before it commits, or there is no reprieve");
+                        Assert.Greater(a.WindUpSeconds, 0.5f,
+                            $"{kind} must telegraph long enough to be reacted to");
+                        Assert.GreaterOrEqual(a.WindUpBlinks, 3,
+                            $"{kind} must flash a clear warning before it commits");
+                        break;
+                }
             }
         }
 
