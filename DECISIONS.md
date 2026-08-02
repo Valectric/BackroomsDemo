@@ -840,3 +840,17 @@ be confirmed — Chrome rejects `requestFullscreen` from a synthetic automation 
 "Permissions check failed" even though the page is top-level and the permissions policy allows it.
 That needs a human tap on a real device.
 
+## 2026-08-02 — D60. The Dweller roster opens up with depth
+
+**Decided:** floor 1 carries only the **Lurker**; the **Skitter** joins from floor 2; the **Watcher**
+from floor 4; every floor below mixes all three.
+**Why:** each kind now plays by a rule the player has to work out (D58), and three unfamiliar rules
+at once is not difficulty, it is noise — everything that kills you feels arbitrary because you never
+saw any of them behave twice. The Lurker simply walks at you, so it teaches what a Dweller *is*. The
+Skitter arrives once there is something familiar on the floor to contrast it against. The Watcher
+waits longest because its rule is the one that most changes how the player moves.
+**Where it lives:** `DwellerArchetypes.KindFor(index, floor)` on the EntityManager module, not in the
+Application layer. Which kinds exist at which depth is a property of the roster, and putting it on the
+module is also what makes it testable — `DwellerDirector` lives in `Backrooms.Gameplay`, whose only
+test assembly is the E2E one, where a white-box assertion about kind assignment would not belong.
+

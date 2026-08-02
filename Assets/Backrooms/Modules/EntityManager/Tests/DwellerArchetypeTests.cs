@@ -157,6 +157,48 @@ namespace Backrooms.EntityManager.Tests
         }
 
         /// <summary>
+        /// The roster must open up with depth: the Lurker alone on floor 1, the Skitter from floor 2,
+        /// and the Watcher from floor 4.
+        /// </summary>
+        /// <remarks>
+        /// Each kind plays by a rule the player has to work out, and three unfamiliar rules at once
+        /// is noise rather than difficulty — everything that kills you feels arbitrary because you
+        /// never saw any of them behave twice.
+        /// </remarks>
+        [Test]
+        public void TheRoster_OpensUpWithDepth()
+        {
+            const int slots = 8;
+
+            for (int i = 0; i < slots; i++)
+            {
+                Assert.AreEqual(DwellerKind.Lurker, DwellerArchetypes.KindFor(i, 1),
+                    "the first floor should only teach the Lurker");
+            }
+
+            for (int floor = 2; floor <= 3; floor++)
+            {
+                var seen = new HashSet<DwellerKind>();
+                for (int i = 0; i < slots; i++) seen.Add(DwellerArchetypes.KindFor(i, floor));
+
+                Assert.IsFalse(seen.Contains(DwellerKind.Watcher),
+                    $"floor {floor} is too early for the Watcher");
+                Assert.IsTrue(seen.Contains(DwellerKind.Skitter),
+                    $"floor {floor} should be where the Skitter shows up");
+                Assert.IsTrue(seen.Contains(DwellerKind.Lurker),
+                    $"floor {floor} should still carry the Lurker to contrast against");
+            }
+
+            for (int floor = 4; floor <= 7; floor++)
+            {
+                var seen = new HashSet<DwellerKind>();
+                for (int i = 0; i < slots; i++) seen.Add(DwellerArchetypes.KindFor(i, floor));
+
+                Assert.AreEqual(3, seen.Count, $"floor {floor} should mix all three");
+            }
+        }
+
+        /// <summary>
         /// Every kind must be slower while unaware than while hunting, so noticing the player is a
         /// visible change in behaviour and not just a change of colour.
         /// </summary>

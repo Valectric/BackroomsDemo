@@ -206,6 +206,49 @@ namespace Backrooms.EntityManager
         /// <summary>How many distinct kinds exist.</summary>
         public static int Count => Roster.Length;
 
+        /// <summary>First floor the Skitter appears on.</summary>
+        private const int SkitterFloor = 2;
+
+        /// <summary>First floor the Watcher appears on.</summary>
+        private const int WatcherFloor = 4;
+
+        /// <summary>What the first floor is allowed to use.</summary>
+        private static readonly DwellerKind[] GroundFloor = { DwellerKind.Lurker };
+
+        /// <summary>What the floors between the Skitter and the Watcher are allowed to use.</summary>
+        private static readonly DwellerKind[] EarlyFloors =
+            { DwellerKind.Lurker, DwellerKind.Skitter };
+
+        /// <summary>What every floor from the Watcher down is allowed to use.</summary>
+        private static readonly DwellerKind[] DeepFloors =
+            { DwellerKind.Lurker, DwellerKind.Skitter, DwellerKind.Watcher };
+
+        /// <summary>
+        /// Which kind fills a slot on a floor. The roster opens up with depth rather than being all
+        /// three from the start.
+        /// </summary>
+        /// <remarks>
+        /// Each kind plays by a rule the player has to work out, and three unfamiliar rules at once
+        /// is not difficulty, it is noise — everything that kills you feels arbitrary because you
+        /// never saw any of them behave twice. So the first floor is only the Lurker, which simply
+        /// walks at you and teaches what a Dweller is. The Skitter arrives on floor 2, when there is
+        /// already something familiar on the floor to contrast it against. The Watcher waits until
+        /// floor 4, because its rule is the one that most changes how the player moves. From there
+        /// the floors mix all three.
+        /// </remarks>
+        /// <param name="index">Which slot on the floor is being filled.</param>
+        /// <param name="floor">One-based floor number.</param>
+        /// <returns>The kind to place.</returns>
+        public static DwellerKind KindFor(int index, int floor)
+        {
+            DwellerKind[] available = floor < SkitterFloor ? GroundFloor
+                : floor < WatcherFloor ? EarlyFloors
+                : DeepFloors;
+
+            int slot = ((index + floor) % available.Length + available.Length) % available.Length;
+            return available[slot];
+        }
+
         /// <summary>
         /// The archetype for a kind.
         /// </summary>
