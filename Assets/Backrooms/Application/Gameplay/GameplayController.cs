@@ -435,7 +435,15 @@ namespace Backrooms.Gameplay
                 relics.PlaceForFloor(maze.CurrentLayout, seed + CurrentFloor * 613, CurrentFloor);
             }
 
-            if (audioModule != null) audioModule.SetFloor(CurrentFloor);
+            if (audioModule != null)
+            {
+                audioModule.SetFloor(CurrentFloor);
+
+                // The theme already names the kind of place this is, so the ambience follows from it
+                // rather than from a second table that could drift out of step.
+                audioModule.SetAmbience(theme.Props.ToString().ToLowerInvariant(),
+                    seed + CurrentFloor * 131);
+            }
 
             // Baked once per floor rather than drawn per frame — see FloorMap.
             if (_map != null) Destroy(_map);
@@ -534,6 +542,7 @@ namespace Backrooms.Gameplay
             }
 
             ElapsedSeconds += Time.deltaTime;
+            if (audioModule != null) audioModule.TickAmbience(Time.deltaTime);
             if (hud != null) hud.SetElapsed(ElapsedSeconds);
             ReportPursuit();
             CollectRelics();

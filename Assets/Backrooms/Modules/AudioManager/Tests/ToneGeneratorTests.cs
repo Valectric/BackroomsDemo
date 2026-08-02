@@ -254,6 +254,92 @@ namespace Backrooms.AudioManager.Tests
         }
 
         /// <summary>
+        /// Every floor theme must actually find ambience for itself, so a floor is never silently
+        /// left with none.
+        /// </summary>
+        /// <remarks>
+        /// The folder names are the <c>PropStyle</c> values a theme already carries, which is what
+        /// keeps the two from drifting apart — but only if the folders exist. A renamed or missing
+        /// folder loads zero clips and the floor simply goes quiet, with nothing failing anywhere.
+        /// </remarks>
+        [Test]
+        public void EveryFloorTheme_FindsItsOwnAmbience()
+        {
+            var go = new GameObject("Audio");
+            AudioFacade audio = go.AddComponent<AudioFacade>();
+
+            foreach (string key in new[] { "office", "mall", "laundromat", "carnival", "asylum" })
+            {
+                audio.SetAmbience(key, 1);
+                Assert.Greater(audio.AmbienceCount, 0, $"the {key} floors should have ambience");
+            }
+
+            audio.SetAmbience("no-such-place", 1);
+            Assert.AreEqual(0, audio.AmbienceCount, "an unknown theme should simply be quiet");
+        }
+
+        /// <summary>
+        /// Ambience must be occasional rather than constant, and its schedule must be seeded so a
+        /// floor sounds the same every time it is built.
+        /// </summary>
+        [Test]
+        public void Ambience_IsOccasional_AndSeeded()
+        {
+            var go = new GameObject("Audio");
+            AudioFacade audio = go.AddComponent<AudioFacade>();
+
+            audio.SetAmbience("carnival", 4242);
+            float first = audio.NextAmbienceIn;
+
+            Assert.Greater(first, 10f, "ambience should be rare, not a loop");
+            Assert.Less(first, 60f, "but not so rare the floor is silent for a whole run");
+
+            audio.SetAmbience("carnival", 4242);
+            Assert.AreEqual(first, audio.NextAmbienceIn, 1e-4f,
+                "the same seed should schedule the same gap");
+        }
+
+        /// <summary>
+        /// The pursuit drone must escalate sharply rather than evenly as a Dweller closes, and must
+        /// arrive faster than it leaves.
+        /// </summary>
+        /// <remarks>
+        /// A linear ramp made a Dweller two rooms away and one in the corridor sound nearly the
+        /// same, which is why the chase read as flat. Doubling the closeness has to do considerably
+        /// more than double the volume for the approach to be felt.
+        /// </remarks>
+        [Test]
+        public void ThePursuitDrone_EscalatesSharply_AndArrivesFasterThanItLeaves()
+        {
+            var halfGo = new GameObject("AudioHalf");
+            AudioFacade half = halfGo.AddComponent<AudioFacade>();
+            half.NoteInteraction(true);
+            for (int i = 0; i < 600; i++) half.SetHunted(true, 0.5f);
+
+            var closeGo = new GameObject("AudioClose");
+            AudioFacade close = closeGo.AddComponent<AudioFacade>();
+            close.NoteInteraction(true);
+            for (int i = 0; i < 600; i++) close.SetHunted(true, 1f);
+
+            MooseRunnerFacade.Log($"drone at half range {half.HuntLevel:F3}, on top {close.HuntLevel:F3}");
+            Assert.Greater(close.HuntLevel, half.HuntLevel * 3f,
+                "halving the distance should do far more than double the drone");
+
+            var rampGo = new GameObject("AudioRamp");
+            AudioFacade ramp = rampGo.AddComponent<AudioFacade>();
+            ramp.NoteInteraction(true);
+
+            const int steps = 3;
+            for (int i = 0; i < steps; i++) ramp.SetHunted(true, 1f);
+            float rose = ramp.HuntLevel;
+
+            for (int i = 0; i < steps; i++) ramp.SetHunted(false, 0f);
+            float fell = rose - ramp.HuntLevel;
+
+            Assert.Greater(rose, fell, "being found should be sudden; losing it should not be");
+        }
+
+        /// <summary>
         /// The pursuit drone must be silent until something is hunting, and must rise as it closes.
         /// The drone is the loudest thing in the mix, so a drone that leaks while nothing is chasing
         /// would sit under the whole game.

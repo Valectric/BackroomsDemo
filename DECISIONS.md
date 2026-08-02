@@ -674,3 +674,47 @@ relic positions — a marker feature photographed with no markers proves nothing
 **Trap hit again, worth restating:** `force-recompile` printed `[PASS]` on a file that did not
 compile (a missing `using System.Collections.Generic;`). Only running a test surfaced it.
 
+## 2026-08-02 — D51. Per-floor ambience from CC0 recordings
+
+**Decided:** seven CC0 recordings from Freesound, one or two per floor theme, played as **occasional**
+one-shots at a random gap of 16–48 seconds rather than as a loop.
+**Why recordings and not synthesis:** the point of these is that they are recognisably of a real
+place — a dishwasher finishing, a street organ, a heavy institutional door. Synthesis is better at
+tones than at rooms, and "a laundromat is somewhere below you" is not a tone.
+**Rarity is the effect.** A sound heard once, with nothing to explain it, is worse than the same
+sound on a loop — a loop becomes furniture within thirty seconds.
+**Keyed off `PropStyle`,** the enum a `FloorTheme` already carries, so the folder a floor looks in
+follows from the theme it is built with rather than from a second table that could drift. Guarded by
+a test, because a renamed folder loads zero clips and the floor just goes quiet with nothing failing.
+**Licence discipline:** the fetch script refuses any sound whose page does not state CC0, and
+`SOURCES.md` records provenance so a cloner can re-verify rather than take it on trust. CC0 needs no
+attribution; this is about being able to prove the repo stays clonable.
+**Size:** 204 KB of source Ogg. Left on Unity's import defaults that became **+1025 KB** in the
+build, because the importer re-encodes from the decoded signal and an already-small file buys nothing
+by itself. Forced to mono, 22 kHz, Vorbis quality 0.3 it is **+689 KB** — about 3.5% of the payload.
+
+## 2026-08-02 — D52. The pursuit drone escalates convexly, and pulses
+
+**Decided:** drone volume follows `closeness^2.2`, rises at 2.4/s but falls at 0.7/s, and is
+modulated by a pulse that quickens from 1.1 Hz to 5.5 Hz as a Dweller closes.
+**Why:** user report — the ghost sound should be more hunting, and more dramatic as the enemy nears.
+The old ramp was linear, which made a Dweller two rooms away and one in the corridor with you sound
+nearly the same. **Measured:** at half range the drone now sits at 0.120 against 0.550 on top —
+halving the distance multiplies the sound 4.6×, where linear gave exactly 2×.
+**The pulse is applied after the easing,** not before, or the easing smooths it flat: at 5.5 Hz the
+attack rate cannot follow the modulation.
+**Asymmetric on purpose:** being found is sudden, and losing something should be relief the player had
+to earn rather than a switch flipping back.
+
+## 2026-08-02 — D53. Carried relics move to the top centre
+
+**Decided:** the carried list is drawn top-centre; the compass slides down to sit under it when there
+is one; the minimap follows the compass down.
+**Why:** what you are carrying decides what you can do about the thing in front of you, so it belongs
+where the player is already looking rather than in a bottom corner they have to go and check.
+**Everything along the top is now positioned from what is above it** rather than from a constant. The
+list, the compass and the map are all centred or near-centred, and a fixed y for each is exactly how
+they ended up stacked on top of each other before.
+**Also:** the Ward is now the **DEFENSE WARD**, which says what it does without needing the pickup
+line to explain it.
+

@@ -33,6 +33,21 @@ namespace Backrooms.AudioManager.Internal
         private float _stepTimer;
         private int _stepIndex;
 
+        /// <summary>Thematic one-shots for the current floor, loaded from Resources.</summary>
+        private AudioClip[] _ambience = System.Array.Empty<AudioClip>();
+
+        /// <summary>Seeded generator choosing which ambience plays and when.</summary>
+        private System.Random _ambienceRng = new System.Random(1);
+
+        /// <summary>Seconds until the next ambient one-shot.</summary>
+        private float _nextAmbienceIn = 12f;
+
+        /// <summary>Eased pursuit level, before the pulse is applied on top.</summary>
+        private float _huntLevel;
+
+        /// <summary>Phase of the pursuit pulse, 0..1.</summary>
+        private float _pulsePhase;
+
         /// <summary>The floor tone that has been asked for, whether or not it can play yet.</summary>
         private int _wantedFloor;
 
@@ -237,13 +252,53 @@ namespace Backrooms.AudioManager.Internal
         {
             if (_drone == null) return;
 
-            float target = hunted ? Mathf.Clamp01(closeness) * DroneMaxVolume : 0f;
+            float near = Mathf.Clamp01(closeness);
 
-            // Ease rather than snap. A drone that appears at full volume reads as a bug; one that
-            // swells is the point.
-            _drone.volume = Mathf.MoveTowards(_drone.volume, target, Time.deltaTime * 0.9f);
-            _drone.pitch = 1f + Mathf.Clamp01(closeness) * 0.55f;
+            // Convex rather than linear. A Dweller two rooms away should be a rumour and one in the
+            // corridor with you should be the loudest thing in the game; a straight line makes those
+            // two sound nearly the same, which is why the chase read as flat.
+            float target = hunted ? Mathf.Pow(near, DroneCurve) * DroneMaxVolume : 0f;
+
+            // Rises fast, falls away slowly: being found is sudden, and losing something should feel
+            // like relief you had to earn rather than a switch flipping back.
+            float rate = target > _huntLevel ? DroneAttack : DroneRelease;
+            _huntLevel = Mathf.MoveTowards(_huntLevel, target, Time.deltaTime * rate);
+
+            // A pulse that quickens as it closes, which is the tell that turns "something is near"
+            // into "it is coming". Applied after the easing, or the easing would smooth it flat.
+            _pulsePhase += Time.deltaTime * Mathf.Lerp(PulseSlowHz, PulseFastHz, near);
+            _pulsePhase -= Mathf.Floor(_pulsePhase);
+
+            float swell = 1f - PulseDepth * near
+                * (0.5f + 0.5f * Mathf.Cos(_pulsePhase * Mathf.PI * 2f));
+
+            _drone.volume = _huntLevel * swell;
+            _drone.pitch = 1f + near * DronePitchRise;
         }
+
+        /// <summary>Shape of the volume ramp. Above 1 keeps distant Dwellers quiet and near ones loud.</summary>
+        private const float DroneCurve = 2.2f;
+
+        /// <summary>How fast the drone swells when a Dweller closes, in volume per second.</summary>
+        private const float DroneAttack = 2.4f;
+
+        /// <summary>How fast it falls away once nothing is hunting.</summary>
+        private const float DroneRelease = 0.7f;
+
+        /// <summary>How far the pitch climbs as a Dweller closes.</summary>
+        private const float DronePitchRise = 0.9f;
+
+        /// <summary>Pulse rate at the edge of a Dweller's range, in beats per second.</summary>
+        private const float PulseSlowHz = 1.1f;
+
+        /// <summary>Pulse rate with a Dweller on top of the player.</summary>
+        private const float PulseFastHz = 5.5f;
+
+        /// <summary>How deeply the pulse dips the drone, at its strongest.</summary>
+        private const float PulseDepth = 0.38f;
+
+        /// <summary>The pursuit level with the pulse removed, for tests and for the HUD.</summary>
+        public float HuntLevel => _huntLevel;
 
         /// <summary>
         /// Advances the footstep timer and plays a footfall when one is due.
@@ -273,6 +328,64 @@ namespace Backrooms.AudioManager.Internal
             // the footsteps vanished entirely once the body moved down into the sub-bass.
             _steps.PlayOneShot(_footsteps[_stepIndex], sprinting ? 0.75f : 0.55f);
         }
+
+        /// <summary>
+        /// Loads the thematic one-shots for a floor and restarts the schedule.
+        /// </summary>
+        /// <remarks>
+        /// These are recordings rather than synthesis, because the point of them is that they are
+        /// recognisably of a real place: a dishwasher finishing, a street organ, a heavy door. They
+        /// play rarely and at random, which is what makes them unsettling — a sound heard once with
+        /// nothing to explain it is worse than the same sound on a loop.
+        /// </remarks>
+        /// <param name="key">Ambience folder under Resources, matching the theme's prop style.</param>
+        /// <param name="seed">Seed, so a floor's ambience is the same every time it is built.</param>
+        public void SetAmbience(string key, int seed)
+        {
+            _ambience = string.IsNullOrEmpty(key)
+                ? System.Array.Empty<AudioClip>()
+                : Resources.LoadAll<AudioClip>("Ambience/" + key);
+
+            _ambienceRng = new System.Random(seed);
+            _nextAmbienceIn = NextAmbienceGap();
+        }
+
+        /// <summary>
+        /// Counts down to the next ambient one-shot and plays it when it is due.
+        /// </summary>
+        /// <param name="deltaTime">Seconds since the last update.</param>
+        public void TickAmbience(float deltaTime)
+        {
+            if (!_unlocked || _oneShot == null || _ambience == null || _ambience.Length == 0) return;
+
+            _nextAmbienceIn -= deltaTime;
+            if (_nextAmbienceIn > 0f) return;
+
+            _nextAmbienceIn = NextAmbienceGap();
+            _oneShot.PlayOneShot(_ambience[_ambienceRng.Next(_ambience.Length)], AmbienceVolume);
+        }
+
+        /// <summary>
+        /// How long to wait before the next ambient one-shot.
+        /// </summary>
+        /// <returns>A gap in seconds.</returns>
+        private float NextAmbienceGap()
+            => AmbienceMinGap + (float)_ambienceRng.NextDouble() * (AmbienceMaxGap - AmbienceMinGap);
+
+        /// <summary>Shortest gap between ambient one-shots, in seconds.</summary>
+        private const float AmbienceMinGap = 16f;
+
+        /// <summary>Longest gap between ambient one-shots, in seconds.</summary>
+        private const float AmbienceMaxGap = 48f;
+
+        /// <summary>How loudly ambience plays. Under the mix — it is the room, not an event.</summary>
+        private const float AmbienceVolume = 0.5f;
+
+        /// <summary>How many ambient clips the current floor has.</summary>
+        public int AmbienceCount => _ambience == null ? 0 : _ambience.Length;
+
+        /// <summary>Seconds until the next ambient one-shot, for tests.</summary>
+        public float NextAmbienceIn => _nextAmbienceIn;
 
         /// <summary>
         /// Plays the relic pickup chime.

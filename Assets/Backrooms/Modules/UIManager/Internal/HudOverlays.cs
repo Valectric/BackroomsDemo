@@ -28,14 +28,19 @@ namespace Backrooms.UIManager.Internal
         /// screen, which in a first-person horror game is the one place nothing may cover.
         /// </remarks>
         /// <param name="marks">The arrows to draw.</param>
-        public void DrawCompass(IReadOnlyList<CompassMark> marks)
+        /// <param name="topEdge">Bottom of whatever is above the compass, in pixels.</param>
+        public void DrawCompass(IReadOnlyList<CompassMark> marks, float topEdge)
         {
             if (marks == null || marks.Count == 0) return;
 
             float width = Screen.width;
             float centre = width * 0.5f;
             int size = Mathf.Max(15, Mathf.RoundToInt(Screen.height * 0.038f));
-            float y = Screen.height * 0.055f;
+
+            // Sits at its normal height when nothing is above it, and slides down to clear the
+            // carried list when there is one. Both are centred, so without this they stack up in the
+            // same place and the distances become unreadable exactly when the player has most to read.
+            float y = Mathf.Max(Screen.height * 0.055f, topEdge + Screen.height * 0.012f);
 
             foreach (CompassMark mark in marks)
             {
@@ -52,23 +57,32 @@ namespace Backrooms.UIManager.Internal
         }
 
         /// <summary>
-        /// Draws what the player is carrying that has uses left, bottom-left, out of the way.
+        /// Draws what the player is carrying that has uses left, across the top of the screen.
         /// </summary>
+        /// <remarks>
+        /// Top-centre rather than tucked into a bottom corner: what you are carrying decides what you
+        /// can do about the thing in front of you, so it belongs where the player is already looking
+        /// rather than where they have to go and check.
+        /// </remarks>
         /// <param name="lines">One line per carried relic.</param>
         /// <param name="colours">Colour for each line, same order.</param>
-        public void DrawCarried(IReadOnlyList<string> lines, IReadOnlyList<Color> colours)
+        /// <returns>The y coordinate the list ends at, so the compass can sit under it.</returns>
+        public float DrawCarried(IReadOnlyList<string> lines, IReadOnlyList<Color> colours)
         {
-            if (lines == null || lines.Count == 0) return;
+            float top = Screen.height * 0.012f;
+            if (lines == null || lines.Count == 0) return top;
 
-            int size = Mathf.Max(13, Mathf.RoundToInt(Screen.height * 0.03f));
-            float y = Screen.height - size * (lines.Count + 1) * 1.35f;
+            int size = Mathf.Max(12, Mathf.RoundToInt(Screen.height * 0.028f));
+            float step = size * 1.22f;
 
             for (int i = 0; i < lines.Count; i++)
             {
-                var rect = new Rect(size, y + i * size * 1.35f, Screen.width * 0.6f, size * 1.6f);
-                DrawLabel(rect, lines[i], size, TextAnchor.UpperLeft,
+                var rect = new Rect(0f, top + i * step, Screen.width, size * 1.5f);
+                DrawLabel(rect, lines[i], size, TextAnchor.UpperCenter,
                     i < colours.Count ? colours[i] : TextColor);
             }
+
+            return top + lines.Count * step;
         }
 
         /// <summary>
