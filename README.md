@@ -46,8 +46,26 @@ attribution; it is given because Kenney's free assets are worth supporting. The 
 `Assets/ThirdParty/Kenney/FurnitureKit/` with its original `License.txt` intact, so this repository
 stays clonable and buildable by anyone.
 
+**Ambience:** seven recordings from [Freesound](https://freesound.org) by TRP, Helmer88,
+KaleidacousticsAudio, Breviceps, tec_studio and qubodup, each verified **CC0 1.0** before download.
+One or two per floor theme — a dishwasher finishing, a street organ, a heavy institutional door —
+played rarely and at random, and processed to sound about a hundred metres off.
+
 Everything else is generated procedurally in code with no imported art: the level geometry,
-wallpaper / carpet / ceiling-tile textures, skirting, columns, and the Dweller.
+wallpaper / carpet / ceiling-tile textures, skirting, columns, stairwells, relics and the Dwellers.
+The rest of the audio is synthesised too — the room hum, the pursuit drone, footsteps, the relic
+chime and the descent tone. A waveform computed from a formula has no licence, which is how a repo
+restricted to CC0 gets a soundtrack at all.
+
+Full list with links: **[CREDITS.md](CREDITS.md)**.
+
+## Licence
+
+The code is **[MIT](LICENSE)**. Every bundled asset is **CC0 1.0** and stays that way however you
+use this — nothing here is licensed on terms a fork would have to renegotiate.
+
+[MooseRunner](https://mooserunner.com) itself is a separate commercial product and is **not**
+redistributed here; it resolves as a Unity package from the public npm registry.
 
 Setting inspired by *Discount Dan: A LitRPG Adventure* by James A. Hunter. This is an unofficial
 fan demo, not affiliated with or endorsed by the author.
