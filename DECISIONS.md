@@ -811,3 +811,32 @@ branches on the movement rule and states the contract each style actually owes t
 **A charge leaves the grid** and must tell the router where it ended (`SnapTo`), or the next path
 step is computed from the cell it occupied before the charge and it walks back the way it came.
 
+## 2026-08-02 — D59. Fullscreen is a page control, not a game control
+
+**Decided:** a custom WebGL template (`Assets/WebGLTemplates/Backrooms`) with a DOM fullscreen button
+top-right, replacing Unity's `APPLICATION:Minimal`.
+
+**Why it is not drawn in the game:** a tap on the canvas *is* game input — the right half is the look
+control and a double tap there spends a relic. An in-game button would be pressed **and** read as a
+gesture at the same time. A DOM element over the canvas takes the tap for itself and Unity never sees
+it. This is also why it is not `Screen.fullScreen` from C#: Unity has no separate event loop, so it
+defers the request to a point the browser no longer treats as a direct response to the tap, and the
+request lands on the *next* user event instead.
+
+**Fullscreen the page, not the canvas.** Making the canvas element fullscreen hides every sibling,
+which would take the button off screen and leave no way back out.
+
+**Orientation lock rides along.** `screen.orientation.lock('landscape')` only works while fullscreen
+and only from a user gesture, so it is chained onto the same tap. The rotate prompt stays as the
+fallback.
+
+**iPhone has no Fullscreen API at all** — Safari supports it for `<video>` only, not for arbitrary
+elements. The button hides itself when `requestFullscreen` is absent, because a control that visibly
+does nothing is worse than no control. On iOS the answer is Add to Home Screen.
+
+**Limit of the verification:** the button renders at the right place, is hidden when the API is
+missing, and the click reaches its handler (measured). The fullscreen transition itself could **not**
+be confirmed — Chrome rejects `requestFullscreen` from a synthetic automation click with
+"Permissions check failed" even though the page is top-level and the permissions policy allows it.
+That needs a human tap on a real device.
+
