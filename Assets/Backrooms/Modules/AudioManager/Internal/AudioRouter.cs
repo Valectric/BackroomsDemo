@@ -48,6 +48,18 @@ namespace Backrooms.AudioManager.Internal
         /// <summary>Seconds since the loops were last re-issued while waiting for the engine.</summary>
         private float _retryTimer;
 
+        /// <summary>Transform the voices hang from, remembered so they can be rebuilt.</summary>
+        private Transform _host;
+
+        /// <summary>How many times the whole audio stack has been rebuilt waiting for the engine.</summary>
+        private int _rebuilds;
+
+        /// <summary>Last playback position of the hum, used to tell whether it is really sounding.</summary>
+        private int _lastHumSamples = -1;
+
+        /// <summary>How many rebuilds to attempt before settling for re-issuing Play.</summary>
+        private const int MaxRebuilds = 6;
+
         /// <summary>Whether sound is allowed to play yet.</summary>
         public bool Unlocked => _unlocked;
 
@@ -61,13 +73,24 @@ namespace Backrooms.AudioManager.Internal
         public bool HumPlaying => _hum != null && _hum.isPlaying;
 
         /// <summary>
-        /// Builds the voices and every clip once. Generation is a few hundred kilobytes of float
-        /// maths, so it happens at startup rather than per floor.
+        /// Remembers where the voices should hang, and creates them if the audio context is already
+        /// open. Nothing is created before the first gesture — see <see cref="NoteInteraction"/>.
         /// </summary>
         /// <param name="host">Transform to hang the audio sources from.</param>
         public void Build(Transform host)
         {
-            if (_hum != null) return;
+            if (host != null) _host = host;
+            if (_hum != null || !_unlocked) return;
+            CreateVoices();
+        }
+
+        /// <summary>
+        /// Creates the voices and every clip. Generation is a few hundred kilobytes of float maths,
+        /// so it happens once rather than per floor.
+        /// </summary>
+        private void CreateVoices()
+        {
+            Transform host = _host;
 
             _hum = Voice(host, "Hum", loop: true);
             _drone = Voice(host, "PursuitDrone", loop: true);
@@ -85,6 +108,65 @@ namespace Backrooms.AudioManager.Internal
 
             _chime = Clip("RelicChime", ToneGenerator.Chime(784f, 1.5f, 0.5f));
             _descend = Clip("Descend", ToneGenerator.Descend(320f, 70f, 1.2f, 0.45f));
+
+            ApplyFloorClip();
+        }
+
+        /// <summary>
+        /// Destroys every voice and clip and makes them again, so each one is created against
+        /// whatever audio context is live now rather than the one that existed at startup.
+        /// </summary>
+        private void Rebuild()
+        {
+            DestroyVoice(_hum);
+            DestroyVoice(_drone);
+            DestroyVoice(_oneShot);
+            DestroyVoice(_steps);
+
+            _hum = null;
+            _drone = null;
+            _oneShot = null;
+            _steps = null;
+            _footsteps = null;
+            _lastHumSamples = -1;
+
+            CreateVoices();
+        }
+
+        /// <summary>
+        /// Destroys one voice's GameObject.
+        /// </summary>
+        /// <param name="source">The voice to destroy; ignored when null.</param>
+        private static void DestroyVoice(AudioSource source)
+        {
+            if (source == null) return;
+
+            if (Application.isPlaying) Object.Destroy(source.gameObject);
+            else Object.DestroyImmediate(source.gameObject);
+        }
+
+        /// <summary>
+        /// Gives the hum the clip for the floor that has been asked for.
+        /// </summary>
+        private void ApplyFloorClip()
+        {
+            if (_hum == null || _wantedFloor <= 0) return;
+
+            // Drop a little deeper every floor and level off, so floor 20 is not inaudible.
+            float fundamental = 50f * Mathf.Pow(0.97f, Mathf.Min(_wantedFloor - 1, 18));
+            _hum.clip = Clip($"Hum{_wantedFloor}", ToneGenerator.Hum(fundamental, 24, 0.34f));
+            _hum.volume = 0.30f;
+        }
+
+        /// <summary>
+        /// Starts both looping voices, if they have anything to play.
+        /// </summary>
+        private void PlayLoops()
+        {
+            if (_hum == null) return;
+
+            if (_wantedFloor > 0 && _hum.clip != null) _hum.Play();
+            if (_drone.clip != null) _drone.Play();
         }
 
         /// <summary>
@@ -94,15 +176,12 @@ namespace Backrooms.AudioManager.Internal
         /// <param name="floor">One-based floor number.</param>
         public void SetFloor(int floor)
         {
+            // Recorded before anything else: floors are set while the game is still behind the title
+            // screen, long before there is a voice to put the tone on.
+            _wantedFloor = floor;
             if (_hum == null) return;
 
-            _wantedFloor = floor;
-
-            // Drop a little deeper every floor and level off, so floor 20 is not inaudible.
-            float fundamental = 50f * Mathf.Pow(0.97f, Mathf.Min(floor - 1, 18));
-            _hum.clip = Clip($"Hum{floor}", ToneGenerator.Hum(fundamental, 24, 0.34f));
-            _hum.volume = 0.30f;
-
+            ApplyFloorClip();
             if (_unlocked) _hum.Play();
         }
 
@@ -110,22 +189,24 @@ namespace Backrooms.AudioManager.Internal
         /// Notes that the player has interacted, which is the moment a browser will allow sound.
         /// </summary>
         /// <remarks>
-        /// Browsers keep the audio context suspended until a real user gesture. Anything started
-        /// before that is silent, and stays silent even once the context resumes, because the source
-        /// was begun against a dead context. That is why the game had no sound until the player died
-        /// once: the tap to retry was the first gesture, and restarting happened to re-issue Play.
-        /// Starting the loops here instead makes the first gesture the thing that opens them.
+        /// Browsers keep the audio context suspended until a real user gesture, and the game loads
+        /// long before that gesture arrives. Two earlier fixes assumed the problem was *when Play was
+        /// called* and both failed: starting the loops on the gesture did not help, and neither did
+        /// re-issuing Play until the DSP clock moved. Probing the shipped build from a browser showed
+        /// the context resuming correctly on the click, which ruled that whole family out. What is
+        /// left is *when the objects are made* — every source and clip was being created in Awake,
+        /// against a context that was still suspended. So nothing is created until here.
         /// </remarks>
         /// <param name="interacted">Whether the player did anything this frame.</param>
         public void NoteInteraction(bool interacted)
         {
-            if (_unlocked || !interacted || _hum == null) return;
+            if (_unlocked || !interacted) return;
 
             _unlocked = true;
             AudioListener.pause = false;
 
-            if (_wantedFloor > 0) _hum.Play();
-            _drone.Play();
+            Build(_host);
+            PlayLoops();
         }
 
         /// <summary>
@@ -218,8 +299,16 @@ namespace Backrooms.AudioManager.Internal
             if (!_unlocked || _hum == null) return;
 
             double dsp = AudioSettings.dspTime;
-            if (!_running && _lastDspTime >= 0.0 && dsp > _lastDspTime + 1e-4) _running = true;
+            bool dspAdvanced = _lastDspTime >= 0.0 && dsp > _lastDspTime + 1e-4;
             _lastDspTime = dsp;
+
+            // The hum's own playback position is the stricter of the two signals: the DSP clock says
+            // the engine is turning over, this says sound is actually coming out of this source.
+            int samples = _hum.clip == null ? -1 : _hum.timeSamples;
+            bool humAdvanced = samples >= 0 && _lastHumSamples >= 0 && samples != _lastHumSamples;
+            _lastHumSamples = samples;
+
+            if (!_running && dspAdvanced && humAdvanced) _running = true;
 
             if (_running)
             {
@@ -234,8 +323,15 @@ namespace Backrooms.AudioManager.Internal
 
             _retryTimer = 0f;
             AudioListener.pause = false;
-            if (_wantedFloor > 0 && _hum.clip != null) _hum.Play();
-            if (_drone.clip != null) _drone.Play();
+
+            // Re-issuing Play was the fix that did not work. Make the objects again instead.
+            if (_rebuilds < MaxRebuilds)
+            {
+                _rebuilds++;
+                Rebuild();
+            }
+
+            PlayLoops();
         }
 
         /// <summary>

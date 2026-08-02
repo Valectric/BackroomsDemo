@@ -264,6 +264,10 @@ namespace Backrooms.AudioManager.Tests
             var go = new GameObject("Audio");
             AudioFacade facade = go.AddComponent<AudioFacade>();
 
+            // The voices do not exist until the first gesture, because a browser will not open its
+            // audio context before one — so a test about the drone has to get past that first.
+            facade.NoteInteraction(true);
+
             Assert.AreEqual(0f, facade.DroneVolume, 1e-4f, "nothing is hunting yet");
 
             // Volume eases towards its target, so drive it for a while rather than once.
