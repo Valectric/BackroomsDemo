@@ -4,9 +4,15 @@ Every file here is **CC0 1.0 (public domain dedication)**. CC0 requires no attri
 exists to record provenance, so anyone cloning the repo can re-verify the licence themselves rather
 than take it on trust.
 
-Sources were downloaded from Freesound's public preview streams and re-encoded to mono Ogg Vorbis at
-22.05 kHz and trimmed, because the repo ships as a mobile WebGL build where every kilobyte is part of
-the download.
+Downloaded from Freesound's public preview streams, then re-encoded to mono Ogg Vorbis at 22.05 kHz
+and trimmed, because this ships inside a mobile WebGL build where every kilobyte is part of the
+download.
+
+They are also **deliberately processed to sound about a hundred metres off**: band-limited to roughly
+110–700 Hz, given a long soft echo, and normalised far under the mix. Distance is spectral before it
+is quiet — air and structure eat the high end long before they eat the level — so a source left
+bright and merely turned down reads as "the same room, quieter" rather than "somewhere else in the
+building". The unprocessed originals are at the Freesound links below.
 
 | File | Theme | Freesound | Uploader | Licence |
 |---|---|---|---|---|
