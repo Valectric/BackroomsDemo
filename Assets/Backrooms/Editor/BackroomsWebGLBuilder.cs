@@ -77,7 +77,11 @@ namespace Backrooms.Editor
             PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Gzip;
             PlayerSettings.WebGL.decompressionFallback = true;
             PlayerSettings.WebGL.dataCaching = true;
-            PlayerSettings.WebGL.template = "APPLICATION:Minimal";
+            // Our own template rather than Unity's Minimal: it adds the fullscreen control, which
+            // has to live in the page rather than in the game. A tap on the canvas is game input —
+            // the right half is the look control and a double tap there spends a relic — so an
+            // in-game button would be pressed and read as a gesture at the same time.
+            PlayerSettings.WebGL.template = "PROJECT:Backrooms";
 
             // Exceptions must stay on. With them disabled the player reports every failure as the
             // literally useless "The error was: undefined", which hides real crashes.
