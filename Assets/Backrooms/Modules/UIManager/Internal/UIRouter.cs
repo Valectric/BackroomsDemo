@@ -60,6 +60,32 @@ namespace Backrooms.UIManager.Internal
         public void SetCompass(IReadOnlyList<CompassMark> marks)
             => _compass = marks ?? new CompassMark[0];
 
+        /// <summary>The floor map to draw in the corner, or <c>null</c> for none.</summary>
+        public Texture2D Map { get; private set; }
+
+        /// <summary>Where the player is on the map, as a fraction of the floor in each axis.</summary>
+        public Vector2 MapPlayer { get; private set; }
+
+        /// <summary>How much of the floor the map window shows, as a fraction of each axis.</summary>
+        public float MapWindow { get; private set; } = 1f;
+
+        /// <summary>Whether the map is being shown.</summary>
+        public bool MapShown { get; private set; }
+
+        /// <summary>
+        /// Sets the corner map. Passing a null texture hides it.
+        /// </summary>
+        /// <param name="map">Baked floor map, or null for none.</param>
+        /// <param name="player">Player position as a fraction of the floor in each axis.</param>
+        /// <param name="window">Fraction of the floor to show around the player.</param>
+        public void SetMap(Texture2D map, Vector2 player, float window)
+        {
+            Map = map;
+            MapPlayer = player;
+            MapWindow = Mathf.Clamp(window, 0.05f, 1f);
+            MapShown = map != null;
+        }
+
         /// <summary>
         /// Sets the list of what the player is carrying.
         /// </summary>
@@ -283,6 +309,8 @@ namespace Backrooms.UIManager.Internal
                 _renderer.DrawEscaped(ElapsedSeconds);
                 return;
             }
+
+            if (MapShown) _renderer.DrawMap(Map, MapPlayer, MapWindow);
 
             // The pursuit warning is drawn under the arrival banner but over the status line, and
             // stays visible during the banner — arriving on a floor next to a Dweller is exactly when

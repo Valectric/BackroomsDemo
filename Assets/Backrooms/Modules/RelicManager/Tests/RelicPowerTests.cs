@@ -135,7 +135,7 @@ namespace Backrooms.RelicManager.Tests
             MazeLayout layout = NewFloor(5);
 
             // The Banisher: five shots, then nothing.
-            List<Vector2Int> placed = relics.Place(layout, 1, 5, (int)RelicKind.Banisher, parent);
+            List<Vector2Int> placed = relics.PlaceKind(layout, RelicKind.Banisher, 5, parent);
             relics.TryCollect(layout.CellCenterToWorld(placed[0]), 1.6f);
 
             Assert.AreEqual(RelicKind.Banisher, relics.LastCollected, "the Banisher was offered");
@@ -160,7 +160,7 @@ namespace Backrooms.RelicManager.Tests
             var parent = new GameObject("RelicRoot").transform;
 
             MazeLayout layout = NewFloor(2);
-            List<Vector2Int> placed = relics.Place(layout, 1, 2, (int)RelicKind.WayfinderStone, parent);
+            List<Vector2Int> placed = relics.PlaceKind(layout, RelicKind.WayfinderStone, 2, parent);
             relics.TryCollect(layout.CellCenterToWorld(placed[0]), 1.6f);
 
             Assert.IsTrue(relics.Holds(RelicKind.WayfinderStone), "it is carried");
@@ -210,7 +210,7 @@ namespace Backrooms.RelicManager.Tests
             var parent = new GameObject("RelicRoot").transform;
 
             MazeLayout layout = NewFloor(9);
-            List<Vector2Int> placed = relics.Place(layout, 1, 9, (int)RelicKind.Ward, parent);
+            List<Vector2Int> placed = relics.PlaceKind(layout, RelicKind.Ward, 9, parent);
             relics.TryCollect(layout.CellCenterToWorld(placed[0]), 1.6f);
             Assert.IsTrue(relics.Holds(RelicKind.Ward), "the ward is carried");
 
@@ -230,7 +230,7 @@ namespace Backrooms.RelicManager.Tests
             var parent = new GameObject("RelicRoot").transform;
 
             MazeLayout layout = NewFloor(11);
-            List<Vector2Int> placed = relics.Place(layout, 1, 11, (int)RelicKind.Ward, parent);
+            List<Vector2Int> placed = relics.PlaceKind(layout, RelicKind.Ward, 11, parent);
             relics.TryCollect(layout.CellCenterToWorld(placed[0]), 1.6f);
 
             Assert.IsTrue(relics.Spend(RelicKind.Ward), "it takes the first Dweller");

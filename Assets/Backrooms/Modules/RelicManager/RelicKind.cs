@@ -24,7 +24,10 @@ namespace Backrooms.RelicManager
         BlinkShard = 4,
 
         /// <summary>Kills a Dweller you are facing. Five charges. Double-tap the move side.</summary>
-        Banisher = 5
+        Banisher = 5,
+
+        /// <summary>Draws a map of the rooms around you in the corner of the screen.</summary>
+        SurveyorsLens = 6
     }
 
     /// <summary>
@@ -108,7 +111,11 @@ namespace Backrooms.RelicManager
 
             new RelicArchetype(RelicKind.Banisher, "BANISHER",
                 "Double-tap the move side to unmake what you face",
-                new Color(1f, 0.62f, 0.25f), isCompass: false, charges: 5)
+                new Color(1f, 0.62f, 0.25f), isCompass: false, charges: 5),
+
+            new RelicArchetype(RelicKind.SurveyorsLens, "SURVEYOR'S LENS",
+                "The rooms around you are drawn in the corner",
+                new Color(0.62f, 0.92f, 0.72f), isCompass: false, charges: 0)
         };
 
         /// <summary>How many distinct kinds exist.</summary>
