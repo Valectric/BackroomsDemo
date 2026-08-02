@@ -104,6 +104,16 @@ namespace Backrooms.AudioManager
         public void PlayRelic() => _router.PlayRelic();
 
         /// <summary>
+        /// Plays the sound for slipping forward through a wall.
+        /// </summary>
+        public void PlayBlink() => _router.PlayBlink();
+
+        /// <summary>
+        /// Plays the sound for unmaking a Dweller.
+        /// </summary>
+        public void PlayBanish() => _router.PlayBanish();
+
+        /// <summary>
         /// Plays the falling tone for dropping a floor.
         /// </summary>
         public void PlayDescend() => _router.PlayDescend();

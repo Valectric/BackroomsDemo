@@ -69,6 +69,12 @@ namespace Backrooms.PlayerManager
         /// <returns><c>true</c> if this press completed a double tap.</returns>
         public bool PressForDoubleTap(float time) => _taps.Press(time);
 
+        /// <summary>
+        /// How many times the real reader has sampled hardware. Not intended for production use —
+        /// only for automated testing.
+        /// </summary>
+        public int FreshInputReads => _router.FreshInputReads;
+
         /// <summary>Detector the gesture tests drive.</summary>
         private readonly Internal.Input.DoubleTapDetector _taps = new Internal.Input.DoubleTapDetector();
 

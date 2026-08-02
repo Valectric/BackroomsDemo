@@ -20,6 +20,9 @@ namespace Backrooms.PlayerManager.Internal.Input
         /// <returns>Simulated input when simulation is enabled, otherwise live hardware input.</returns>
         public PlayerInputState Read() => SimulationEnabled ? _simulated : _reader.Read();
 
+        /// <summary>How many times real hardware has actually been sampled, for tests.</summary>
+        public int FreshReads => _reader.FreshReads;
+
         /// <summary>
         /// Sets the intent used while simulation mode is enabled.
         /// </summary>

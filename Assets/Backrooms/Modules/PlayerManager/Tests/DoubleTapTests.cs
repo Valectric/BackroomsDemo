@@ -1,6 +1,7 @@
 using Backrooms.PlayerManager;
 using MooseRunner.helper;
 using NUnit.Framework;
+using UnityEngine;
 
 namespace Backrooms.PlayerManager.Tests
 {
@@ -23,6 +24,37 @@ namespace Backrooms.PlayerManager.Tests
         /// <summary>
         /// Two presses inside the window are a double tap; the first press alone is not.
         /// </summary>
+        /// <summary>
+        /// However many times the game asks for input in a frame, hardware must be sampled once.
+        /// </summary>
+        /// <remarks>
+        /// This is the bug the detector tests could never catch, because the detector was correct.
+        /// Sampling has a side effect — it feeds the double-tap detectors — and Unity keeps
+        /// <c>wasPressedThisFrame</c> true for the whole frame. The facade exposes input through six
+        /// separate properties, so one physical tap was registered as several presses microseconds
+        /// apart and came straight back as a double tap: a single tap teleported the player. Every
+        /// test of the detector passed throughout, because the fault was in how often it was asked.
+        /// </remarks>
+        [Test]
+        public void ManyReadsInOneFrame_SampleHardwareOnce()
+        {
+            var go = new GameObject("Player");
+            PlayerFacade player = go.AddComponent<PlayerFacade>();
+            PlayerManagerTestFacade seam = player.GetTestFacade();
+
+            int before = seam.FreshInputReads;
+
+            // Exactly what the game does each frame: several independent questions about input.
+            bool _ = player.ConfirmPressed;
+            _ = player.DoubleTappedLookSide;
+            _ = player.DoubleTappedMoveSide;
+            _ = player.HasInput;
+            _ = player.IsMoving;
+
+            Assert.AreEqual(1, seam.FreshInputReads - before,
+                "five reads in one frame must sample the hardware exactly once");
+        }
+
         [Test]
         public void TwoQuickPresses_AreADoubleTap()
         {

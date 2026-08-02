@@ -736,3 +736,47 @@ vanishing.
 **Baked, not runtime:** a low-pass filter per voice would cost CPU on a phone every frame for a
 result that never changes. These are fixed one-shots, so the processing belongs in the file.
 
+## 2026-08-02 — D55. Input is sampled once per frame
+
+**Found:** a single tap teleported the player. The double-tap detector was correct and every one of
+its tests passed; the fault was **how often it was asked**. `PlayerInputReader.Read()` has a side
+effect — it feeds the tap detectors — and Unity keeps `wasPressedThisFrame` true for the whole frame,
+while `PlayerFacade` exposes input through **six separate properties** that each re-read. One
+physical press therefore registered as several presses microseconds apart, and the second came
+straight back as a double tap.
+**Fixed:** `Read()` samples at most once per frame and hands the same sample to every caller.
+**The test that was missing:** every existing test drove the detector directly, so none could see
+this. `ManyReadsInOneFrame_SampleHardwareOnce` asserts five facade reads produce exactly one hardware
+sample — **verified by reverting the fix and watching it fail.**
+**The general shape:** a getter with a side effect is safe only while something guarantees it is
+called once. Nothing did.
+
+## 2026-08-02 — D56. The blink crosses walls
+
+**Decided:** the Blink Shard teleports through walls, snapping the landing point to a cell centre.
+**Why:** stopping at the first obstacle made it a slightly longer step, and on a floor this dense the
+first obstacle is usually about two metres away — so it almost never did anything. Crossing walls
+means the player often does not know which room they will land in, which is the trade: it gets you
+out of a corridor with a Dweller in it, at the price of not choosing where you go.
+**Snapped to a cell centre, not a raw offset,** because a raw offset can land inside the wall itself.
+Every cell is open floor, so a cell centre is always somewhere the player can legally stand.
+**Targeting lives in `PowerDirector`,** not in PlayerManager: the grid belongs to MazeManager and the
+two modules may not reference each other, so the Application layer is the only place that can see
+both.
+
+## 2026-08-02 — D57. Powers sound like themselves, and say how to use them
+
+**Decided:** the Blink Shard gets a rising zip and the Banisher a hard falling hit, instead of both
+playing the relic pickup chime. The carried list appends the gesture — `(double-tap right)` and
+`(double-tap left)`.
+**Why the sound mattered:** spending a power sounded exactly like finding one, so the game appeared
+to hand the player something at the moment it took something away.
+**No new synthesis needed:** both are the existing descend sweep with different endpoints. The shape
+of a pitch sweep is what reads as direction, so the same generator says "away" and "down".
+**Why the hint stays on screen:** the pickup line says it once and is then gone, which is no use
+twenty seconds later when there is something behind you. A relic that needs a gesture has to keep
+saying so.
+**Module boundary:** the switch on relic kind lives in `GameplayController`, because AudioManager has
+no business knowing what a relic is. The first attempt put it on `AudioFacade` and failed to compile,
+which is the asmdef graph doing its job.
+

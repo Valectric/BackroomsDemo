@@ -51,6 +51,16 @@ namespace Backrooms.RelicManager
         /// <summary>Whether this relic shows an arrow on the HUD.</summary>
         public bool IsCompass { get; }
 
+        /// <summary>
+        /// How to use it, shown beside the name in the carried list, or empty for the ones that
+        /// simply work while carried.
+        /// </summary>
+        /// <remarks>
+        /// The pickup line says this once and then is gone, which is no use twenty seconds later
+        /// when there is something behind you. A relic that needs a gesture has to keep saying so.
+        /// </remarks>
+        public string Gesture { get; set; } = string.Empty;
+
         /// <summary>How many uses it carries, or 0 for something that is always on.</summary>
         public int Charges { get; }
 
@@ -106,12 +116,14 @@ namespace Backrooms.RelicManager
                 new Color(1f, 0.92f, 0.55f), isCompass: false, charges: 1),
 
             new RelicArchetype(RelicKind.BlinkShard, "BLINK SHARD",
-                "Double-tap the look side to slip forward",
-                new Color(0.55f, 0.78f, 1f), isCompass: false, charges: 0),
+                "Double-tap the right side to slip through the walls",
+                new Color(0.55f, 0.78f, 1f), isCompass: false, charges: 0)
+            { Gesture = "(double-tap right)" },
 
             new RelicArchetype(RelicKind.Banisher, "BANISHER",
-                "Double-tap the move side to unmake what you face",
-                new Color(1f, 0.62f, 0.25f), isCompass: false, charges: 5),
+                "Double-tap the left side to unmake what you face",
+                new Color(1f, 0.62f, 0.25f), isCompass: false, charges: 5)
+            { Gesture = "(double-tap left)" },
 
             new RelicArchetype(RelicKind.SurveyorsLens, "SURVEYOR'S LENS",
                 "The rooms around you are drawn in the corner",

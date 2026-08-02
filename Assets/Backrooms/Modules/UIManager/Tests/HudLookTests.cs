@@ -58,7 +58,12 @@ namespace Backrooms.UIManager.Tests
                 new CompassMark(72f, 44f, new Color(0.72f, 0.42f, 1f))
             });
             hud.SetCarried(
-                new[] { "DEFENSE WARD  x1", "BANISHER  x3", "BLINK SHARD" },
+                new[]
+                {
+                    "DEFENSE WARD  x1",
+                    "BANISHER  x3  (double-tap left)",
+                    "BLINK SHARD  (double-tap right)"
+                },
                 new[]
                 {
                     new Color(1f, 0.92f, 0.55f),
