@@ -65,7 +65,8 @@ The code is **[MIT](LICENSE)**. Every bundled asset is **CC0 1.0** and stays tha
 use this — nothing here is licensed on terms a fork would have to renegotiate.
 
 [MooseRunner](https://mooserunner.com) itself is a separate commercial product and is **not**
-redistributed here; it resolves as a Unity package from the public npm registry.
+redistributed here; it resolves as a Unity package from the public npm registry. Third-party notices
+are in [NOTICE](NOTICE).
 
 Setting inspired by *Discount Dan: A LitRPG Adventure* by James A. Hunter. This is an unofficial
 fan demo, not affiliated with or endorsed by the author.
