@@ -35,6 +35,18 @@ namespace Backrooms.MazeManager
         /// </summary>
         public int StairCount { get; set; } = 3;
 
+        /// <summary>
+        /// Whether there is a floor above this one to climb to. False on the first floor, which the
+        /// player noclipped into rather than walked down to — so it carries no ways up at all.
+        /// </summary>
+        /// <remarks>
+        /// Suppressed here at the layout rather than at the geometry, so one decision covers every
+        /// consequence: no riser is built, no hole is cut in the ceiling, no cell is reserved from
+        /// furniture, and nothing can be found by a search for the nearest way up. A staircase that
+        /// climbs to nowhere is worse than no staircase — the player walks to it and it does not work.
+        /// </remarks>
+        public bool HasFloorAbove { get; set; } = true;
+
         /// <summary>Smallest room side, in cells.</summary>
         public int RoomMinSize { get; set; } = 3;
 

@@ -41,6 +41,40 @@ namespace Backrooms.MazeManager.Tests
         }
 
         /// <summary>
+        /// The first floor must carry no ways up, because there is nothing above it to climb to,
+        /// while every floor below it emerges from one.
+        /// </summary>
+        /// <remarks>
+        /// A staircase that climbs to nowhere is worse than no staircase: the player walks all the
+        /// way to it and it does nothing. Suppressing it at the layout is what makes the riser, the
+        /// hole in the ceiling, the reserved cell and the nearest-way-up search all agree — so this
+        /// asserts the layout, which is the single thing they all read.
+        /// </remarks>
+        [Test]
+        public void TheFirstFloor_CarriesNoWaysUp()
+        {
+            MazeManagerTestFacade maze = NewMaze();
+
+            for (int seed = 0; seed < 10; seed++)
+            {
+                MazeLayout ground = maze.Generate(new MazeSettings(FloorCells, FloorCells, seed)
+                {
+                    HasFloorAbove = false
+                });
+                MazeLayout below = maze.Generate(new MazeSettings(FloorCells, FloorCells, seed));
+
+                Assert.AreEqual(0, ground.StairsUp.Count,
+                    $"seed {seed}: the first floor must show no way up");
+                Assert.Greater(ground.Stairs.Count, 0,
+                    $"seed {seed}: it must still carry ways down");
+                Assert.Greater(below.StairsUp.Count, 0,
+                    $"seed {seed}: every floor below emerges from a way up");
+                Assert.AreEqual(below.Spawn, ground.Spawn,
+                    $"seed {seed}: removing the risers must not move where the player arrives");
+            }
+        }
+
+        /// <summary>
         /// Walking distance in cells from every cell to the nearest stairwell, by breadth-first
         /// search outward from all stairwells at once.
         /// </summary>

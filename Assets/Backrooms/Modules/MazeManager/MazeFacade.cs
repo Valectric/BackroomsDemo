@@ -81,13 +81,18 @@ namespace Backrooms.MazeManager
         /// </summary>
         /// <param name="newSeed">Seed to generate with.</param>
         /// <param name="theme">Palette to build with; keeps the current one when null.</param>
+        /// <param name="hasFloorAbove">Whether to carry ways up; false on the first floor.</param>
         /// <returns>The generated layout.</returns>
-        public MazeLayout GenerateAndBuild(int newSeed, FloorTheme theme = null)
+        public MazeLayout GenerateAndBuild(int newSeed, FloorTheme theme = null,
+            bool hasFloorAbove = true)
         {
             EnsureRouter();
             seed = newSeed;
             if (theme != null) _theme = theme;
-            CurrentLayout = _router.Generate(new MazeSettings(width, height, newSeed, cellSize));
+            CurrentLayout = _router.Generate(new MazeSettings(width, height, newSeed, cellSize)
+            {
+                HasFloorAbove = hasFloorAbove
+            });
             RebuildGeometry();
             return CurrentLayout;
         }

@@ -571,3 +571,29 @@ class of bug in this project that only a rendered frame could catch, and the fir
 itself was the thing that broke. **When adding any full-screen state, check what the look tests are
 actually photographing afterwards.**
 
+## 2026-08-02 — D45. Floor 1 carries no ways up at all (refines D36)
+
+**Decided:** the first floor is generated with no up stairwells whatsoever — no riser, no hole cut in
+the ceiling, no reserved cell, nothing for a nearest-way-up search to find.
+**Why:** user report — the ways up on floor 1 "do not work as expected", and they should not be there
+at all. Correct on both counts. D36 left them standing as scenery, "the thing the player emerged
+from", but a staircase the player can walk all the way to and then get nothing from is worse than an
+empty room. The fiction supports removing them too: Dan **noclipped** in, he did not walk down.
+**Suppressed at the layout, not at the geometry.** One flag on `MazeSettings` means every
+consequence follows from a single decision and none of them can drift apart. Building the risers but
+hiding the mesh would have left the ceiling holes, the reserved cells and the search results all
+still believing in stairs that are not there.
+**The arrival cell survives.** It is still where the player appears — simply a spot on the floor
+rather than the foot of a staircase — so removing the risers does not move the spawn. Asserted.
+
+**Latent trap found while doing it:** `NearestStairsUp` returns the cell you passed in when the floor
+has none, which reads as **zero distance** and would have ascended on the spot. The floor-number
+guard happened to prevent it, so nothing broke — but the guard now tests
+`StairsUp.Count == 0`, the same data that decides whether a riser was built, so the two cannot
+disagree.
+
+**And the look test needed the same flag.** `FloorLookTests` generated its own floors with the
+default, so it would have kept photographing a floor 1 with stairs the game no longer ships — the
+identical failure to D44. A capture generated differently from the game is a picture of a game
+nobody plays.
+
