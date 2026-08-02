@@ -159,9 +159,26 @@ namespace Backrooms.Gameplay
         /// </summary>
         private void UsePowers()
         {
-            if (!_powers.TryUsePowers(relics, player, _director, out RelicKind used)) return;
+            if (!_powers.TryUsePowers(relics, player, _director, maze, out RelicKind used)) return;
 
-            if (audioModule != null) audioModule.PlayRelic();
+            // Each power gets its own sound. Every one of them used to play the pickup chime, so
+            // using the shard sounded exactly like finding a relic that was not there. Chosen here
+            // rather than inside AudioManager, which has no business knowing what a relic is.
+            if (audioModule != null)
+            {
+                switch (used)
+                {
+                    case RelicKind.BlinkShard:
+                        audioModule.PlayBlink();
+                        break;
+                    case RelicKind.Banisher:
+                        audioModule.PlayBanish();
+                        break;
+                    default:
+                        audioModule.PlayRelic();
+                        break;
+                }
+            }
             if (hud != null) hud.ShowRelic(RelicsCollected);
             Debug.Log($"[Gameplay] Used {RelicArchetypes.For(used).DisplayName}");
         }
@@ -183,9 +200,12 @@ namespace Backrooms.Gameplay
                 int charges = relics.ChargesOf(kind);
 
                 // Unlimited relics are stored as -1; showing "-1 left" would be nonsense.
-                _carriedLines.Add(charges < 0
+                string line = charges < 0
                     ? archetype.DisplayName
-                    : $"{archetype.DisplayName}  x{charges}");
+                    : $"{archetype.DisplayName}  x{charges}";
+
+                if (!string.IsNullOrEmpty(archetype.Gesture)) line += "  " + archetype.Gesture;
+                _carriedLines.Add(line);
                 _carriedColours.Add(archetype.Colour);
             }
 

@@ -53,6 +53,9 @@ namespace Backrooms.PlayerManager.Internal
         /// <returns>The selected input state.</returns>
         public PlayerInputState ReadInput() => _input.Read();
 
+        /// <summary>How many times hardware has actually been sampled, for tests.</summary>
+        public int FreshInputReads => _input.FreshReads;
+
         /// <summary>
         /// Teleports the player to a world position.
         /// </summary>

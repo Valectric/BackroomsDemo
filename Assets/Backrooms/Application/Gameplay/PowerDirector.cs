@@ -72,21 +72,21 @@ namespace Backrooms.Gameplay
         /// <param name="relics">The relic module.</param>
         /// <param name="player">The player module.</param>
         /// <param name="dwellers">The floor's Dwellers.</param>
+        /// <param name="maze">The maze module, which the blink snaps its landing point to.</param>
         /// <param name="used">Receives the relic that fired, if any.</param>
         /// <returns><c>true</c> if a power was used this frame.</returns>
         public bool TryUsePowers(RelicFacade relics, PlayerFacade player, DwellerDirector dwellers,
+            MazeFacade maze,
             out RelicKind used)
         {
             used = RelicKind.Ward;
             if (relics == null || player == null) return false;
 
-            if (player.DoubleTappedLookSide && relics.Holds(RelicKind.BlinkShard))
+            if (player.DoubleTappedLookSide && relics.Holds(RelicKind.BlinkShard)
+                && TryBlink(player, maze))
             {
-                if (player.Blink(BlinkMetres) > 0.05f)
-                {
-                    used = RelicKind.BlinkShard;
-                    return true;
-                }
+                used = RelicKind.BlinkShard;
+                return true;
             }
 
             if (player.DoubleTappedMoveSide && relics.Holds(RelicKind.Banisher) && dwellers != null)
@@ -106,6 +106,48 @@ namespace Backrooms.Gameplay
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Slips the player forward through whatever is in the way.
+        /// </summary>
+        /// <remarks>
+        /// Straight through walls, deliberately. Stopping short of the first obstacle made it a
+        /// slightly longer step, and on a floor this dense the first obstacle is usually about two
+        /// metres away — so it almost never did anything. Crossing walls means the player often does
+        /// not know which room they will land in, which is the whole trade: it gets you out of a
+        /// corridor with a Dweller in it, at the price of not choosing where you go.
+        /// <para>
+        /// The destination is snapped to a cell centre rather than a raw offset, because a raw offset
+        /// can land inside the wall itself. Every cell is open floor, so a cell centre is always
+        /// somewhere the player can legally stand.
+        /// </para>
+        /// </remarks>
+        /// <param name="player">The player module.</param>
+        /// <param name="maze">The maze module, which owns the grid the landing point snaps to.</param>
+        /// <returns><c>true</c> if the player actually moved.</returns>
+        private static bool TryBlink(PlayerFacade player, MazeFacade maze)
+        {
+            if (maze == null || maze.CurrentLayout == null) return false;
+
+            Vector3 heading = player.Forward;
+            heading.y = 0f;
+            if (heading.sqrMagnitude < 1e-4f) return false;
+            heading.Normalize();
+
+            MazeLayout layout = maze.CurrentLayout;
+            Vector2Int from = layout.WorldToCell(player.Position);
+            Vector2Int to = layout.WorldToCell(player.Position + heading * BlinkMetres);
+
+            to.x = Mathf.Clamp(to.x, 0, layout.Width - 1);
+            to.y = Mathf.Clamp(to.y, 0, layout.Height - 1);
+
+            // Facing the edge of the floor with nowhere to go: report failure so the gesture is not
+            // silently swallowed and the player can try facing somewhere else.
+            if (to == from) return false;
+
+            player.TeleportTo(layout.CellCenterToWorld(to));
+            return true;
         }
 
         /// <summary>

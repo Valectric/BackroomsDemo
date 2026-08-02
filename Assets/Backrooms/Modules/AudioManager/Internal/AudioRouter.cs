@@ -29,6 +29,8 @@ namespace Backrooms.AudioManager.Internal
         private AudioClip[] _footsteps;
         private AudioClip _chime;
         private AudioClip _descend;
+        private AudioClip _blink;
+        private AudioClip _banish;
 
         private float _stepTimer;
         private int _stepIndex;
@@ -142,6 +144,13 @@ namespace Backrooms.AudioManager.Internal
 
             _chime = Clip("RelicChime", ToneGenerator.Chime(784f, 1.5f, 0.5f));
             _descend = Clip("Descend", ToneGenerator.Descend(320f, 70f, 1.2f, 0.45f));
+
+            // A rising zip for slipping through a wall and a hard falling hit for unmaking a
+            // Dweller. Both are the descend sweep with different endpoints — the shape of a pitch
+            // sweep is what reads as direction, so no new synthesis is needed to say "away" and
+            // "down".
+            _blink = Clip("Blink", ToneGenerator.Descend(190f, 880f, 0.26f, 0.5f));
+            _banish = Clip("Banish", ToneGenerator.Descend(760f, 80f, 0.45f, 0.6f));
 
             ApplyFloorClip();
         }
@@ -402,6 +411,22 @@ namespace Backrooms.AudioManager.Internal
         public void PlayRelic()
         {
             if (_oneShot != null && _chime != null) _oneShot.PlayOneShot(_chime, 0.8f);
+        }
+
+        /// <summary>
+        /// Plays the sound for slipping forward through a wall.
+        /// </summary>
+        public void PlayBlink()
+        {
+            if (_oneShot != null && _blink != null) _oneShot.PlayOneShot(_blink, 0.7f);
+        }
+
+        /// <summary>
+        /// Plays the sound for unmaking a Dweller.
+        /// </summary>
+        public void PlayBanish()
+        {
+            if (_oneShot != null && _banish != null) _oneShot.PlayOneShot(_banish, 0.8f);
         }
 
         /// <summary>

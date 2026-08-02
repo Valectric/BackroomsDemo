@@ -30,18 +30,46 @@ namespace Backrooms.PlayerManager.Internal.Input
         private const float SprintStickThreshold = 0.85f;
 
         /// <summary>
-        /// Samples all connected devices and combines them into a single intent for this frame.
+        /// Samples all connected devices and combines them into a single intent for this frame,
+        /// sampling at most once per frame however many times it is asked.
         /// </summary>
+        /// <remarks>
+        /// The caching is not an optimisation, it is the correctness fix. Sampling has a side effect
+        /// — it feeds the double-tap detectors — and <c>wasPressedThisFrame</c> stays true for the
+        /// whole frame, so a single physical tap read twice in one frame registered as two presses
+        /// nanoseconds apart and came straight back as a double tap. The facade reads input from six
+        /// separate properties, so one tap teleported the player instantly. Every one of those reads
+        /// now sees the same sample.
+        /// </remarks>
         /// <returns>The player's input for this frame.</returns>
         public PlayerInputState Read()
         {
+            if (_sampledFrame == Time.frameCount) return _sample;
+
+            _sampledFrame = Time.frameCount;
+            FreshReads++;
+
             PlayerInputState state = PlayerInputState.None;
             ReadKeyboard(ref state);
             ReadMouse(ref state);
             ReadTouch(ref state);
             state.Move = Vector2.ClampMagnitude(state.Move, 1f);
-            return state;
+
+            _sample = state;
+            return _sample;
         }
+
+        /// <summary>The frame the current sample was taken on.</summary>
+        private int _sampledFrame = -1;
+
+        /// <summary>The input sampled this frame, handed to every reader after the first.</summary>
+        private PlayerInputState _sample = PlayerInputState.None;
+
+        /// <summary>
+        /// How many times hardware has actually been sampled. Not intended for production use — only
+        /// for automated testing, where it is the evidence that one frame produces one sample.
+        /// </summary>
+        public int FreshReads { get; private set; }
 
         /// <summary>
         /// Adds WASD/arrow movement and shift-to-sprint from the keyboard, if one is present.

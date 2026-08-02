@@ -54,27 +54,9 @@ namespace Backrooms.PlayerManager
         /// </summary>
         /// <param name="distance">How far to try to travel, in metres.</param>
         /// <returns>How far the player actually moved, in metres.</returns>
-        public float Blink(float distance)
+        public void TeleportTo(Vector3 footPosition)
         {
-            if (_router == null) return 0f;
-
-            Vector3 from = transform.position + Vector3.up * 0.9f;
-            Vector3 heading = transform.forward;
-            heading.y = 0f;
-            if (heading.sqrMagnitude < 1e-4f) return 0f;
-            heading.Normalize();
-
-            // Stop short of whatever is in the way rather than through it — a blink that can cross a
-            // wall turns a 96m maze into an open field.
-            float travel = distance;
-            if (Physics.Raycast(from, heading, out RaycastHit hit, distance + _controller.radius))
-            {
-                travel = Mathf.Max(0f, hit.distance - _controller.radius - 0.1f);
-            }
-
-            if (travel <= 0.05f) return 0f;
-            _router.Teleport(transform.position + heading * travel);
-            return travel;
+            _router?.Teleport(footPosition + Vector3.up * 0.1f);
         }
 
         /// <summary>
