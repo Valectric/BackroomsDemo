@@ -69,10 +69,10 @@ namespace Backrooms.RelicManager
         private const int DefaultWaysDown = 3;
 
         /// <summary>
-        /// Relics per way down. Above one so a floor carries a little more than its stairwells —
-        /// one relic per exit left long stretches with nothing to find.
+        /// Relics per way down, calibrated so a normal three-exit floor carries about ten. Kept as a
+        /// ratio rather than a flat ten so a floor with more exits — a bigger floor — carries more.
         /// </summary>
-        private const float RelicsPerWayDown = 1.4f;
+        private const float RelicsPerWayDown = 10f / 3f;
 
         /// <summary>
         /// Collects a relic if the player has reached one.

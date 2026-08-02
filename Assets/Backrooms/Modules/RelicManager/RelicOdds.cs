@@ -41,6 +41,16 @@ namespace Backrooms.RelicManager
         /// <summary>Extra weight at a kind's own floor, shared out as the floor moves away from it.</summary>
         private const float Peak = 8f;
 
+        /// <summary>
+        /// How much further the kind that actually peaks here is favoured, on top of the curve.
+        /// </summary>
+        /// <remarks>
+        /// Applied only at distance zero. Scaling <see cref="Peak"/> instead would scale the whole
+        /// curve and barely move the share at all, since every kind's weight would grow together —
+        /// what makes a floor read as being <i>about</i> one relic is the gap, not the height.
+        /// </remarks>
+        private const float PeakMultiplier = 4f;
+
         /// <summary>The floor each kind peaks on, indexed to match the roster order.</summary>
         private static readonly RelicKind[] PeakOrder =
         {
@@ -69,7 +79,8 @@ namespace Backrooms.RelicManager
             int raw = Mathf.Abs(Wrap(floor) - peak);
             int distance = Mathf.Min(raw, Cycle - raw);
 
-            return Floor + Peak / (1 + distance);
+            float weight = Floor + Peak / (1 + distance);
+            return distance == 0 ? weight * PeakMultiplier : weight;
         }
 
         /// <summary>

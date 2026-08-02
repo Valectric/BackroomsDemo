@@ -177,11 +177,11 @@ namespace Backrooms.RelicManager.Tests
         }
 
         /// <summary>
-        /// A floor must carry noticeably more relics than it has ways down, so a run is not long
-        /// stretches of nothing between exits.
+        /// A floor must carry about ten relics, so a run is not long stretches of nothing between
+        /// exits, and more of them on a floor with more ways out.
         /// </summary>
         [Test]
-        public void AFloor_CarriesMoreRelicsThanWaysDown()
+        public void AFloor_CarriesAboutTenRelics()
         {
             var go = new GameObject("Relics");
             RelicFacade relics = go.AddComponent<RelicFacade>();
@@ -192,11 +192,13 @@ namespace Backrooms.RelicManager.Tests
                 relics.ResetRun();
                 List<Vector2Int> placed = relics.PlaceForFloor(layout, seed, floor: 1);
 
-                int expected = Mathf.RoundToInt(layout.Stairs.Count * 1.4f);
+                int expected = Mathf.RoundToInt(layout.Stairs.Count * (10f / 3f));
                 Assert.Greater(layout.Stairs.Count, 1,
                     $"seed {seed}: the floor should have several ways down");
                 Assert.AreEqual(expected, placed.Count,
-                    $"seed {seed}: a floor should carry 40% more relics than ways down");
+                    $"seed {seed}: a three-exit floor should carry about ten relics");
+                Assert.GreaterOrEqual(placed.Count, 9,
+                    $"seed {seed}: the planner must actually find room for them all");
             }
         }
 
