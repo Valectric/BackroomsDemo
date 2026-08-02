@@ -41,6 +41,12 @@ namespace Backrooms.UIManager.Tests
 
             var hudGo = new GameObject("Hud");
             HudFacade hud = hudGo.AddComponent<HudFacade>();
+
+            // The HUD starts on the title screen, and the title draws instead of everything else.
+            // Without this every capture below photographs the title — which is exactly what they
+            // silently did from the moment the title screen was added, so the pursuit warning and
+            // the end screen went unverified while the test still passed.
+            hud.HideTitle();
             hud.SetElapsed(74f);
             hud.ShowFloor(3, "JANKY LAUNDROMAT", 1);
 
@@ -70,6 +76,11 @@ namespace Backrooms.UIManager.Tests
             hud.SetHunted(false, 0f);
             hud.ShowCaught(3, 74f, relics: 2, bestFloors: 5, bestRelics: 4);
             await Capture("hud-caught", ct);
+
+            // The other half of the end screen: a run that set the record must not restate its own
+            // numbers under a "best" heading, which is what made it read as doubled.
+            hud.ShowCaught(6, 132f, relics: 5, bestFloors: 6, bestRelics: 5);
+            await Capture("hud-caught-record", ct);
 
             Assert.IsTrue(hud.CaughtShown, "the caught screen should be the one photographed last");
         }

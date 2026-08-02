@@ -92,24 +92,54 @@ namespace Backrooms.UIManager.Internal
             int bestRelics)
         {
             int size = Mathf.Max(20, Mathf.RoundToInt(Screen.height * 0.07f));
-            DrawLabel(new Rect(0f, Screen.height * 0.30f, Screen.width, size * 2f),
+            DrawLabel(new Rect(0f, Screen.height * 0.26f, Screen.width, size * 2f),
                 "A DWELLER FOUND YOU", size, TextAnchor.UpperCenter);
 
-            // The run's own numbers, then the numbers to beat. Without the second line the first is
-            // just a record of losing.
-            int summary = Mathf.Max(16, Mathf.RoundToInt(Screen.height * 0.045f));
-            DrawLabel(new Rect(0f, Screen.height * 0.44f, Screen.width, summary * 2f),
-                $"{floor} FLOORS    {RelicMark} {relics}    {FormatTime(elapsedSeconds)}", summary,
-                TextAnchor.UpperCenter);
+            // Each figure gets its own labelled row. Three bare numbers on one line — "3  2  01:14"
+            // — never said which was which, and the relic glyph explained nothing on its own.
+            int row = Mathf.Max(15, Mathf.RoundToInt(Screen.height * 0.040f));
+            float top = Screen.height * 0.40f;
+            float step = row * 1.65f;
+            DrawStatRow(top, row, "REACHED", $"FLOOR {floor}");
+            DrawStatRow(top + step, row, "RELICS FOUND", relics.ToString());
+            DrawStatRow(top + step * 2f, row, "SURVIVED", FormatTime(elapsedSeconds));
 
+            // The record is submitted before this screen is drawn, so on a best run the "best" line
+            // repeated the run's own numbers and read as the same thing printed twice. When the run
+            // IS the record, say that instead of restating it.
+            bool runIsTheRecord = bestFloors <= floor && bestRelics <= relics;
             int best = Mathf.Max(13, Mathf.RoundToInt(Screen.height * 0.032f));
-            DrawLabel(new Rect(0f, Screen.height * 0.53f, Screen.width, best * 2f),
-                $"BEST    {Mathf.Max(bestFloors, floor)} FLOORS    {RelicMark} {Mathf.Max(bestRelics, relics)}",
-                best, TextAnchor.UpperCenter);
+            DrawLabel(new Rect(0f, top + step * 3.3f, Screen.width, best * 2f),
+                runIsTheRecord
+                    ? "NEW BEST"
+                    : $"BEST SO FAR    FLOOR {bestFloors}    {bestRelics} RELICS",
+                best, TextAnchor.UpperCenter,
+                runIsTheRecord
+                    ? RelicColor
+                    : new Color(TextColor.r, TextColor.g, TextColor.b, 0.65f));
 
             int hint = Mathf.Max(14, Mathf.RoundToInt(Screen.height * 0.035f));
-            DrawLabel(new Rect(0f, Screen.height * 0.66f, Screen.width, hint * 2f),
+            DrawLabel(new Rect(0f, Screen.height * 0.70f, Screen.width, hint * 2f),
                 "TAP OR CLICK TO TRY AGAIN", hint, TextAnchor.UpperCenter);
+        }
+
+        /// <summary>
+        /// Draws one statistic as a centred two-column row: a dim label on the left of the middle,
+        /// its value on the right, so the pairing is unambiguous.
+        /// </summary>
+        /// <param name="y">Top of the row in pixels.</param>
+        /// <param name="size">Font size for the row.</param>
+        /// <param name="label">What the number means.</param>
+        /// <param name="value">The number itself.</param>
+        private static void DrawStatRow(float y, int size, string label, string value)
+        {
+            float gap = size * 0.7f;
+            float half = Screen.width * 0.5f;
+
+            DrawLabel(new Rect(0f, y, half - gap, size * 1.5f), label, size, TextAnchor.UpperRight,
+                new Color(TextColor.r, TextColor.g, TextColor.b, 0.6f));
+            DrawLabel(new Rect(half + gap, y, half - gap, size * 1.5f), value, size,
+                TextAnchor.UpperLeft);
         }
 
         /// <summary>
@@ -149,7 +179,7 @@ namespace Backrooms.UIManager.Internal
 
             if (bestFloors <= 0) return;
             DrawLabel(new Rect(0f, Screen.height * 0.76f, Screen.width, hint * 2f),
-                $"BEST    {bestFloors} FLOORS    {RelicMark} {bestRelics}", hint,
+                $"BEST    FLOOR {bestFloors}    {bestRelics} RELICS", hint,
                 TextAnchor.UpperCenter, new Color(TextColor.r, TextColor.g, TextColor.b, 0.7f));
         }
 

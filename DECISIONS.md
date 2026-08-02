@@ -545,3 +545,29 @@ found to answer "is any sound actually coming out" from outside the engine. Vali
 control tone first — an untapped graph and a silent game both read zero, and an earlier attempt that
 hooked `AudioNode.connect` was silently blind (`destConnects: 0`).
 
+## 2026-08-02 — D43. The end screen names its numbers, and states the record once
+
+**Decided:** the caught screen lists three labelled rows — REACHED / RELICS FOUND / SURVIVED — as a
+centred two-column table, and the record line reads "NEW BEST" when the run just set it instead of
+restating the same figures.
+**Why:** user report — the numbers were cryptic and "it looks like it's double". Both were real. The
+run summary was three bare figures on one line (`3  ✦ 2  01:14`) with nothing saying which was which,
+and the relic glyph explained nothing on its own.
+**The doubling was structural, not cosmetic.** `_record.Submit(...)` runs *before* `ShowCaught(...)`,
+so on a record run the "BEST" line was fed the numbers the run had just written — the screen printed
+the same thing twice, one line under the other, in near-identical shape. Showing "NEW BEST" instead
+is the only way to say it once and still say something.
+
+## 2026-08-02 — D44. Adding the title screen silently blinded the HUD look test
+
+**Found:** `UIRouter.TitleShown` defaults to `true` and `OnGUI` returns early while it is set, so from
+the moment the title screen landed, **every** frame `HudLookTests` captured was the title screen —
+the pursuit warning, the powers list and the end screen all went unphotographed while the test kept
+passing. The end screen had therefore never actually been looked at.
+**Fixed:** the test calls `HideTitle()` before capturing anything.
+**The general trap:** a look test asserts almost nothing, so anything that draws over its subject
+turns it into a test that photographs the wrong thing and stays green forever. This is the third
+class of bug in this project that only a rendered frame could catch, and the first where the capture
+itself was the thing that broke. **When adding any full-screen state, check what the look tests are
+actually photographing afterwards.**
+
