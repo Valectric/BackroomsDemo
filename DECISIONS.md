@@ -639,3 +639,21 @@ uniform draw — a clear bias that is still a draw. Anything already carried get
 impossible. They now use a `PlaceKind` seam on the TestFacade — a test for the Ward should not have
 to roll dice until it gets one.
 
+## 2026-08-02 — D49. Ten relics a floor, and the floor's own relic at 60% (refines D48)
+
+**Decided:** `round(waysDown × 10/3)` — ten relics on a normal three-exit floor — and the kind that
+peaks on that floor is weighted **×4 at distance zero only**.
+**Measured:** exactly 10.0 relics per floor; the floor's own relic lands **60–61%** of the time, the
+two neighbours ~8.4% each, then ~6% and ~5%.
+**Why the multiplier is applied at distance zero and not to `Peak`:** scaling `Peak` scales the whole
+curve, so every kind's weight grows together and the *share* barely moves — raising `Peak` from 8 to
+32 shifts the favourite from 27.8% to only 30.5%. What makes a floor read as being about one relic is
+the gap, not the height.
+**Kept as a ratio, not a flat ten,** so a floor with more exits — a bigger floor — carries more.
+**Known consequence, accepted deliberately:** with ten relics drawn independently and a 60% peak,
+about six of a floor's ten are the same kind. Placement excludes what the player has *collected*, not
+what it has already put down on this floor, so duplicates are expected rather than incidental. With
+seven kinds and ten relics some repetition is unavoidable by pigeonhole; at 60% it is the norm. Left
+as-is because the count and the bias were both asked for explicitly and de-duplicating within a floor
+would undo the bias it was asked to strengthen.
+
