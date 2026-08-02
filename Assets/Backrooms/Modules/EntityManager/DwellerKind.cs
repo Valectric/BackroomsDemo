@@ -20,6 +20,23 @@ namespace Backrooms.EntityManager
     }
 
     /// <summary>
+    /// The rule a Dweller moves by. Speed alone made the kinds interchangeable — a faster one and a
+    /// slower one are the same encounter at two tempos — so each kind now plays by a rule the player
+    /// can learn and then use against it.
+    /// </summary>
+    public enum DwellerMovement
+    {
+        /// <summary>Walks at you. The baseline the other two are read against.</summary>
+        Steady = 0,
+
+        /// <summary>Only moves while you are not looking at it, and is faster than you can run.</summary>
+        Freezes = 1,
+
+        /// <summary>Creeps, stops, flashes a warning, then throws itself at you in a straight line.</summary>
+        Charges = 2
+    }
+
+    /// <summary>
     /// What makes one kind of Dweller different from another: how it moves, how far it senses, and
     /// what it looks like. Held as data rather than as subclasses so the differences are all visible
     /// in one table and a designer can read the whole roster at a glance.
@@ -65,6 +82,28 @@ namespace Backrooms.EntityManager
 
         /// <summary>How many eyes open when it hunts.</summary>
         public int EyeCount { get; }
+
+        /// <summary>The rule this kind moves by.</summary>
+        public DwellerMovement Movement { get; set; } = DwellerMovement.Steady;
+
+        /// <summary>
+        /// Metres per second while unobserved, for a kind that freezes when watched. Deliberately
+        /// above the player's sprint: a freezer that could be outrun would make looking at it
+        /// optional, and the rule would be decoration rather than a threat.
+        /// </summary>
+        public float UnobservedSpeed { get; set; }
+
+        /// <summary>Metres per second while creeping, for a kind that charges.</summary>
+        public float StalkSpeed { get; set; }
+
+        /// <summary>Metres per second during the charge itself.</summary>
+        public float ChargeSpeed { get; set; }
+
+        /// <summary>How long it stands still and flashes before committing, in seconds.</summary>
+        public float WindUpSeconds { get; set; } = 1.5f;
+
+        /// <summary>How many warning flashes it gives during the wind-up.</summary>
+        public int WindUpBlinks { get; set; } = 3;
 
         /// <summary>Radius of one eye in metres.</summary>
         public float EyeSize { get; }
@@ -135,7 +174,13 @@ namespace Backrooms.EntityManager
                 lurking: new Color(0.62f, 0.60f, 0.55f),
                 hunting: new Color(0.74f, 0.72f, 0.66f),
                 glow: new Color(0.55f, 0.85f, 1f),
-                eyes: 2, eyeSize: 0.15f),
+                eyes: 2, eyeSize: 0.15f)
+            {
+                // Stands perfectly still while you look at it and covers ground the moment you do
+                // not. 20% faster than a sprint, so the answer is never to simply run.
+                Movement = DwellerMovement.Freezes,
+                UnobservedSpeed = 6.72f
+            },
 
             new DwellerArchetype(DwellerKind.Skitter, "SKITTER",
                 // Lurks slowly and nearly blind, then bursts: the fastest of the three once it has
@@ -146,6 +191,16 @@ namespace Backrooms.EntityManager
                 hunting: new Color(0.26f, 0.08f, 0.04f),
                 glow: new Color(1f, 0.72f, 0.18f),
                 eyes: 4, eyeSize: 0.075f)
+            {
+                // Barely moves until it can see you, then stops dead, flashes three times, and runs
+                // at twice your sprint in a straight line. The flashes are the whole point: it tells
+                // you exactly what it is about to do and dares you to be somewhere else.
+                Movement = DwellerMovement.Charges,
+                StalkSpeed = 1.05f,
+                ChargeSpeed = 11.2f,
+                WindUpSeconds = 1.5f,
+                WindUpBlinks = 3
+            }
         };
 
         /// <summary>How many distinct kinds exist.</summary>

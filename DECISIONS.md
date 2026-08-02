@@ -780,3 +780,34 @@ saying so.
 no business knowing what a relic is. The first attempt put it on `AudioFacade` and failed to compile,
 which is the asmdef graph doing its job.
 
+## 2026-08-02 — D58. Each Dweller kind moves by its own rule
+
+**Decided:** movement style is per-kind, in a `DwellerGait` the facade defers to:
+- **Lurker — Steady.** Walks at you. The baseline the other two are read against, and still bound by
+  the old contract: faster than a walk, slower than a sprint.
+- **Watcher — Freezes.** Stands perfectly still while the player looks at it, and moves at
+  **6.72 m/s** when they do not — 20% above a sprint. Measured: 0.00 watched, 6.72 unseen.
+- **Skitter — Charges.** Creeps at 1.05 m/s until it has line of sight, stops dead, flashes red
+  three times over 1.5 s, then runs the committed line at **11.2 m/s** — twice a sprint. Measured:
+  4 flashes, peak 11.20 m/s.
+
+**Why rules and not numbers:** speed alone never made the kinds feel different. A faster Dweller and a
+slower one are the same encounter at two tempos — you back away from both and only the duration
+changes. A rule is something the player can *learn and then exploit*, which is what makes an
+encounter a decision.
+
+**Each is unfair in a way that has an answer, and the answers differ.** The freezer must be faster
+than a sprint or looking at it is optional and the rule is decoration; the charger must be
+unoutrunnable mid-charge or the charge is a jog. Both are only fair because of what they give you
+first: the freezer gives you complete control while you watch it, the charger tells you exactly what
+it is about to do and dares you to be elsewhere.
+
+**The old speed test had to change,** and this is the important part. `HuntingSpeed_CatchesAWalker_
+ButNotASprinter` asserted every kind sits below a sprint. It **still passed** after this change,
+because it read `ChaseMultiplier` while the new speeds live in different fields — a green test
+asserting something no longer true. It is now `EveryKind_HasAnAnswer_ButNotTheSameOne`, which
+branches on the movement rule and states the contract each style actually owes the player.
+
+**A charge leaves the grid** and must tell the router where it ended (`SnapTo`), or the next path
+step is computed from the cell it occupied before the charge and it walks back the way it came.
+

@@ -69,6 +69,21 @@ namespace Backrooms.EntityManager.Internal
         }
 
         /// <summary>
+        /// Puts the Dweller's grid position where its body actually is.
+        /// </summary>
+        /// <remarks>
+        /// A charge leaves the grid and moves in a straight line, so the pathing has to be told where
+        /// it ended up. Without this the next path step is computed from the cell it occupied before
+        /// the charge and it walks back the way it came.
+        /// </remarks>
+        /// <param name="cell">The cell the body now occupies.</param>
+        public void SnapTo(Vector2Int cell)
+        {
+            Cell = cell;
+            TargetCell = cell;
+        }
+
+        /// <summary>
         /// Picks the next cell to move into, chasing the player or wandering.
         /// </summary>
         /// <param name="playerCell">The player's cell.</param>
