@@ -43,7 +43,9 @@ namespace Backrooms.MazeManager.Tests
 
             var mazeGo = new GameObject("MazeManager");
             MazeFacade maze = mazeGo.AddComponent<MazeFacade>();
-            maze.GenerateAndBuild(floor * 977, theme);
+            // Floor 1 ships with no ways up, so it must be photographed with none either —
+            // a capture generated differently from the game is a picture of a game nobody plays.
+            maze.GenerateAndBuild(floor * 977, theme, hasFloorAbove: floor > 1);
 
             MazeLayout layout = maze.CurrentLayout;
             float span = layout.Width * layout.CellSize;

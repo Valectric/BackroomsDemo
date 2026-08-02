@@ -366,7 +366,9 @@ namespace Backrooms.Gameplay
         private FloorTheme BuildFloor()
         {
             FloorTheme theme = FloorThemes.ForFloor(CurrentFloor);
-            maze.GenerateAndBuild(seed + CurrentFloor * 977, theme);
+            // Floor 1 is where the player noclipped in, so it has nothing above it to climb to and
+            // shows no ways up. Every floor below emerges from one.
+            maze.GenerateAndBuild(seed + CurrentFloor * 977, theme, hasFloorAbove: CurrentFloor > 1);
             FloorAtmosphere.Apply(theme);
 
             _director.PopulateFloor(maze.CurrentLayout, CurrentFloor, player.transform,
@@ -487,9 +489,11 @@ namespace Backrooms.Gameplay
                 return;
             }
 
-            // Climbing is only possible from the second floor down. Floor 1 is where the player
-            // noclipped in; there is nothing above it to climb back to.
-            if (CurrentFloor <= 1) return;
+            // Climb only where the floor actually carries a way up. Asking by floor number would
+            // work too, but NearestStairsUp answers "the cell you are standing in" when there are
+            // none — which reads as zero distance and would ascend on the spot. Guarding on the data
+            // that decides whether a riser was built keeps the two from ever disagreeing.
+            if (CurrentFloor <= 1 || maze.CurrentLayout.StairsUp.Count == 0) return;
 
             Vector3 up = maze.GetNearestStairsUpPosition(player.Position);
             float toUp = Vector3.Distance(

@@ -81,8 +81,11 @@ namespace Backrooms.MazeManager.Internal.Generation
             Braid(cells, w, h, settings, rng);
 
             StairPlanner.Plan stairs = _stairs.PlanFloor(cells, w, h, settings.StairCount, rng);
-            return new MazeLayout(w, h, cells, stairs.Arrival, stairs.Down, stairs.Up,
-                settings.CellSize);
+
+            // The arrival cell is still where the player appears on a floor with no ways up — it is
+            // simply a spot on the floor rather than the foot of a staircase.
+            Vector2Int[] up = settings.HasFloorAbove ? stairs.Up : System.Array.Empty<Vector2Int>();
+            return new MazeLayout(w, h, cells, stairs.Arrival, stairs.Down, up, settings.CellSize);
         }
 
         /// <summary>
