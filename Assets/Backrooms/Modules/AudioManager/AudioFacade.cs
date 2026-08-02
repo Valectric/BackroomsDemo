@@ -77,6 +77,28 @@ namespace Backrooms.AudioManager
             => _router.TickFootsteps(moving, sprinting, Time.deltaTime);
 
         /// <summary>
+        /// Loads the thematic ambience for a floor.
+        /// </summary>
+        /// <param name="key">Ambience folder under Resources, matching the theme's prop style.</param>
+        /// <param name="seed">Seed, so a floor's ambience is the same every time it is built.</param>
+        public void SetAmbience(string key, int seed) => _router.SetAmbience(key, seed);
+
+        /// <summary>
+        /// Advances the ambience schedule for a frame.
+        /// </summary>
+        /// <param name="deltaTime">Seconds since the last update.</param>
+        public void TickAmbience(float deltaTime) => _router.TickAmbience(deltaTime);
+
+        /// <summary>How many ambient clips the current floor has.</summary>
+        public int AmbienceCount => _router.AmbienceCount;
+
+        /// <summary>Seconds until the next ambient one-shot.</summary>
+        public float NextAmbienceIn => _router.NextAmbienceIn;
+
+        /// <summary>The pursuit level with the pulse removed.</summary>
+        public float HuntLevel => _router.HuntLevel;
+
+        /// <summary>
         /// Plays the relic pickup chime.
         /// </summary>
         public void PlayRelic() => _router.PlayRelic();

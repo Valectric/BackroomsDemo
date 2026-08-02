@@ -316,7 +316,11 @@ namespace Backrooms.UIManager.Internal
                 return;
             }
 
-            if (MapShown) _renderer.DrawMap(Map, MapPlayer, MapWindow, MapRelics);
+            // The carried list is drawn first because everything else along the top has to know
+            // where it ends.
+            float carriedBottom = _overlays.DrawCarried(_carriedLines, _carriedColours);
+
+            if (MapShown) _renderer.DrawMap(Map, MapPlayer, MapWindow, MapRelics, carriedBottom);
 
             // The pursuit warning is drawn under the arrival banner but over the status line, and
             // stays visible during the banner — arriving on a floor next to a Dweller is exactly when
@@ -325,8 +329,7 @@ namespace Backrooms.UIManager.Internal
 
             _overlays.DrawPadHints(HintStrength);
 
-            _overlays.DrawCompass(_compass);
-            _overlays.DrawCarried(_carriedLines, _carriedColours);
+            _overlays.DrawCompass(_compass, carriedBottom);
 
             _renderer.DrawStatus(ElapsedSeconds, Floor, Relics);
             if (BannerShown) _renderer.DrawFloorBanner(Floor, FloorName);

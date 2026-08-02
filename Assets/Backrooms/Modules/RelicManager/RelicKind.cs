@@ -101,7 +101,7 @@ namespace Backrooms.RelicManager
                 "An arrow now points at the nearest relic",
                 new Color(0.72f, 0.42f, 1f), isCompass: true, charges: 0),
 
-            new RelicArchetype(RelicKind.Ward, "WARD",
+            new RelicArchetype(RelicKind.Ward, "DEFENSE WARD",
                 "It will take one Dweller for you, once",
                 new Color(1f, 0.92f, 0.55f), isCompass: false, charges: 1),
 

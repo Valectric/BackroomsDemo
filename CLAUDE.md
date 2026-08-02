@@ -53,6 +53,7 @@ Assets/Backrooms/
     UIManager/              HUD (IMGUI): floor, timer, banners
   Editor/                   scene builder, WebGL builder, Kenney import, prop catalogue
 ThirdParty/Kenney/          CC0 furniture (committed on purpose)
+ThirdParty/FreesoundCC0/    CC0 per-floor ambience; Resources/Ambience/<PropStyle>/
 ```
 
 ## Working loop

@@ -57,8 +57,9 @@ namespace Backrooms.UIManager.Internal
         /// <param name="player">Player position as a fraction of the floor in each axis.</param>
         /// <param name="window">Fraction of the floor to show around the player.</param>
         /// <param name="relics">Uncollected relics as fractions of the floor.</param>
+        /// <param name="topEdge">Bottom of whatever is above the map, in pixels.</param>
         public void DrawMap(Texture2D map, Vector2 player, float window,
-            IReadOnlyList<Vector2> relics)
+            IReadOnlyList<Vector2> relics, float topEdge = 0f)
         {
             if (map == null) return;
 
@@ -66,8 +67,9 @@ namespace Backrooms.UIManager.Internal
             int margin = Mathf.Max(10, Mathf.RoundToInt(Screen.height * 0.03f));
 
             // Below the compass band, which runs across the top: at the right-hand end the two
-            // overlapped and the map sat on top of an arrow's distance label.
-            float top = Screen.height * 0.17f;
+            // overlapped and the map sat on top of an arrow's distance label. The band itself moves
+            // down when the player is carrying a lot, so the map follows it rather than assuming.
+            float top = Mathf.Max(Screen.height * 0.17f, topEdge + Screen.height * 0.10f);
             var frame = new Rect(Screen.width - size - margin, top, size, size);
 
             // Clamped so the window stops at the floor's edge instead of sliding off it, which would
