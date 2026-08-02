@@ -25,6 +25,19 @@ namespace Backrooms.RelicManager.Internal
         /// <summary>Relics the player is carrying, and how many uses each has left.</summary>
         private readonly Dictionary<RelicKind, int> _held = new Dictionary<RelicKind, int>();
 
+        /// <summary>
+        /// Cells still holding an uncollected relic, in placement order.
+        /// </summary>
+        /// <remarks>
+        /// Kept alongside the dictionary rather than derived from it on demand, because the map reads
+        /// this every frame and enumerating a dictionary into a fresh list sixty times a second is
+        /// garbage for nothing.
+        /// </remarks>
+        private readonly List<Vector2Int> _remaining = new List<Vector2Int>();
+
+        /// <summary>Cells that still hold an uncollected relic.</summary>
+        public IReadOnlyList<Vector2Int> RemainingCells => _remaining;
+
         /// <summary>The kind collected by the most recent successful collect.</summary>
         public RelicKind LastCollected { get; private set; }
 
@@ -62,6 +75,7 @@ namespace Backrooms.RelicManager.Internal
             {
                 RelicKind kind = PickUnheld(floor, kindRng);
                 _kinds[cell] = kind;
+                _remaining.Add(cell);
                 _standing[cell] = _builder.Build(layout, cell, RelicArchetypes.For(kind), parent);
                 placed.Add(cell);
             }
@@ -95,6 +109,7 @@ namespace Backrooms.RelicManager.Internal
             foreach (Vector2Int cell in _planner.Plan(layout, 1, new System.Random(seed)))
             {
                 _kinds[cell] = kind;
+                _remaining.Add(cell);
                 _standing[cell] = _builder.Build(layout, cell, RelicArchetypes.For(kind), parent);
                 placed.Add(cell);
             }
@@ -214,6 +229,7 @@ namespace Backrooms.RelicManager.Internal
 
             if (collected != null) Object.Destroy(collected);
             _standing.Remove(reached);
+            _remaining.Remove(reached);
 
             RelicKind kind = _kinds.TryGetValue(reached, out RelicKind found) ? found : RelicKind.Ward;
             _kinds.Remove(reached);
@@ -274,6 +290,7 @@ namespace Backrooms.RelicManager.Internal
 
             _standing.Clear();
             _kinds.Clear();
+            _remaining.Clear();
         }
     }
 }

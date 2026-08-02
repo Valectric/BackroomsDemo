@@ -106,8 +106,10 @@ namespace Backrooms.UIManager
         /// <param name="map">Baked floor map, or null for none.</param>
         /// <param name="player">Player position as a fraction of the floor in each axis.</param>
         /// <param name="window">Fraction of the floor to show around the player.</param>
-        public void SetMap(Texture2D map, Vector2 player, float window)
-            => Router.SetMap(map, player, window);
+        /// <param name="relics">Uncollected relics as fractions of the floor, or null for none.</param>
+        public void SetMap(Texture2D map, Vector2 player, float window,
+            IReadOnlyList<Vector2> relics = null)
+            => Router.SetMap(map, player, window, relics);
 
         /// <summary>Whether the corner map is being drawn.</summary>
         public bool MapShown => Router.MapShown;

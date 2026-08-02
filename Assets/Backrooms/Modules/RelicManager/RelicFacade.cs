@@ -87,6 +87,9 @@ namespace Backrooms.RelicManager
         /// </summary>
         public void ResetRun() => _router.ResetRun();
 
+        /// <summary>Cells on this floor that still hold an uncollected relic.</summary>
+        public IReadOnlyList<Vector2Int> RemainingCells => _router.RemainingCells;
+
         /// <summary>The relic picked up by the most recent successful collect.</summary>
         public RelicKind LastCollected => _router.LastCollected;
 

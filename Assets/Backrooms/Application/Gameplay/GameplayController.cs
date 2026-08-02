@@ -204,6 +204,10 @@ namespace Backrooms.Gameplay
                 return;
             }
 
+            // Refreshed only when one is taken, rather than rebuilt every frame for a corner of the
+            // screen that changes ten times a floor.
+            if (_mapRelicCount != relics.RemainingCells.Count) RefreshMapRelics();
+
             MazeLayout layout = maze.CurrentLayout;
             Vector2Int cell = layout.WorldToCell(player.Position);
             var where = new Vector2(
@@ -212,8 +216,32 @@ namespace Backrooms.Gameplay
 
             // A window of roughly 20 cells across, whatever size the floor happens to be.
             float window = Mathf.Clamp01(MapWindowCells / (float)Mathf.Max(layout.Width, 1));
-            hud.SetMap(_map, where, window);
+            hud.SetMap(_map, where, window, _mapRelics);
         }
+
+        /// <summary>
+        /// Rebuilds the list of uncollected relic positions the map draws.
+        /// </summary>
+        private void RefreshMapRelics()
+        {
+            MazeLayout layout = maze.CurrentLayout;
+            _mapRelics.Clear();
+
+            foreach (Vector2Int cell in relics.RemainingCells)
+            {
+                _mapRelics.Add(new Vector2(
+                    (cell.x + 0.5f) / layout.Width,
+                    (cell.y + 0.5f) / layout.Height));
+            }
+
+            _mapRelicCount = _mapRelics.Count;
+        }
+
+        /// <summary>Uncollected relic positions the map draws, as fractions of the floor.</summary>
+        private readonly List<Vector2> _mapRelics = new List<Vector2>();
+
+        /// <summary>How many relics the map list was last built for.</summary>
+        private int _mapRelicCount = -1;
 
         /// <summary>How many cells across the corner map shows.</summary>
         private const float MapWindowCells = 20f;
@@ -412,6 +440,7 @@ namespace Backrooms.Gameplay
             // Baked once per floor rather than drawn per frame — see FloorMap.
             if (_map != null) Destroy(_map);
             _map = FloorMap.Build(maze.CurrentLayout);
+            _mapRelicCount = -1;
 
             return theme;
         }

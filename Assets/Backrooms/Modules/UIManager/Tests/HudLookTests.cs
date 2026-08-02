@@ -65,7 +65,13 @@ namespace Backrooms.UIManager.Tests
                     new Color(1f, 0.62f, 0.25f),
                     new Color(0.55f, 0.78f, 1f)
                 });
-            hud.SetMap(StandInMap(), new Vector2(0.42f, 0.55f), 20f / 24f);
+            hud.SetMap(StandInMap(), new Vector2(0.42f, 0.55f), 20f / 24f, new[]
+            {
+                new Vector2(0.30f, 0.44f),
+                new Vector2(0.55f, 0.62f),
+                new Vector2(0.47f, 0.30f),
+                new Vector2(0.62f, 0.50f)
+            });
             await Capture("hud-powers", ct);
 
             hud.SetHunted(true, 0.15f);

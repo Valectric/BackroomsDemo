@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Backrooms.UIManager.Internal
@@ -55,7 +56,9 @@ namespace Backrooms.UIManager.Internal
         /// <param name="map">Baked floor map.</param>
         /// <param name="player">Player position as a fraction of the floor in each axis.</param>
         /// <param name="window">Fraction of the floor to show around the player.</param>
-        public void DrawMap(Texture2D map, Vector2 player, float window)
+        /// <param name="relics">Uncollected relics as fractions of the floor.</param>
+        public void DrawMap(Texture2D map, Vector2 player, float window,
+            IReadOnlyList<Vector2> relics)
         {
             if (map == null) return;
 
@@ -82,16 +85,54 @@ namespace Backrooms.UIManager.Internal
             // Texture coordinates run bottom-up, and so does the maze grid, so no flip is needed.
             GUI.DrawTextureWithTexCoords(frame, map, new Rect(x, y, window, window));
 
+            float dotSize = Mathf.Max(5f, size * 0.045f);
+
+            // Relics first, so the player marker is never hidden under one they are standing on.
+            if (relics != null)
+            {
+                foreach (Vector2 relic in relics)
+                {
+                    if (relic.x < x || relic.x > x + window) continue;
+                    if (relic.y < y || relic.y > y + window) continue;
+
+                    DrawMarker(
+                        frame.x + (relic.x - x) / window * frame.width,
+                        frame.yMax - (relic.y - y) / window * frame.height,
+                        dotSize * 0.85f, RelicColor);
+                }
+            }
+
             // The player, drawn where they actually are inside the window rather than always at its
             // centre — at the floor's edge the window stops moving and they walk to the corner.
-            float dotSize = Mathf.Max(4f, size * 0.035f);
-            float px = frame.x + (player.x - x) / window * frame.width;
-            float py = frame.yMax - (player.y - y) / window * frame.height;
+            DrawMarker(
+                frame.x + (player.x - x) / window * frame.width,
+                frame.yMax - (player.y - y) / window * frame.height,
+                dotSize, new Color(1f, 0.35f, 0.3f));
 
-            GUI.color = new Color(1f, 0.35f, 0.3f);
-            GUI.DrawTexture(new Rect(px - dotSize * 0.5f, py - dotSize * 0.5f, dotSize, dotSize),
-                Texture2D.whiteTexture);
             GUI.color = previous;
+        }
+
+        /// <summary>
+        /// Draws one map marker: a dark square with a coloured one inside it.
+        /// </summary>
+        /// <remarks>
+        /// The backing is what makes it legible. The map is a pale beige, and a few violet pixels on
+        /// it read as noise at the size this sits on a phone.
+        /// </remarks>
+        /// <param name="centreX">Marker centre, in pixels.</param>
+        /// <param name="centreY">Marker centre, in pixels.</param>
+        /// <param name="size">Marker size in pixels.</param>
+        /// <param name="colour">Marker colour.</param>
+        private static void DrawMarker(float centreX, float centreY, float size, Color colour)
+        {
+            GUI.color = new Color(0.05f, 0.05f, 0.04f, 0.9f);
+            GUI.DrawTexture(
+                new Rect(centreX - size * 0.5f - 1f, centreY - size * 0.5f - 1f, size + 2f,
+                    size + 2f), Texture2D.whiteTexture);
+
+            GUI.color = colour;
+            GUI.DrawTexture(new Rect(centreX - size * 0.5f, centreY - size * 0.5f, size, size),
+                Texture2D.whiteTexture);
         }
 
         /// <summary>

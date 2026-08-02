@@ -657,3 +657,20 @@ seven kinds and ten relics some repetition is unavoidable by pigeonhole; at 60% 
 as-is because the count and the bias were both asked for explicitly and de-duplicating within a floor
 would undo the bias it was asked to strengthen.
 
+## 2026-08-02 — D50. Uncollected relics are drawn on the minimap (extends D47)
+
+**Decided:** the corner map marks every uncollected relic on the floor in violet, alongside the
+player in red and the ways down baked in green.
+**Why it changes what the Lens is for:** without relics the map only answered "where am I", which fog
+and the compass already half-answer. With them it answers "is that detour worth it" — which is the
+decision the whole relic system exists to pose.
+**Live, not baked.** The floor map texture is baked once per floor, but relics disappear as they are
+taken, so they are drawn as overlay markers instead. The list is rebuilt only when the remaining count
+changes — ten times a floor rather than sixty times a second — and the router keeps its own list
+alongside the dictionary so nothing enumerates a dictionary into a fresh list every frame.
+**Markers need a dark backing.** A few violet pixels on a pale beige map read as noise at the size
+this sits on a phone. Caught by reading the capture, which is also why the look test now supplies
+relic positions — a marker feature photographed with no markers proves nothing.
+**Trap hit again, worth restating:** `force-recompile` printed `[PASS]` on a file that did not
+compile (a missing `using System.Collections.Generic;`). Only running a test surfaced it.
+

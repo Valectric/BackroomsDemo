@@ -72,18 +72,24 @@ namespace Backrooms.UIManager.Internal
         /// <summary>Whether the map is being shown.</summary>
         public bool MapShown { get; private set; }
 
+        /// <summary>Uncollected relics, as fractions of the floor in each axis.</summary>
+        public IReadOnlyList<Vector2> MapRelics { get; private set; } = new Vector2[0];
+
         /// <summary>
         /// Sets the corner map. Passing a null texture hides it.
         /// </summary>
         /// <param name="map">Baked floor map, or null for none.</param>
         /// <param name="player">Player position as a fraction of the floor in each axis.</param>
         /// <param name="window">Fraction of the floor to show around the player.</param>
-        public void SetMap(Texture2D map, Vector2 player, float window)
+        /// <param name="relics">Uncollected relics as fractions of the floor, or null for none.</param>
+        public void SetMap(Texture2D map, Vector2 player, float window,
+            IReadOnlyList<Vector2> relics = null)
         {
             Map = map;
             MapPlayer = player;
             MapWindow = Mathf.Clamp(window, 0.05f, 1f);
             MapShown = map != null;
+            MapRelics = relics ?? new Vector2[0];
         }
 
         /// <summary>
@@ -310,7 +316,7 @@ namespace Backrooms.UIManager.Internal
                 return;
             }
 
-            if (MapShown) _renderer.DrawMap(Map, MapPlayer, MapWindow);
+            if (MapShown) _renderer.DrawMap(Map, MapPlayer, MapWindow, MapRelics);
 
             // The pursuit warning is drawn under the arrival banner but over the status line, and
             // stays visible during the banner — arriving on a floor next to a Dweller is exactly when
