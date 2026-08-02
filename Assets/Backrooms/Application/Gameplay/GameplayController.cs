@@ -190,7 +190,36 @@ namespace Backrooms.Gameplay
             }
 
             hud.SetCarried(_carriedLines, _carriedColours);
+            ReportMap();
         }
+
+        /// <summary>
+        /// Feeds the HUD the corner map, when the player is carrying the relic that draws one.
+        /// </summary>
+        private void ReportMap()
+        {
+            if (!relics.Holds(RelicKind.SurveyorsLens) || maze.CurrentLayout == null)
+            {
+                hud.SetMap(null, Vector2.zero, 1f);
+                return;
+            }
+
+            MazeLayout layout = maze.CurrentLayout;
+            Vector2Int cell = layout.WorldToCell(player.Position);
+            var where = new Vector2(
+                (cell.x + 0.5f) / layout.Width,
+                (cell.y + 0.5f) / layout.Height);
+
+            // A window of roughly 20 cells across, whatever size the floor happens to be.
+            float window = Mathf.Clamp01(MapWindowCells / (float)Mathf.Max(layout.Width, 1));
+            hud.SetMap(_map, where, window);
+        }
+
+        /// <summary>How many cells across the corner map shows.</summary>
+        private const float MapWindowCells = 20f;
+
+        /// <summary>The current floor's baked map, rebuilt whenever the floor is.</summary>
+        private Texture2D _map;
 
         /// <summary>
         /// Collects a relic if the player has reached one, and says so.
@@ -375,10 +404,15 @@ namespace Backrooms.Gameplay
                 dwellerBaseSpeed + (CurrentFloor - 1) * dwellerSpeedPerFloor, seed);
             if (relics != null)
             {
-                relics.PlaceForFloor(maze.CurrentLayout, seed + CurrentFloor * 613, CurrentFloor - 1);
+                relics.PlaceForFloor(maze.CurrentLayout, seed + CurrentFloor * 613, CurrentFloor);
             }
 
             if (audioModule != null) audioModule.SetFloor(CurrentFloor);
+
+            // Baked once per floor rather than drawn per frame — see FloorMap.
+            if (_map != null) Destroy(_map);
+            _map = FloorMap.Build(maze.CurrentLayout);
+
             return theme;
         }
 

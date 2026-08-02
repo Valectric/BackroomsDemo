@@ -65,6 +65,7 @@ namespace Backrooms.UIManager.Tests
                     new Color(1f, 0.62f, 0.25f),
                     new Color(0.55f, 0.78f, 1f)
                 });
+            hud.SetMap(StandInMap(), new Vector2(0.42f, 0.55f), 20f / 24f);
             await Capture("hud-powers", ct);
 
             hud.SetHunted(true, 0.15f);
@@ -83,6 +84,57 @@ namespace Backrooms.UIManager.Tests
             await Capture("hud-caught-record", ct);
 
             Assert.IsTrue(hud.CaughtShown, "the caught screen should be the one photographed last");
+        }
+
+        /// <summary>
+        /// Builds a stand-in floor map: a grid of rooms, so the corner map can be judged for size,
+        /// placement and whether the player marker lands where it should.
+        /// </summary>
+        /// <returns>A map-shaped texture.</returns>
+        private static Texture2D StandInMap()
+        {
+            const int cells = 24;
+            const int px = 8;
+            var map = new Texture2D(cells * px, cells * px, TextureFormat.RGBA32, mipChain: false)
+            {
+                filterMode = FilterMode.Point,
+                wrapMode = TextureWrapMode.Clamp
+            };
+
+            var pixels = new Color32[map.width * map.height];
+            for (int y = 0; y < map.height; y++)
+            {
+                for (int x = 0; x < map.width; x++)
+                {
+                    bool wall = x % px == 0 || y % px == 0;
+                    pixels[y * map.width + x] = wall
+                        ? new Color32(18, 17, 14, 235)
+                        : new Color32(196, 190, 168, 190);
+                }
+            }
+
+            map.SetPixels32(pixels);
+            map.Apply();
+            return map;
+        }
+
+        /// <summary>
+        /// The corner map must appear only when something has supplied one, so a player without the
+        /// relic gets no map rather than an empty frame in the corner.
+        /// </summary>
+        [Test]
+        public void CornerMap_ShowsOnlyWhenAMapIsSupplied()
+        {
+            var hudGo = new GameObject("Hud");
+            HudFacade hud = hudGo.AddComponent<HudFacade>();
+
+            Assert.IsFalse(hud.MapShown, "nothing has supplied a map yet");
+
+            hud.SetMap(StandInMap(), new Vector2(0.5f, 0.5f), 0.8f);
+            Assert.IsTrue(hud.MapShown, "a supplied map should be drawn");
+
+            hud.SetMap(null, Vector2.zero, 1f);
+            Assert.IsFalse(hud.MapShown, "dropping the relic should take the map away");
         }
 
         /// <summary>

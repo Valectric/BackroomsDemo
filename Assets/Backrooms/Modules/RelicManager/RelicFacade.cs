@@ -38,10 +38,10 @@ namespace Backrooms.RelicManager
         /// </summary>
         /// <param name="layout">The floor to place on.</param>
         /// <param name="seed">Seed for deterministic placement.</param>
-        /// <param name="firstKind">Index into the roster for this floor's relic.</param>
+        /// <param name="floor">One-based floor number, which decides what the floor tends to offer.</param>
         /// <returns>The cells that received a relic.</returns>
-        public List<Vector2Int> PlaceForFloor(MazeLayout layout, int seed, int firstKind = 0)
-            => _router.Place(layout, RelicsFor(layout), seed, firstKind, transform);
+        public List<Vector2Int> PlaceForFloor(MazeLayout layout, int seed, int floor = 1)
+            => _router.Place(layout, RelicsFor(layout), seed, floor, transform);
 
         /// <summary>
         /// How many relics a floor should carry: one per way down unless the scene pins a number.
@@ -58,12 +58,21 @@ namespace Backrooms.RelicManager
         private int RelicsFor(MazeLayout layout)
         {
             if (relicsPerFloor > 0) return relicsPerFloor;
-            return layout == null || layout.Stairs.Count == 0 ? DefaultRelicsPerFloor
+
+            int waysDown = layout == null || layout.Stairs.Count == 0
+                ? DefaultWaysDown
                 : layout.Stairs.Count;
+            return Mathf.Max(1, Mathf.RoundToInt(waysDown * RelicsPerWayDown));
         }
 
-        /// <summary>Relics to place when a floor somehow reports no ways down.</summary>
-        private const int DefaultRelicsPerFloor = 3;
+        /// <summary>Ways down assumed when a floor somehow reports none.</summary>
+        private const int DefaultWaysDown = 3;
+
+        /// <summary>
+        /// Relics per way down. Above one so a floor carries a little more than its stairwells —
+        /// one relic per exit left long stretches with nothing to find.
+        /// </summary>
+        private const float RelicsPerWayDown = 1.4f;
 
         /// <summary>
         /// Collects a relic if the player has reached one.

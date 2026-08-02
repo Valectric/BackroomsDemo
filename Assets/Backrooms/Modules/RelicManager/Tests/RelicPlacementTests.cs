@@ -177,6 +177,87 @@ namespace Backrooms.RelicManager.Tests
         }
 
         /// <summary>
+        /// A floor must carry noticeably more relics than it has ways down, so a run is not long
+        /// stretches of nothing between exits.
+        /// </summary>
+        [Test]
+        public void AFloor_CarriesMoreRelicsThanWaysDown()
+        {
+            var go = new GameObject("Relics");
+            RelicFacade relics = go.AddComponent<RelicFacade>();
+
+            for (int seed = 0; seed < 8; seed++)
+            {
+                MazeLayout layout = NewFloor(seed);
+                relics.ResetRun();
+                List<Vector2Int> placed = relics.PlaceForFloor(layout, seed, floor: 1);
+
+                int expected = Mathf.RoundToInt(layout.Stairs.Count * 1.4f);
+                Assert.Greater(layout.Stairs.Count, 1,
+                    $"seed {seed}: the floor should have several ways down");
+                Assert.AreEqual(expected, placed.Count,
+                    $"seed {seed}: a floor should carry 40% more relics than ways down");
+            }
+        }
+
+        /// <summary>
+        /// Each floor must actually hand out the relic it is supposed to be about: a Ward on the
+        /// first floor, and the relic that finds relics on the fourth.
+        /// </summary>
+        /// <remarks>
+        /// Weights are only an intention — this measures what a player is actually offered, over
+        /// many seeds, which is the thing that can silently disagree with the table.
+        /// </remarks>
+        [Test]
+        public void TheFirstFloorFavoursTheWard_AndTheFourthFavoursTheCharm()
+        {
+            Assert.AreEqual(RelicKind.Ward, MostOfferedOn(1),
+                "the first floor should mostly hand out a Ward");
+            Assert.AreEqual(RelicKind.HoarderCharm, MostOfferedOn(4),
+                "the fourth floor should mostly hand out the relic that finds relics");
+
+            // The roster is finite and the dungeon is not, so the pattern comes back around.
+            Assert.AreEqual(RelicKind.Ward, MostOfferedOn(8),
+                "floor 8 should read like floor 1 again");
+        }
+
+        /// <summary>
+        /// The kind a floor offers most often, sampled over many seeds with nothing already carried.
+        /// </summary>
+        /// <param name="floor">One-based floor number.</param>
+        /// <returns>The most frequently offered kind.</returns>
+        private static RelicKind MostOfferedOn(int floor)
+        {
+            (RelicFacade facade, RelicManagerTestFacade relics) = NewRelics();
+            var parent = new GameObject("RelicRoot").transform;
+            MazeLayout layout = NewFloor(4);
+
+            var tally = new Dictionary<RelicKind, int>();
+            const int samples = 240;
+            for (int seed = 0; seed < samples; seed++)
+            {
+                facade.ResetRun();
+                List<Vector2Int> placed = relics.Place(layout, 1, seed, floor, parent);
+                relics.TryCollect(layout.CellCenterToWorld(placed[0]), 1.6f);
+
+                RelicKind offered = relics.LastCollected;
+                tally[offered] = tally.TryGetValue(offered, out int n) ? n + 1 : 1;
+            }
+
+            RelicKind best = RelicKind.Ward;
+            int bestCount = -1;
+            foreach (KeyValuePair<RelicKind, int> entry in tally)
+            {
+                if (entry.Value <= bestCount) continue;
+                bestCount = entry.Value;
+                best = entry.Key;
+            }
+
+            MooseRunnerFacade.Log($"floor {floor}: {best} offered {bestCount}/{samples}");
+            return best;
+        }
+
+        /// <summary>
         /// Two relics on one floor must land in different places, or the second is pointless.
         /// </summary>
         [Test]

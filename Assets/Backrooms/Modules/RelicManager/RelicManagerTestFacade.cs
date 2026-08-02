@@ -37,8 +37,29 @@ namespace Backrooms.RelicManager
         /// <param name="seed">Seed for deterministic placement.</param>
         /// <param name="parent">Transform to parent the relics under.</param>
         /// <returns>The cells that received a relic.</returns>
+/// <summary>
+        /// Places a single relic of a named kind, for tests about what a relic does rather than
+        /// which one a floor offers.
+        /// </summary>
+        /// <param name="layout">The floor to place on.</param>
+        /// <param name="kind">The kind to place.</param>
+        /// <param name="seed">Seed for deterministic placement.</param>
+        /// <param name="parent">Transform to parent the relic under.</param>
+        /// <returns>The cell that received the relic.</returns>
+        public List<Vector2Int> PlaceKind(MazeLayout layout, RelicKind kind, int seed,
+            Transform parent)
+            => _router.PlaceOne(layout, kind, seed, parent);
+
+        /// <summary>
+        /// Places relics on a floor with an explicit count, bypassing the inspector setting.
+        /// </summary>
+        /// <param name="layout">The floor to place on.</param>
+        /// <param name="count">How many relics to place.</param>
+        /// <param name="seed">Seed for deterministic placement.</param>
+        /// <param name="parent">Transform to parent the relics under.</param>
+        /// <returns>The cells that received a relic.</returns>
         public List<Vector2Int> Place(MazeLayout layout, int count, int seed, Transform parent)
-            => _router.Place(layout, count, seed, 0, parent);
+            => _router.Place(layout, count, seed, 1, parent);
 
         /// <summary>
         /// Places relics choosing which kind the floor offers first.
@@ -46,12 +67,12 @@ namespace Backrooms.RelicManager
         /// <param name="layout">The floor to place on.</param>
         /// <param name="count">How many relics to place.</param>
         /// <param name="seed">Seed for deterministic placement.</param>
-        /// <param name="firstKind">Index into the roster for the first relic.</param>
+        /// <param name="floor">One-based floor number, which decides what the floor tends to offer.</param>
         /// <param name="parent">Transform to parent the relics under.</param>
         /// <returns>The cells that received a relic.</returns>
-        public List<Vector2Int> Place(MazeLayout layout, int count, int seed, int firstKind,
+        public List<Vector2Int> Place(MazeLayout layout, int count, int seed, int floor,
             Transform parent)
-            => _router.Place(layout, count, seed, firstKind, parent);
+            => _router.Place(layout, count, seed, floor, parent);
 
         /// <summary>The kind picked up by the most recent successful collect.</summary>
         public RelicKind LastCollected => _router.LastCollected;

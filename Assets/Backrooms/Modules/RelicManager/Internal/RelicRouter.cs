@@ -43,10 +43,10 @@ namespace Backrooms.RelicManager.Internal
         /// <param name="layout">The floor to place on.</param>
         /// <param name="count">How many relics to place.</param>
         /// <param name="seed">Seed for deterministic placement.</param>
-        /// <param name="firstKind">Index into the roster for this floor's first relic.</param>
+        /// <param name="floor">One-based floor number, which decides what the floor tends to offer.</param>
         /// <param name="parent">Transform to parent the relics under.</param>
         /// <returns>The cells that received a relic.</returns>
-        public List<Vector2Int> Place(MazeLayout layout, int count, int seed, int firstKind,
+        public List<Vector2Int> Place(MazeLayout layout, int count, int seed, int floor,
             Transform parent)
         {
             ClearStanding();
@@ -55,14 +55,12 @@ namespace Backrooms.RelicManager.Internal
             var placed = new List<Vector2Int>();
             if (layout == null) return placed;
 
-            int offered = 0;
+            // A second stream, so which relics a floor offers cannot shift the cells they stand in.
+            var kindRng = new System.Random(seed * 31 + 17);
+
             foreach (Vector2Int cell in _planner.Plan(layout, count, new System.Random(seed)))
             {
-                // Deal the roster out in turn as the player descends, skipping anything already
-                // carried: being offered a second Wayfinder Stone is being offered nothing.
-                RelicKind kind = NextUnheld(firstKind + offered);
-                offered++;
-
+                RelicKind kind = PickUnheld(floor, kindRng);
                 _kinds[cell] = kind;
                 _standing[cell] = _builder.Build(layout, cell, RelicArchetypes.For(kind), parent);
                 placed.Add(cell);
@@ -72,19 +70,71 @@ namespace Backrooms.RelicManager.Internal
         }
 
         /// <summary>
-        /// The first kind at or after an index that the player is not already carrying.
+        /// Places a single relic of a named kind, bypassing the floor's odds.
         /// </summary>
-        /// <param name="index">Where to start looking in the roster.</param>
-        /// <returns>A kind worth offering.</returns>
-        private RelicKind NextUnheld(int index)
+        /// <remarks>
+        /// For tests that are about what a relic <i>does</i> rather than which one a floor offers.
+        /// Since the roster became a weighted draw there is no longer any way to ask for a specific
+        /// relic through the normal path, and a test for the Ward should not have to roll dice until
+        /// it gets one.
+        /// </remarks>
+        /// <param name="layout">The floor to place on.</param>
+        /// <param name="kind">The kind to place.</param>
+        /// <param name="seed">Seed for deterministic placement.</param>
+        /// <param name="parent">Transform to parent the relic under.</param>
+        /// <returns>The cell that received the relic.</returns>
+        internal List<Vector2Int> PlaceOne(MazeLayout layout, RelicKind kind, int seed,
+            Transform parent)
         {
-            for (int step = 0; step < RelicArchetypes.Count; step++)
+            ClearStanding();
+            Layout = layout;
+
+            var placed = new List<Vector2Int>();
+            if (layout == null) return placed;
+
+            foreach (Vector2Int cell in _planner.Plan(layout, 1, new System.Random(seed)))
             {
-                RelicKind kind = RelicArchetypes.AtIndex(index + step);
-                if (!Holds(kind)) return kind;
+                _kinds[cell] = kind;
+                _standing[cell] = _builder.Build(layout, cell, RelicArchetypes.For(kind), parent);
+                placed.Add(cell);
+            }
+
+            return placed;
+        }
+
+        /// <summary>
+        /// Draws a kind the player is not already carrying, weighted by what this floor favours.
+        /// </summary>
+        /// <remarks>
+        /// Anything already held is given no weight at all: being offered a second Wayfinder Stone is
+        /// being offered nothing. The floor's own bias does the rest — see <see cref="RelicOdds"/>.
+        /// </remarks>
+        /// <param name="floor">One-based floor number.</param>
+        /// <param name="rng">Seeded generator, so a floor offers the same relics every time.</param>
+        /// <returns>A kind worth offering.</returns>
+        private RelicKind PickUnheld(int floor, System.Random rng)
+        {
+            float total = 0f;
+            for (int i = 0; i < RelicArchetypes.Count; i++)
+            {
+                RelicKind kind = RelicArchetypes.AtIndex(i);
+                if (Holds(kind)) continue;
+                total += RelicOdds.Weight(kind, floor);
             }
 
             // Everything is already carried: offer the Banisher, the only one worth stacking.
+            if (total <= 0f) return RelicKind.Banisher;
+
+            double roll = rng.NextDouble() * total;
+            for (int i = 0; i < RelicArchetypes.Count; i++)
+            {
+                RelicKind kind = RelicArchetypes.AtIndex(i);
+                if (Holds(kind)) continue;
+
+                roll -= RelicOdds.Weight(kind, floor);
+                if (roll <= 0d) return kind;
+            }
+
             return RelicKind.Banisher;
         }
 

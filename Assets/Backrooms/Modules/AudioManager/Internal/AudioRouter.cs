@@ -60,6 +60,25 @@ namespace Backrooms.AudioManager.Internal
         /// <summary>How many rebuilds to attempt before settling for re-issuing Play.</summary>
         private const int MaxRebuilds = 6;
 
+        /// <summary>Seconds since the first gesture, used to drive the restart schedule.</summary>
+        private float _sinceUnlock;
+
+        /// <summary>How many scheduled restarts have already been done.</summary>
+        private int _restartsDone;
+
+        /// <summary>
+        /// When to rebuild the audio after the first gesture, in seconds.
+        /// </summary>
+        /// <remarks>
+        /// Fixed times rather than a condition, because every condition tried so far has lied.
+        /// <c>isPlaying</c> reports true against a suspended context; the DSP clock and the hum's own
+        /// playback position both advanced while nothing came out. A player reported having to
+        /// release and touch the screen a second time, several seconds in, before any sound arrived —
+        /// which says the audio graph is still being built too early even now, and that simply doing
+        /// it again later is what works. So it is done again later, unconditionally.
+        /// </remarks>
+        private static readonly float[] RestartSchedule = { 1f, 2f, 4f, 5f, 10f };
+
         /// <summary>Whether sound is allowed to play yet.</summary>
         public bool Unlocked => _unlocked;
 
@@ -298,6 +317,20 @@ namespace Backrooms.AudioManager.Internal
         {
             if (!_unlocked || _hum == null) return;
 
+            // The schedule comes first and ignores every liveness signal, because they have all
+            // been wrong at least once. Restarting a working loop costs a barely audible seam in a
+            // drone; not restarting a dead one costs the entire soundtrack.
+            _sinceUnlock += deltaTime;
+            if (_restartsDone < RestartSchedule.Length
+                && _sinceUnlock >= RestartSchedule[_restartsDone])
+            {
+                _restartsDone++;
+                AudioListener.pause = false;
+                Rebuild();
+                PlayLoops();
+                return;
+            }
+
             double dsp = AudioSettings.dspTime;
             bool dspAdvanced = _lastDspTime >= 0.0 && dsp > _lastDspTime + 1e-4;
             _lastDspTime = dsp;
@@ -320,6 +353,8 @@ namespace Backrooms.AudioManager.Internal
 
             _retryTimer += deltaTime;
             if (_retryTimer < RetrySeconds) return;
+
+            // (the scheduled restarts above run whether or not this fast retry ever fires)
 
             _retryTimer = 0f;
             AudioListener.pause = false;

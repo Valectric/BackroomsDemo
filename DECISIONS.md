@@ -597,3 +597,45 @@ default, so it would have kept photographing a floor 1 with stairs the game no l
 identical failure to D44. A capture generated differently from the game is a picture of a game
 nobody plays.
 
+## 2026-08-02 — D46. Audio restarts on a fixed schedule (supersedes the conditions in D40/D42)
+
+**Decided:** after the first gesture the audio stack is rebuilt at **1, 2, 4, 5 and 10 seconds**,
+unconditionally, ignoring every liveness signal.
+**Why:** the player reported still having to release and touch the screen a second time, several
+seconds in, before any sound arrived. That is the decisive fact: doing it *again, later* works, so the
+graph is still being built too early even with creation deferred to the gesture.
+**Every condition tried here has lied at least once.** `isPlaying` reports true against a suspended
+context; the DSP clock advanced while nothing came out; the hum's own playback position advanced too.
+A schedule cannot be fooled by a signal that is wrong.
+**The cost is a barely audible seam** in a drone at five points in the first ten seconds. Not
+restarting a dead graph costs the entire soundtrack, so the trade is not close.
+
+## 2026-08-02 — D47. A relic that draws the floor in the corner
+
+**Decided:** a seventh relic, the **Surveyor's Lens**, draws a ~20-cell window of the floor in the
+top-right, with the ways down marked and the player as a dot.
+**Baked once per floor, not drawn per frame.** A 24×24 grid is up to a thousand wall segments, and
+issuing that many IMGUI calls every frame for a corner of the screen would cost more than the whole
+rest of the HUD. One texture is one draw call. `FloorMap` lives in the Application layer because it
+is the seam between MazeManager (owns the layout) and UIManager (owns the drawing), and neither may
+reference the other.
+**Deliberately small.** A map that fills the screen answers the question the game is asking — the
+floor is meant to be disorienting — so it shows only the rooms nearby, flat, with no heading.
+**Placed below the compass band:** at the right-hand end the two overlapped and the map sat on top of
+an arrow's distance label. Caught by reading the capture, not by a test.
+
+## 2026-08-02 — D48. Relic odds depend on the floor
+
+**Decided:** 40% more relics per floor (`round(waysDown × 1.4)` — four instead of three), and which
+kind a floor offers is a **weighted draw that peaks on a particular floor** rather than a round-robin:
+Ward on 1, Wayfinder 2, Hunter's Eye 3, Hoarder's Charm 4, Surveyor's Lens 5, Blink Shard 6,
+Banisher 7 — then repeating, because the roster is finite and the dungeon is not.
+**The shape of the progression:** protection first, because floor 1 is where a player learns what a
+Dweller is and the kindest thing to give them is one free mistake; then navigation; then threat
+awareness; then, once they are building a kit rather than surviving, the relic that finds relics.
+**Measured, not just weighted:** the favoured kind is offered ~28% of the time against ~14% for a
+uniform draw — a clear bias that is still a draw. Anything already carried gets zero weight.
+**Cost:** the power tests used `firstKind` to force a specific relic, which a weighted draw makes
+impossible. They now use a `PlaceKind` seam on the TestFacade — a test for the Ward should not have
+to roll dice until it gets one.
+

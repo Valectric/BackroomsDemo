@@ -45,6 +45,56 @@ namespace Backrooms.UIManager.Internal
         private const string RelicMark = "✦";
 
         /// <summary>
+        /// Draws the corner map: a window of the floor around the player, with the player marked.
+        /// </summary>
+        /// <remarks>
+        /// Deliberately small and plain. A map that fills the screen answers the question the game is
+        /// asking — the floor is meant to be disorienting — so this shows only the rooms immediately
+        /// around the player, and shows them flat, without a heading.
+        /// </remarks>
+        /// <param name="map">Baked floor map.</param>
+        /// <param name="player">Player position as a fraction of the floor in each axis.</param>
+        /// <param name="window">Fraction of the floor to show around the player.</param>
+        public void DrawMap(Texture2D map, Vector2 player, float window)
+        {
+            if (map == null) return;
+
+            int size = Mathf.Clamp(Mathf.RoundToInt(Screen.height * 0.22f), 88, 220);
+            int margin = Mathf.Max(10, Mathf.RoundToInt(Screen.height * 0.03f));
+
+            // Below the compass band, which runs across the top: at the right-hand end the two
+            // overlapped and the map sat on top of an arrow's distance label.
+            float top = Screen.height * 0.17f;
+            var frame = new Rect(Screen.width - size - margin, top, size, size);
+
+            // Clamped so the window stops at the floor's edge instead of sliding off it, which would
+            // stretch the last row of cells across the corner.
+            float half = window * 0.5f;
+            float x = Mathf.Clamp(player.x - half, 0f, 1f - window);
+            float y = Mathf.Clamp(player.y - half, 0f, 1f - window);
+
+            Color previous = GUI.color;
+            GUI.color = new Color(0f, 0f, 0f, 0.5f);
+            GUI.DrawTexture(new Rect(frame.x - 2f, frame.y - 2f, frame.width + 4f, frame.height + 4f),
+                Texture2D.whiteTexture);
+            GUI.color = previous;
+
+            // Texture coordinates run bottom-up, and so does the maze grid, so no flip is needed.
+            GUI.DrawTextureWithTexCoords(frame, map, new Rect(x, y, window, window));
+
+            // The player, drawn where they actually are inside the window rather than always at its
+            // centre — at the floor's edge the window stops moving and they walk to the corner.
+            float dotSize = Mathf.Max(4f, size * 0.035f);
+            float px = frame.x + (player.x - x) / window * frame.width;
+            float py = frame.yMax - (player.y - y) / window * frame.height;
+
+            GUI.color = new Color(1f, 0.35f, 0.3f);
+            GUI.DrawTexture(new Rect(px - dotSize * 0.5f, py - dotSize * 0.5f, dotSize, dotSize),
+                Texture2D.whiteTexture);
+            GUI.color = previous;
+        }
+
+        /// <summary>
         /// Draws the flash confirming a relic was just picked up.
         /// </summary>
         /// <param name="relics">How many the player now carries.</param>
