@@ -47,11 +47,6 @@ namespace Backrooms.AudioManager
         }
 
         /// <summary>
-        /// Builds the voices and generates every clip before anything asks for one.
-        /// </summary>
-        private void Awake() => _router.Build(transform);
-
-        /// <summary>
         /// Sets the room tone for a floor, so each floor sounds like its own space.
         /// </summary>
         /// <param name="floor">One-based floor number.</param>
@@ -60,6 +55,11 @@ namespace Backrooms.AudioManager
             _router.Build(transform);
             _router.SetFloor(floor);
         }
+
+        /// <summary>
+        /// Tells the module where to hang its voices, without creating them yet.
+        /// </summary>
+        private void Awake() => _router.Build(transform);
 
         /// <summary>
         /// Sets how loudly a hunting Dweller is heard.

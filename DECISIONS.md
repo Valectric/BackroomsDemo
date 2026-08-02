@@ -511,3 +511,37 @@ relics on a floor offer three *different* powers.
 **Derived, not duplicated:** tying the count to `layout.Stairs.Count` keeps the two in step by
 construction instead of leaving two magic numbers to drift apart.
 
+## 2026-08-02 — D42. Audio objects are created at the gesture, not at startup (supersedes D40)
+
+**Decided:** no `AudioSource` and no `AudioClip` is created until the player's first gesture. If the
+hum's own playback position still does not advance, the entire audio stack is destroyed and rebuilt,
+up to six times, a quarter second apart.
+
+**Why, and why the two previous attempts failed.** Both earlier fixes assumed the problem was *when
+`Play` was called*: first "start the loops on the first gesture" (D-audio, in the title-screen work),
+then "keep re-issuing `Play` until `AudioSettings.dspTime` advances" (D40). Neither worked, because
+both were reasoning from a guessed mechanism.
+
+**Stop guessing, measure.** Probing the shipped build from Chrome settled it. A hook installed before
+Unity's loader wrapped `AudioContext` and replaced `destination` with a gain node feeding an
+analyser, so actual output level is readable:
+
+- The context is created **suspended**, Unity calls `resume()` **once a second**, and it flips to
+  `running` on the click — Unity even logs `Audio context resumed after 35.902 seconds`. **So the
+  browser-side unlock was never broken, and D40 fixed a non-problem.**
+- With the tap validated against a known control tone (0.02 in, 0.02 read), the game's own output
+  measured **0.0711** on the first run after this change — audible, with no death required.
+
+**What is left as the cause:** every source and clip was being created in `Awake`, against a context
+that was still suspended. Creation order, not call order.
+
+**Honest limit of the verification.** Chrome trusts `localhost` regardless of port, so the probe run
+had a context that was already `running` at load and does **not** reproduce the suspended-at-startup
+state the phone sees. What is proven is that the first run now produces sound; that it does so
+specifically from a suspended start is reasoned, not measured.
+
+**Method worth keeping:** wrapping `AudioContext.destination` with an analyser gain is the only way
+found to answer "is any sound actually coming out" from outside the engine. Validate the tap with a
+control tone first — an untapped graph and a silent game both read zero, and an earlier attempt that
+hooked `AudioNode.connect` was silently blind (`destConnects: 0`).
+
