@@ -108,7 +108,7 @@ namespace Backrooms.Gameplay
             {
                 if (i < starts.Count)
                 {
-                    _dwellers[i].SetKind(DwellerArchetypes.AtIndex(i + floor));
+                    _dwellers[i].SetKind(DwellerArchetypes.KindFor(i, floor));
                     _dwellers[i].Place(layout, starts[i], target, speed, seed + floor * 31 + i);
                 }
                 else
