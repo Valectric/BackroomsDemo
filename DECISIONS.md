@@ -718,3 +718,21 @@ they ended up stacked on top of each other before.
 **Also:** the Ward is now the **DEFENSE WARD**, which says what it does without needing the pickup
 line to explain it.
 
+## 2026-08-02 — D54. The ambience is processed to sound about 100 m off (refines D51)
+
+**Decided:** every ambient recording is band-limited to roughly 110–700 Hz, given a long double echo
+(220 ms and 380 ms taps), and normalised to −34 LUFS — baked into the committed files, not applied at
+runtime.
+**Why processed rather than just quieter:** distance is **spectral before it is level**. Air and
+structure eat the high end long before they eat the volume, so a bright source merely turned down
+reads as "the same room, quieter" rather than "somewhere else in the building".
+**Measured** on the street organ: overall −17.3 → −34.4 dB, but energy above 3 kHz −36.9 → −67.3 dB.
+The high end falls 30 dB against 17 dB of level — that **13 dB relative** loss is the part the ear
+hears as distance.
+**Playback gain went up, not down** (0.5 → 0.9). The files are now ~11 dB quieter than before, and
+cutting level on top of that is exactly how the footsteps were lost: chasing a quality by turning
+something down until it simply is not there. The spectrum carries the effect; the gain only stops it
+vanishing.
+**Baked, not runtime:** a low-pass filter per voice would cost CPU on a phone every frame for a
+result that never changes. These are fixed one-shots, so the processing belongs in the file.
+

@@ -378,8 +378,17 @@ namespace Backrooms.AudioManager.Internal
         /// <summary>Longest gap between ambient one-shots, in seconds.</summary>
         private const float AmbienceMaxGap = 48f;
 
-        /// <summary>How loudly ambience plays. Under the mix — it is the room, not an event.</summary>
-        private const float AmbienceVolume = 0.5f;
+        /// <summary>
+        /// How loudly ambience plays.
+        /// </summary>
+        /// <remarks>
+        /// Higher than it looks, because the distance is baked into the files rather than applied
+        /// here: they are band-limited to roughly 110-700 Hz and normalised to -34 LUFS, so the
+        /// spectrum already says "far away" and the gain only has to stop them disappearing
+        /// altogether. Cutting level on top of that is how the footsteps were lost — chasing a
+        /// quality by turning something down until it is simply not there.
+        /// </remarks>
+        private const float AmbienceVolume = 0.9f;
 
         /// <summary>How many ambient clips the current floor has.</summary>
         public int AmbienceCount => _ambience == null ? 0 : _ambience.Length;
