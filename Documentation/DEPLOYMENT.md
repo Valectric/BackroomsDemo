@@ -102,3 +102,29 @@ Adopt this **after** the manual loop (Phase A) is proven working end to end.
   (the Start button gesture covers this).
 - Add a portrait/landscape hint if controls assume an orientation.
 ```
+
+## Publishing (from 2026-08-05)
+
+The WebGL payload no longer lives on `main`. It is published to an **orphan `gh-pages` branch that is
+force-replaced on every deploy**, so the artifact is always exactly one commit deep and never
+accumulates. Committing it to `main` had put 34 builds x ~21MB into history — 634MB of a 650MB
+repository.
+
+```
+touch .backrooms-build-webgl      # build into docs/ as before
+bash Tools/publish-pages.sh       # replace gh-pages with docs/ and force-push
+```
+
+`Tools/publish-pages.sh` builds the tree with `hash-object`/`mktree`/`commit-tree`, so it never
+touches the working tree or the index and cannot leave the repository on the wrong branch.
+
+**itch.io** is published by `.github/workflows/publish-itch.yml`, which fires on any push to
+`gh-pages` — so Pages and itch always serve the same build from the same commit. It needs two
+repository settings, both added through the GitHub UI:
+
+- Secret `BUTLER_API_KEY` — from <https://itch.io/user/settings/api-keys>
+- Variable `ITCH_TARGET` — e.g. `valectric/backrooms-demo:html5`
+
+**Pages source must be set to `gh-pages` / `/`** for this to serve. Until it is, Pages still reads
+`main` `/docs`.
+

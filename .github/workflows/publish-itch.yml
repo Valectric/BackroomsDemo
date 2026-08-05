@@ -1,0 +1,44 @@
+name: Publish to itch.io
+
+# Fires when the deployed artifact changes, so itch.io and GitHub Pages always serve the same build
+# from the same commit. gh-pages is force-replaced by Tools/publish-pages.sh on every deploy.
+on:
+  push:
+    branches: [gh-pages]
+  workflow_dispatch:
+
+jobs:
+  butler:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the deployed artifact
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+
+      - name: Install butler
+        run: |
+          curl -sL -o butler.zip https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default
+          unzip -q butler.zip
+          chmod +x butler
+          ./butler -V
+
+      - name: Push the build to itch.io
+        env:
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+        run: |
+          if [ -z "$BUTLER_API_KEY" ]; then
+            echo "BUTLER_API_KEY is not set — add it under Settings > Secrets and variables > Actions." >&2
+            exit 1
+          fi
+
+          # The version is read from the build itself rather than the run number, so a re-run of this
+          # workflow republishes the same version instead of inventing a new one.
+          version=$(grep -o '0\.1\.[0-9]*' index.html | head -1 || echo "0.0.0")
+          echo "publishing $version to itch.io"
+
+          ./butler push . "${{ vars.ITCH_TARGET }}" --userversion "$version" --ignore '.git/**'
+
+      - name: Report
+        run: echo "Published. It may take itch.io a minute to process the upload."
