@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Backrooms Demo</title>
+    <style>
+      html, body { padding: 0; border: 0; margin: 0; background: #231F20; }
+
+      /*
+        A real DOM button rather than something drawn inside the game. A tap on the canvas is game
+        input — the right half of the screen is the look control and a double tap there spends a
+        relic — so an in-game button would be pressed and *also* read as a gesture. A DOM element
+        over the canvas takes the tap for itself and the game never sees it.
+      */
+      #fullscreen-button {
+        position: fixed;
+        top: max(10px, env(safe-area-inset-top));
+        right: max(10px, env(safe-area-inset-right));
+        width: 44px;
+        height: 44px;
+        z-index: 10;
+        display: none;
+        padding: 0;
+        border: 0;
+        border-radius: 8px;
+        background: rgba(12, 11, 9, 0.55);
+        color: #f5f2e6;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+      }
+
+      #fullscreen-button:hover { background: rgba(12, 11, 9, 0.8); }
+      #fullscreen-button svg { width: 22px; height: 22px; display: block; margin: auto; }
+    </style>
+  </head>
+  <body>
+    <canvas id="unity-canvas" width=960 height=600 tabindex="-1"
+            style="width: 960px; height: 600px; background: #231F20"></canvas>
+
+    <button id="fullscreen-button" title="Fullscreen" aria-label="Fullscreen">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>
+      </svg>
+    </button>
+
+    <script src="Build/docs.loader.js"></script>
+    <script>
+      if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+        // Mobile device style: fill the whole browser client area with the game canvas.
+        var meta = document.createElement('meta');
+        meta.name = 'viewport';
+        meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
+        document.getElementsByTagName('head')[0].appendChild(meta);
+
+        var canvas = document.querySelector("#unity-canvas");
+        canvas.style.width = "100%";
+        canvas.style.height = "100%";
+        canvas.style.position = "fixed";
+
+        document.body.style.textAlign = "left";
+      }
+
+      (function () {
+        var button = document.querySelector("#fullscreen-button");
+        var root = document.documentElement;
+
+        var request = root.requestFullscreen || root.webkitRequestFullscreen;
+        var exit = document.exitFullscreen || document.webkitExitFullscreen;
+
+        // iPhone Safari has no Fullscreen API at all, so the button would do nothing. A control that
+        // visibly does nothing is worse than no control — there, the answer is Add to Home Screen.
+        if (!request) return;
+        button.style.display = "block";
+
+        function isFullscreen() {
+          return document.fullscreenElement || document.webkitFullscreenElement;
+        }
+
+        button.addEventListener("click", function (event) {
+          // Belt and braces: the canvas must not also receive this as a look/tap gesture.
+          event.preventDefault();
+          event.stopPropagation();
+
+          if (isFullscreen()) {
+            exit.call(document);
+            return;
+          }
+
+          // Landscape can only be locked while fullscreen, and the request must come from this tap
+          // rather than from page load, which browsers refuse. The game already asks the player to
+          // rotate; this means it usually does not have to.
+          Promise.resolve(request.call(root)).then(function () {
+            if (screen.orientation && screen.orientation.lock) {
+              screen.orientation.lock("landscape").catch(function () { /* desktop, or refused */ });
+            }
+          }).catch(function () { /* refused; the page simply stays as it was */ });
+        });
+
+        // Fullscreen the page rather than the canvas element. Making the canvas itself fullscreen
+        // hides every sibling, which would take this button off screen and leave no way back out.
+        document.addEventListener("fullscreenchange", function () {
+          button.setAttribute("title", isFullscreen() ? "Exit fullscreen" : "Fullscreen");
+        });
+      })();
+
+      createUnityInstance(document.querySelector("#unity-canvas"), {
+        arguments: [],
+        dataUrl: "Build/docs.data.unityweb",
+        frameworkUrl: "Build/docs.framework.js.unityweb",
+        codeUrl: "Build/docs.wasm.unityweb",
+        streamingAssetsUrl: "StreamingAssets",
+        companyName: "Valectric",
+        productName: "Backrooms Demo",
+        productVersion: "0.1.2608021857",
+      }).then((unityInstance) => {
+        window.unityInstance = unityInstance;
+      }).catch((message) => {
+        alert(message);
+      });
+    </script>
+  </body>
+</html>
