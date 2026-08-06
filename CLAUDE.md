@@ -77,9 +77,8 @@ touch .backrooms-build-catalog     # regenerate the prop catalogue
 
 Equivalent menu items live under **Backrooms/** in the Unity menu bar.
 
-Deploy: build into `docs/`, then `bash Tools/publish-pages.sh` — which force-replaces the orphan
-`gh-pages` branch so the 21MB payload never accumulates in history. **`docs/` is build output; do not
-commit it to `main`.** Pushing `gh-pages` also triggers the itch.io publish workflow. Check with
+Deploy: build into `Builds/`, then `bash Tools/publish-pages.sh` — which force-replaces the orphan
+`gh-pages` branch so the 21MB payload never accumulates in history. **`Builds/` is build output and gitignored.** Pushing `gh-pages` also triggers the itch.io publish workflow. Check with
 `gh api repos/Valectric/BackroomsDemo/pages/builds/latest --jq '.status'`.
 
 ## Traps that have already cost time — read before debugging

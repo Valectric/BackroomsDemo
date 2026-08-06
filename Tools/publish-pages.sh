@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Publishes docs/ to the orphan gh-pages branch, replacing it rather than appending to it.
+# Publishes Builds/ to the orphan gh-pages branch, replacing it rather than appending to it.
 #
 # Why an orphan branch that is force-replaced: the WebGL payload is ~21MB, and committing it to main
 # on every deploy added that much to history every time — 34 builds was 634MB of a 650MB repository.
@@ -16,23 +16,23 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-if [ ! -f docs/index.html ] || [ ! -d docs/Build ]; then
-  echo "docs/ has no build in it — run the WebGL build first (touch .backrooms-build-webgl)." >&2
+if [ ! -f Builds/index.html ] || [ ! -d Builds/Build ]; then
+  echo "Builds/ has no build in it — run the WebGL build first (touch .backrooms-build-webgl)." >&2
   exit 1
 fi
 
-version=$(grep -o '0\.1\.[0-9]*' docs/index.html | head -1 || echo "unknown")
+version=$(grep -o '0\.1\.[0-9]*' Builds/index.html | head -1 || echo "unknown")
 echo "publishing $version"
 
-# Every file under docs/Build, hashed into the object database.
+# Every file under Builds/Build, hashed into the object database.
 build_entries=""
-for file in docs/Build/*; do
+for file in Builds/Build/*; do
   blob=$(git hash-object -w "$file")
   build_entries="${build_entries}100644 blob ${blob}\t$(basename "$file")\n"
 done
 build_tree=$(printf "$build_entries" | git mktree)
 
-index_blob=$(git hash-object -w docs/index.html)
+index_blob=$(git hash-object -w Builds/index.html)
 
 # .nojekyll stops GitHub Pages running the payload through Jekyll, which would drop any file or
 # folder beginning with an underscore.
