@@ -48,7 +48,14 @@ Thumbs.db
 .claude/settings.local.json
 
 # ---- MooseRunner (package-generated binaries + secrets + data; not source) ----
-/MooseRunner/
+# The contents rather than the folder itself: git never descends into an ignored directory, so
+# excluding /MooseRunner/ outright also disabled the .gitignore the package ships inside it (which
+# excludes .env and daemon.json) and made it impossible to re-include anything.
+/MooseRunner/*
+
+# speedConfig.json is the exception: per-method test speeds are something a person decided, not
+# something the package generated, and they are worth surviving a fresh clone.
+!/MooseRunner/speedConfig.json
 /Assets/MooseRunnerMultiplayTestData/
 /Assets/MooseRunnerMultiplayTestData.meta
 
