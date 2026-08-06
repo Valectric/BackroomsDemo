@@ -111,8 +111,8 @@ accumulates. Committing it to `main` had put 34 builds x ~21MB into history — 
 repository.
 
 ```
-touch .backrooms-build-webgl      # build into docs/ as before
-bash Tools/publish-pages.sh       # replace gh-pages with docs/ and force-push
+touch .backrooms-build-webgl      # build into Builds/
+bash Tools/publish-pages.sh       # replace gh-pages with Builds/ and force-push
 ```
 
 `Tools/publish-pages.sh` builds the tree with `hash-object`/`mktree`/`commit-tree`, so it never

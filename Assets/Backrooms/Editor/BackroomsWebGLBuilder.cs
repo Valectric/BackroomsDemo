@@ -6,20 +6,25 @@ using UnityEngine;
 namespace Backrooms.Editor
 {
     /// <summary>
-    /// Builds the mobile-friendly WebGL player into the repository's <c>docs/</c> folder, which is
-    /// what GitHub Pages serves. Scripting the build keeps the player settings that Pages depends on
-    /// from drifting, and lets an agent produce a deployable build without clicking through the
-    /// editor UI.
+    /// Builds the mobile-friendly WebGL player into the repository's <c>Builds/</c> folder, which
+    /// <c>Tools/publish-pages.sh</c> then publishes to the orphan gh-pages branch. Scripting the
+    /// build keeps the player settings that Pages depends on from drifting, and lets an agent produce
+    /// a deployable build without clicking through the editor UI.
     /// </summary>
     public static class BackroomsWebGLBuilder
     {
-        /// <summary>Output folder, relative to the project root. GitHub Pages serves this.</summary>
-        private const string OutputFolder = "docs";
+        /// <summary>
+        /// Output folder, relative to the project root. Gitignored build output — it was called
+        /// <c>docs/</c> only because branch-based GitHub Pages could serve the repository root or
+        /// <c>/docs</c> and nothing else. Pages now reads the gh-pages branch, so the constraint is
+        /// gone and the folder can say what it is. Unity names the payload after this folder.
+        /// </summary>
+        private const string OutputFolder = "Builds";
 
         /// <summary>
-        /// Applies the required player settings and builds the WebGL player into <c>docs/</c>.
+        /// Applies the required player settings and builds the WebGL player into <c>Builds/</c>.
         /// </summary>
-        [MenuItem("Backrooms/Build WebGL to docs")]
+        [MenuItem("Backrooms/Build WebGL to Builds")]
         public static void BuildWebGL()
         {
             if (!BuildPipeline.IsBuildTargetSupported(BuildTargetGroup.WebGL, BuildTarget.WebGL))
