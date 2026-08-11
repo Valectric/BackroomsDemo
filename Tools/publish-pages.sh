@@ -51,4 +51,15 @@ git update-ref refs/heads/gh-pages "$commit"
 git push origin gh-pages --force
 
 echo "pushed gh-pages $(git rev-parse --short gh-pages) ($version)"
+
+# Trigger the itch.io publish explicitly rather than relying on a push trigger. GitHub reads
+# workflow files from the branch being pushed to, and gh-pages is an orphan branch holding only the
+# game payload — there is no .github/ on it, so `on: push: branches: [gh-pages]` can never fire.
+# It silently never ran, and itch quietly served a build four versions old.
+if command -v gh >/dev/null 2>&1; then
+  gh workflow run publish-itch.yml >/dev/null 2>&1     && echo "itch.io publish triggered"     || echo "could not trigger the itch.io workflow — run: gh workflow run publish-itch.yml" >&2
+else
+  echo "gh CLI not found; publish to itch with: gh workflow run publish-itch.yml" >&2
+fi
+
 echo "Pages will rebuild; verify at https://valectric.github.io/BackroomsDemo/"

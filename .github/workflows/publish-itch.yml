@@ -1,10 +1,13 @@
 name: Publish to itch.io
 
-# Fires when the deployed artifact changes, so itch.io and GitHub Pages always serve the same build
-# from the same commit. gh-pages is force-replaced by Tools/publish-pages.sh on every deploy.
+# Triggered by Tools/publish-pages.sh straight after it pushes gh-pages, so itch.io and GitHub Pages
+# always serve the same build from the same commit.
+#
+# Deliberately NOT `on: push: branches: [gh-pages]`. GitHub reads workflow files from the branch
+# being pushed to, and gh-pages is an orphan branch holding only the game payload with no .github/
+# on it — so that trigger can never fire. It failed silently for four builds while every run in the
+# history was a manual dispatch that happened to look like it was working.
 on:
-  push:
-    branches: [gh-pages]
   workflow_dispatch:
 
 jobs:
