@@ -38,7 +38,16 @@ jobs:
           version=$(grep -o '0\.1\.[0-9]*' index.html | head -1 || echo "0.0.0")
           echo "publishing $version to itch.io"
 
-          ./butler push . "${{ vars.ITCH_TARGET }}" --userversion "$version" --ignore '.git/**'
+          # Drop the checkout's own git data before pushing. --ignore did not exclude it and the
+          # first upload went out at 54MiB across 10 files against a 21MB payload of 6 — the repo's
+          # pack, riding along inside the game. The runner is thrown away, so deleting it is safe and
+          # is the only way to be certain of what ships.
+          rm -rf .git
+
+          echo "uploading:"
+          find . -type f | sort
+
+          ./butler push . "${{ vars.ITCH_TARGET }}" --userversion "$version"
 
       - name: Report
         run: echo "Published. It may take itch.io a minute to process the upload."
