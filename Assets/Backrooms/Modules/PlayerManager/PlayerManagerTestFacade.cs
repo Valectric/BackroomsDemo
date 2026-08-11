@@ -48,13 +48,18 @@ namespace Backrooms.PlayerManager
         /// <param name="move">Movement intent, X strafes and Y walks forward, range -1..1.</param>
         /// <param name="look">Look delta for each step, X yaws and Y pitches.</param>
         /// <param name="sprint">Whether sprint is held.</param>
-        public void SetInput(Vector2 move, Vector2 look = default, bool sprint = false)
+        /// <param name="blink">Whether the blink intent is set this frame.</param>
+        /// <param name="banish">Whether the banish intent is set this frame.</param>
+        public void SetInput(Vector2 move, Vector2 look = default, bool sprint = false,
+            bool blink = false, bool banish = false)
         {
             _router.SetSimulatedInput(new PlayerInputState
             {
                 Move = move,
                 Look = look,
-                Sprint = sprint
+                Sprint = sprint,
+                BlinkKey = blink,
+                BanishKey = banish
             });
         }
 

@@ -38,6 +38,20 @@ namespace Backrooms.PlayerManager
         /// <summary>Whether a double tap landed on the look side of the screen this frame.</summary>
         public bool DoubleTapLookSide;
 
+        /// <summary>
+        /// Whether the blink key went down this frame.
+        /// </summary>
+        /// <remarks>
+        /// Kept separate from the gesture rather than folded into it. A double tap and a key press
+        /// are different events that happen to drive the same power, and a keyboard player pressing
+        /// F has not "double tapped the look side of the screen" — collapsing the two would make the
+        /// gesture fields lie about what happened.
+        /// </remarks>
+        public bool BlinkKey;
+
+        /// <summary>Whether the banish key went down this frame.</summary>
+        public bool BanishKey;
+
         /// <summary>Input representing "no intent at all".</summary>
         public static PlayerInputState None => new PlayerInputState
         {

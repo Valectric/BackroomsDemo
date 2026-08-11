@@ -25,6 +25,42 @@ namespace Backrooms.PlayerManager.Tests
         /// Two presses inside the window are a double tap; the first press alone is not.
         /// </summary>
         /// <summary>
+        /// A relic power must fire from either the gesture or the key, and the two must stay
+        /// distinguishable underneath.
+        /// </summary>
+        /// <remarks>
+        /// Touch has no widgets to press, so its powers are gestures; a keyboard has keys, and asking
+        /// a desktop player to double-click the correct half of the screen mid-chase is asking them
+        /// to do badly what a keyboard already does well. Both feed one intent — but the key press is
+        /// not folded into the gesture field, because a keyboard player has not double-tapped
+        /// anything and a field that claimed otherwise would be lying to whatever reads it next.
+        /// </remarks>
+        [Test]
+        public void ARelicPower_FiresFromEitherTheKeyOrTheGesture()
+        {
+            var go = new GameObject("Player");
+            PlayerFacade player = go.AddComponent<PlayerFacade>();
+            PlayerManagerTestFacade seam = player.GetTestFacade();
+            seam.SimulationEnabled = true;
+
+            seam.ClearInput();
+            Assert.IsFalse(player.BlinkRequested, "nothing pressed, nothing asked for");
+            Assert.IsFalse(player.BanishRequested, "nothing pressed, nothing asked for");
+
+            seam.SetInput(Vector2.zero, blink: true);
+            Assert.IsTrue(player.BlinkRequested, "F should ask for a blink");
+            Assert.IsFalse(player.BanishRequested, "F is not the banisher");
+            Assert.IsFalse(player.DoubleTappedLookSide,
+                "a key press must not masquerade as a screen gesture");
+
+            seam.SetInput(Vector2.zero, banish: true);
+            Assert.IsTrue(player.BanishRequested, "G should ask for a banish");
+            Assert.IsFalse(player.BlinkRequested, "G is not the blink shard");
+            Assert.IsFalse(player.DoubleTappedMoveSide,
+                "a key press must not masquerade as a screen gesture");
+        }
+
+        /// <summary>
         /// However many times the game asks for input in a frame, hardware must be sampled once.
         /// </summary>
         /// <remarks>

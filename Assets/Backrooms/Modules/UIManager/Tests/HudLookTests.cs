@@ -61,8 +61,8 @@ namespace Backrooms.UIManager.Tests
                 new[]
                 {
                     "DEFENSE WARD  x1",
-                    "BANISHER  x3  (double-tap left)",
-                    "BLINK SHARD  (double-tap right)"
+                    "BANISHER  x3  (G / double-tap left)",
+                    "BLINK SHARD  (F / double-tap right)"
                 },
                 new[]
                 {

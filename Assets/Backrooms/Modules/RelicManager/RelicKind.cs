@@ -116,14 +116,14 @@ namespace Backrooms.RelicManager
                 new Color(1f, 0.92f, 0.55f), isCompass: false, charges: 1),
 
             new RelicArchetype(RelicKind.BlinkShard, "BLINK SHARD",
-                "Double-tap the right side to slip through the walls",
+                "Press F, or double-tap the right side, to slip through the walls",
                 new Color(0.55f, 0.78f, 1f), isCompass: false, charges: 0)
-            { Gesture = "(double-tap right)" },
+            { Gesture = "(F / double-tap right)" },
 
             new RelicArchetype(RelicKind.Banisher, "BANISHER",
-                "Double-tap the left side to unmake what you face",
+                "Press G, or double-tap the left side, to unmake what you face",
                 new Color(1f, 0.62f, 0.25f), isCompass: false, charges: 5)
-            { Gesture = "(double-tap left)" },
+            { Gesture = "(G / double-tap left)" },
 
             new RelicArchetype(RelicKind.SurveyorsLens, "SURVEYOR'S LENS",
                 "The rooms around you are drawn in the corner",

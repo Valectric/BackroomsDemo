@@ -82,14 +82,14 @@ namespace Backrooms.Gameplay
             used = RelicKind.Ward;
             if (relics == null || player == null) return false;
 
-            if (player.DoubleTappedLookSide && relics.Holds(RelicKind.BlinkShard)
+            if (player.BlinkRequested && relics.Holds(RelicKind.BlinkShard)
                 && TryBlink(player, maze))
             {
                 used = RelicKind.BlinkShard;
                 return true;
             }
 
-            if (player.DoubleTappedMoveSide && relics.Holds(RelicKind.Banisher) && dwellers != null)
+            if (player.BanishRequested && relics.Holds(RelicKind.Banisher) && dwellers != null)
             {
                 Vector3 forward = player.Forward;
                 forward.y = 0f;

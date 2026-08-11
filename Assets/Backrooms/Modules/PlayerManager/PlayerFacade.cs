@@ -50,6 +50,32 @@ namespace Backrooms.PlayerManager
             => _router != null && _router.ReadInput().DoubleTapLookSide;
 
         /// <summary>
+        /// Whether the player asked to blink this frame, by gesture or by key.
+        /// </summary>
+        public bool BlinkRequested
+        {
+            get
+            {
+                if (_router == null) return false;
+                PlayerInputState input = _router.ReadInput();
+                return input.DoubleTapLookSide || input.BlinkKey;
+            }
+        }
+
+        /// <summary>
+        /// Whether the player asked to fire the Banisher this frame, by gesture or by key.
+        /// </summary>
+        public bool BanishRequested
+        {
+            get
+            {
+                if (_router == null) return false;
+                PlayerInputState input = _router.ReadInput();
+                return input.DoubleTapMoveSide || input.BanishKey;
+            }
+        }
+
+        /// <summary>
         /// Moves the player forward through the level, stopping short of anything solid.
         /// </summary>
         /// <param name="distance">How far to try to travel, in metres.</param>

@@ -88,6 +88,14 @@ namespace Backrooms.PlayerManager.Internal.Input
 
             state.Move += move;
             if (kb.leftShiftKey.isPressed || kb.rightShiftKey.isPressed) state.Sprint = true;
+
+            // Relic powers on the two keys immediately right of WASD, so the hand that is already on
+            // the movement keys can reach them without moving. On touch these are double taps,
+            // because the touch scheme has no on-screen widgets to press; a keyboard has keys, and
+            // asking a desktop player to double-click the correct half of the screen mid-chase is
+            // asking them to do something a keyboard already does better.
+            if (kb.fKey.wasPressedThisFrame) state.BlinkKey = true;
+            if (kb.gKey.wasPressedThisFrame) state.BanishKey = true;
         }
 
         /// <summary>
