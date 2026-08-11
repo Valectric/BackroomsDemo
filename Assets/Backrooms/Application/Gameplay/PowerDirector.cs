@@ -83,8 +83,11 @@ namespace Backrooms.Gameplay
             BanisherMissed = false;
             if (relics == null || player == null) return false;
 
+            // Five uses, like the Banisher. An unlimited teleport is not a relic you spend, it is
+            // a movement ability, and it made every other way out of a corridor pointless.
             if (player.BlinkRequested && relics.Holds(RelicKind.BlinkShard)
-                && TryBlink(player, maze))
+                && TryBlink(player, maze)
+                && relics.Spend(RelicKind.BlinkShard))
             {
                 used = RelicKind.BlinkShard;
                 return true;

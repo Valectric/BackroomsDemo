@@ -100,6 +100,7 @@ namespace Backrooms.RelicManager.Internal
             light.type = LightType.Point;
             light.color = colour;
             light.intensity = 2.2f;
+            light.renderMode = LightRenderMode.ForceVertex;
             light.range = 7f;
             light.shadows = LightShadows.None;
         }

@@ -25,6 +25,9 @@ namespace Backrooms.MazeManager.Internal.Geometry
         /// <summary>Intensity at the reference mount height.</summary>
         private const float BaseIntensity = 7.5f;
 
+        /// <summary>Fixture spacing the base intensity was tuned at, in cells.</summary>
+        private const int ReferenceSpacing = 3;
+
         /// <param name="wallHeight">Wall height in metres.</param>
         /// <param name="spacingCells">Light spacing in cells on both axes.</param>
         /// <param name="theme">Palette, which supplies the light colour.</param>
@@ -60,7 +63,15 @@ namespace Backrooms.MazeManager.Internal.Geometry
                     // lighting bug wearing the costume of an art choice.
                     float mount = wallHeight - CeilingGap;
                     float ratio = mount / ReferenceMount;
-                    light.intensity = BaseIntensity * Mathf.Clamp(ratio * ratio, 0.6f, 7f);
+
+                    // Fewer fixtures each have to light more floor. Spacing went from one every
+                    // three cells to one every four — 64 lights down to 36, which is most of the
+                    // frame rate — and without this the floors simply came out darker, which is
+                    // trading the look for the speed rather than buying the speed with the look.
+                    float pitch = spacing / (float)ReferenceSpacing;
+
+                    light.intensity =
+                        BaseIntensity * Mathf.Clamp(ratio * ratio, 0.6f, 7f) * (pitch * pitch);
 
                     // Range must cover at least three quarters of the fixture pitch or pools cannot
                     // meet: at 7.6m range on a 12m pitch, the point between four fixtures received no
@@ -72,6 +83,7 @@ namespace Backrooms.MazeManager.Internal.Geometry
                     CreateLightPanel(go.transform, theme);
                 }
             }
+
         }
 
         /// <summary>

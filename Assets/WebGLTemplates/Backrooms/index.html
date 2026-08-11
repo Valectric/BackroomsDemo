@@ -95,8 +95,20 @@
         canvas.style.width = "100%";
         canvas.style.height = "100%";
 
-        var w = Math.max(1, Math.round(canvas.clientWidth));
-        var h = Math.max(1, Math.round(canvas.clientHeight));
+        // Cap the render resolution and let the browser upscale. Filling the window took the
+        // canvas from 960x600 to whatever the monitor is — on a 1920-wide screen that is three times
+        // the pixels for the same scene, which is most of where the frame rate went. The game is
+        // fogged, dim and has no fine detail to lose, so an upscaled 1280 is very hard to tell from
+        // a native one and costs about half as much to draw.
+        var MAX_WIDTH = 1280;
+
+        var cssW = Math.max(1, Math.round(canvas.clientWidth));
+        var cssH = Math.max(1, Math.round(canvas.clientHeight));
+
+        var scale = Math.min(1, MAX_WIDTH / cssW);
+        var w = Math.max(1, Math.round(cssW * scale));
+        var h = Math.max(1, Math.round(cssH * scale));
+
         if (canvas.width !== w || canvas.height !== h) {
           canvas.width = w;
           canvas.height = h;

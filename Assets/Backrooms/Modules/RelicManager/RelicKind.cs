@@ -127,7 +127,7 @@ namespace Backrooms.RelicManager
 
             new RelicArchetype(RelicKind.BlinkShard, "BLINK SHARD",
                 "Press F, or double-tap the right side, to slip through the walls",
-                new Color(0.55f, 0.78f, 1f), isCompass: false, charges: 0)
+                new Color(0.55f, 0.78f, 1f), isCompass: false, charges: 5)
             { Gesture = "(double-tap right)", KeyHint = "(F)" },
 
             new RelicArchetype(RelicKind.Banisher, "BANISHER",

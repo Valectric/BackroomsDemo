@@ -119,7 +119,7 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
---- !u!1 &117199299
+--- !u!1 &47003811
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -127,34 +127,41 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 117199301}
-  - component: {fileID: 117199300}
+  - component: {fileID: 47003813}
+  - component: {fileID: 47003812}
   m_Layer: 0
-  m_Name: Audio
+  m_Name: MazeManager
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &117199300
+--- !u!114 &47003812
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 117199299}
+  m_GameObject: {fileID: 47003811}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d24699260fdde4445bcf7c48ca81251e, type: 3}
+  m_Script: {fileID: 11500000, guid: f3b21eed362db6748a98ac4ea429fe8d, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Backrooms.AudioManager::Backrooms.AudioManager.AudioFacade
---- !u!4 &117199301
+  m_EditorClassIdentifier: Backrooms.MazeManager::Backrooms.MazeManager.MazeFacade
+  width: 24
+  height: 24
+  seed: 1
+  cellSize: 4
+  wallHeight: 3
+  lightSpacingCells: 3
+  buildOnStart: 0
+--- !u!4 &47003813
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 117199299}
+  m_GameObject: {fileID: 47003811}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
@@ -163,7 +170,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &163598351
+--- !u!1 &343888124
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -171,38 +178,36 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 163598353}
-  - component: {fileID: 163598352}
+  - component: {fileID: 343888126}
+  - component: {fileID: 343888125}
   m_Layer: 0
-  m_Name: Dweller
+  m_Name: Relics
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &163598352
+--- !u!114 &343888125
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 163598351}
+  m_GameObject: {fileID: 343888124}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1e7ad92200ba16e49a4083703b552cc0, type: 3}
+  m_Script: {fileID: 11500000, guid: 7caa5da9c67a23c4e8da2044499f97bc, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Backrooms.EntityManager::Backrooms.EntityManager.DwellerFacade
-  metresPerSecond: 2.2
-  senseRangeCells: 12
-  catchRadius: 1.35
-  maxChaseMetresPerSecond: 5.1
---- !u!4 &163598353
+  m_EditorClassIdentifier: Backrooms.RelicManager::Backrooms.RelicManager.RelicFacade
+  relicsPerFloor: 0
+  collectRadius: 1.6
+--- !u!4 &343888126
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 163598351}
+  m_GameObject: {fileID: 343888124}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
@@ -211,7 +216,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &887372919
+--- !u!1 &1113757331
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -219,9 +224,9 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 887372922}
-  - component: {fileID: 887372921}
-  - component: {fileID: 887372920}
+  - component: {fileID: 1113757334}
+  - component: {fileID: 1113757333}
+  - component: {fileID: 1113757332}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -229,13 +234,13 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &887372920
+--- !u!114 &1113757332
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 887372919}
+  m_GameObject: {fileID: 1113757331}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 2d4a3e46cd4cf81408be22fa61c90737, type: 3}
@@ -245,13 +250,13 @@ MonoBehaviour:
   walkSpeed: 3.2
   sprintSpeed: 5.6
   lookSensitivity: 0.12
---- !u!143 &887372921
+--- !u!143 &1113757333
 CharacterController:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 887372919}
+  m_GameObject: {fileID: 1113757331}
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
@@ -270,13 +275,13 @@ CharacterController:
   m_SkinWidth: 0.08
   m_MinMoveDistance: 0.001
   m_Center: {x: 0, y: 0, z: 0}
---- !u!4 &887372922
+--- !u!4 &1113757334
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 887372919}
+  m_GameObject: {fileID: 1113757331}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 2, y: 0.1, z: 2}
@@ -285,7 +290,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &1314286585
+--- !u!1 &1144772875
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -293,8 +298,52 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 1314286587}
-  - component: {fileID: 1314286586}
+  - component: {fileID: 1144772877}
+  - component: {fileID: 1144772876}
+  m_Layer: 0
+  m_Name: Hud
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1144772876
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1144772875}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7886682d81791134f8ca533e78a960ca, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Backrooms.UIManager::Backrooms.UIManager.HudFacade
+--- !u!4 &1144772877
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1144772875}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1393816958
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1393816960}
+  - component: {fileID: 1393816959}
   m_Layer: 0
   m_Name: GameplayController
   m_TagString: Untagged
@@ -302,13 +351,13 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1314286586
+--- !u!114 &1393816959
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1314286585}
+  m_GameObject: {fileID: 1393816958}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 41f40fdb7632fd7488155a344876d131, type: 3}
@@ -327,13 +376,13 @@ MonoBehaviour:
   stairsRadius: 2
   dwellerBaseSpeed: 2.2
   dwellerSpeedPerFloor: 0.12
---- !u!4 &1314286587
+--- !u!4 &1393816960
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1314286585}
+  m_GameObject: {fileID: 1393816958}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
@@ -342,7 +391,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &1358037345
+--- !u!1 &1398956469
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -350,41 +399,34 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 1358037347}
-  - component: {fileID: 1358037346}
+  - component: {fileID: 1398956471}
+  - component: {fileID: 1398956470}
   m_Layer: 0
-  m_Name: MazeManager
+  m_Name: Audio
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1358037346
+--- !u!114 &1398956470
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1358037345}
+  m_GameObject: {fileID: 1398956469}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f3b21eed362db6748a98ac4ea429fe8d, type: 3}
+  m_Script: {fileID: 11500000, guid: d24699260fdde4445bcf7c48ca81251e, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Backrooms.MazeManager::Backrooms.MazeManager.MazeFacade
-  width: 24
-  height: 24
-  seed: 1
-  cellSize: 4
-  wallHeight: 3
-  lightSpacingCells: 3
-  buildOnStart: 0
---- !u!4 &1358037347
+  m_EditorClassIdentifier: Backrooms.AudioManager::Backrooms.AudioManager.AudioFacade
+--- !u!4 &1398956471
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1358037345}
+  m_GameObject: {fileID: 1398956469}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
@@ -393,7 +435,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &1958016195
+--- !u!1 &1485565704
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -401,80 +443,38 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 1958016197}
-  - component: {fileID: 1958016196}
+  - component: {fileID: 1485565706}
+  - component: {fileID: 1485565705}
   m_Layer: 0
-  m_Name: Relics
+  m_Name: Dweller
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1958016196
+--- !u!114 &1485565705
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1958016195}
+  m_GameObject: {fileID: 1485565704}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7caa5da9c67a23c4e8da2044499f97bc, type: 3}
+  m_Script: {fileID: 11500000, guid: 1e7ad92200ba16e49a4083703b552cc0, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Backrooms.RelicManager::Backrooms.RelicManager.RelicFacade
-  relicsPerFloor: 0
-  collectRadius: 1.6
---- !u!4 &1958016197
+  m_EditorClassIdentifier: Backrooms.EntityManager::Backrooms.EntityManager.DwellerFacade
+  metresPerSecond: 2.2
+  senseRangeCells: 12
+  catchRadius: 1.35
+  maxChaseMetresPerSecond: 5.1
+--- !u!4 &1485565706
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1958016195}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &2075710516
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 2075710518}
-  - component: {fileID: 2075710517}
-  m_Layer: 0
-  m_Name: Hud
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &2075710517
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2075710516}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7886682d81791134f8ca533e78a960ca, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Backrooms.UIManager::Backrooms.UIManager.HudFacade
---- !u!4 &2075710518
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2075710516}
+  m_GameObject: {fileID: 1485565704}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
@@ -487,10 +487,10 @@ Transform:
 SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
-  - {fileID: 1358037347}
-  - {fileID: 887372922}
-  - {fileID: 163598353}
-  - {fileID: 1958016197}
-  - {fileID: 117199301}
-  - {fileID: 2075710518}
-  - {fileID: 1314286587}
+  - {fileID: 47003813}
+  - {fileID: 1113757334}
+  - {fileID: 1485565706}
+  - {fileID: 343888126}
+  - {fileID: 1398956471}
+  - {fileID: 1144772877}
+  - {fileID: 1393816960}

@@ -251,6 +251,11 @@ namespace Backrooms.PlayerManager
             HeadCamera = head.AddComponent<Camera>();
             HeadCamera.nearClipPlane = 0.05f;
 
+            // Tagged, because Camera.main is how anything outside this module finds the player's
+            // eye — the light culler among them. Untagged, Camera.main returns null and everything
+            // that depends on it silently does nothing.
+            head.tag = "MainCamera";
+
             // Fog is effectively opaque well before this, so anything beyond is shaded and thrown
             // away. The default 1000m clip submitted the entire level every frame, and clearing with
             // the skybox drew a full-screen pass behind a sealed interior. Clearing to a flat colour

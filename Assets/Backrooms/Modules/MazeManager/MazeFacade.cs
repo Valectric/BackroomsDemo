@@ -23,6 +23,8 @@ namespace Backrooms.MazeManager
         [Header("Geometry")]
         [Tooltip("Fallback ceiling height. Each floor theme overrides this with its own.")]
         [SerializeField] private float wallHeight = 3f;
+        [Tooltip("Cells between ceiling fixtures. Distant ones are switched off by LightCuller, "
+                 + "so the count costs memory rather than frame rate.")]
         [SerializeField] private int lightSpacingCells = 3;
 
         [Header("Lifecycle")]
