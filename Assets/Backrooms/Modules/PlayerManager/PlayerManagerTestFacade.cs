@@ -96,5 +96,13 @@ namespace Backrooms.PlayerManager
         }
 
         public void ClearInput() => _router.SetSimulatedInput(PlayerInputState.None);
+
+        /// <summary>
+        /// Asks for a look-sensitivity adjustment. Not intended for production use — only for
+        /// automated testing.
+        /// </summary>
+        /// <param name="steps">Notches up, or negative for down.</param>
+        public void SetSensitivitySteps(int steps)
+            => _router.SetSimulatedInput(new PlayerInputState { SensitivitySteps = steps });
     }
 }

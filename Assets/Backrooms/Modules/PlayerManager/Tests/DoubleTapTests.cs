@@ -25,6 +25,50 @@ namespace Backrooms.PlayerManager.Tests
         /// Two presses inside the window are a double tap; the first press alone is not.
         /// </summary>
         /// <summary>
+        /// Look sensitivity must be adjustable in game, must stay inside sane bounds however far it
+        /// is wound, and must be remembered between runs.
+        /// </summary>
+        /// <remarks>
+        /// Bounds matter more than they look: at zero the camera stops turning entirely and the game
+        /// is unplayable with no visible cause, and a player who has wound it there has no way to
+        /// discover why or wind it back, because winding it back is itself a look control.
+        /// </remarks>
+        [Test]
+        public void LookSensitivity_IsAdjustableWithinBounds_AndRemembered()
+        {
+            PlayerPrefs.DeleteKey("Backrooms.LookSensitivity");
+
+            var go = new GameObject("Player");
+            PlayerFacade player = go.AddComponent<PlayerFacade>();
+            PlayerManagerTestFacade seam = player.GetTestFacade();
+            seam.SimulationEnabled = true;
+
+            float start = player.LookSensitivity;
+            Assert.Greater(start, 0f, "it has to turn the camera at all");
+
+            seam.SetSensitivitySteps(3);
+            player.SendMessage("Update");
+            Assert.Greater(player.LookSensitivity, start, "three notches up should be faster");
+
+            // Wind it far past the end in both directions and it must stop, not invert or vanish.
+            seam.SetSensitivitySteps(-500);
+            player.SendMessage("Update");
+            float floor = player.LookSensitivity;
+            Assert.Greater(floor, 0f, "wound all the way down it must still turn the camera");
+
+            seam.SetSensitivitySteps(500);
+            player.SendMessage("Update");
+            float ceiling = player.LookSensitivity;
+            Assert.Less(ceiling, 1f, "wound all the way up it must still be usable");
+            Assert.Greater(ceiling, floor, "the range must have two different ends");
+
+            Assert.AreEqual(ceiling, PlayerPrefs.GetFloat("Backrooms.LookSensitivity"), 1e-4f,
+                "the choice should survive the run that made it");
+
+            PlayerPrefs.DeleteKey("Backrooms.LookSensitivity");
+        }
+
+        /// <summary>
         /// A relic power must fire from either the gesture or the key, and the two must stay
         /// distinguishable underneath.
         /// </summary>

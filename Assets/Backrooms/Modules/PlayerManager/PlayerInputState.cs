@@ -52,6 +52,12 @@ namespace Backrooms.PlayerManager
         /// <summary>Whether the banish key went down this frame.</summary>
         public bool BanishKey;
 
+        /// <summary>
+        /// Steps of look-sensitivity adjustment asked for this frame: positive faster, negative
+        /// slower. One step per wheel notch or per press of the plus/minus keys.
+        /// </summary>
+        public int SensitivitySteps;
+
         /// <summary>Input representing "no intent at all".</summary>
         public static PlayerInputState None => new PlayerInputState
         {

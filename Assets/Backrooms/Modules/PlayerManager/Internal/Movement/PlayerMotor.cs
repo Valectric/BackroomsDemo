@@ -61,8 +61,24 @@ namespace Backrooms.PlayerManager.Internal.Movement
         /// <param name="deltaTime">Time step in seconds.</param>
         public void Tick(PlayerInputState input, float deltaTime)
         {
-            ApplyLook(input.Look);
             ApplyMove(input, deltaTime);
+        }
+
+        /// <summary>
+        /// Turns the camera. Called once per rendered frame, never from the physics step.
+        /// </summary>
+        /// <remarks>
+        /// A mouse delta is a per-frame quantity: it is how far the mouse moved since the last frame,
+        /// already a rate. Applying it from FixedUpdate applied it once per physics step instead, so
+        /// whenever the frame rate fell below the physics rate the same movement was applied several
+        /// times and the camera turned further for the same hand movement. It showed up as look
+        /// sensitivity roughly doubling in fullscreen, because rendering four times the pixels halved
+        /// the frame rate — the sensitivity was following the frame rate, not the mouse.
+        /// </remarks>
+        /// <param name="input">Input for this frame.</param>
+        public void TickLook(PlayerInputState input)
+        {
+            ApplyLook(input.Look);
         }
 
         /// <summary>

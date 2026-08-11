@@ -42,6 +42,12 @@ namespace Backrooms.PlayerManager.Internal
         public void Tick(float deltaTime) => _motor.Tick(_input.Read(), deltaTime);
 
         /// <summary>
+        /// Turns the camera for this frame. Separate from <see cref="Tick"/> because a mouse delta
+        /// is a per-frame quantity and must not be consumed once per physics step.
+        /// </summary>
+        public void TickLook() => _motor.TickLook(_input.Read());
+
+        /// <summary>
         /// Sets the intent used while simulation mode is enabled.
         /// </summary>
         /// <param name="input">The simulated intent.</param>

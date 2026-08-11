@@ -106,6 +106,18 @@ namespace Backrooms.PlayerManager.Internal.Input
             // itself and that cannot be prevented, so this exists to keep the editor and any
             // standalone build behaving the same way the web build already does.
             if (kb.escapeKey.wasPressedThisFrame) ReleasePointer();
+
+            // Plus and minus, on the main row and the numpad. Held keys do not repeat: this is a
+            // setting, not a control, and a stuck key should not run it to the end of its range.
+            if (kb.equalsKey.wasPressedThisFrame || kb.numpadPlusKey.wasPressedThisFrame)
+            {
+                state.SensitivitySteps += 1;
+            }
+
+            if (kb.minusKey.wasPressedThisFrame || kb.numpadMinusKey.wasPressedThisFrame)
+            {
+                state.SensitivitySteps -= 1;
+            }
         }
 
         /// <summary>
@@ -156,6 +168,11 @@ namespace Backrooms.PlayerManager.Internal.Input
                 // and G, and having a stray click also spend a relic is a way to lose one by
                 // accident rather than a second way to use it.
             }
+
+            // The wheel reports 120 per notch on some platforms and 1 on others, so only the
+            // direction is used and one notch is one step either way.
+            float wheel = mouse.scroll.ReadValue().y;
+            if (Mathf.Abs(wheel) > 0.01f) state.SensitivitySteps += wheel > 0f ? 1 : -1;
 
             if (!locked && !mouse.leftButton.isPressed) return;
             state.Look += mouse.delta.ReadValue();

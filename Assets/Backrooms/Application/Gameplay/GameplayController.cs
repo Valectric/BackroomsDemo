@@ -581,6 +581,12 @@ namespace Backrooms.Gameplay
             }
 
             ElapsedSeconds += Time.deltaTime;
+            // A sensitivity change is invisible until you move the mouse, so say the number.
+            if (player.SensitivityChanged && hud != null)
+            {
+                hud.ShowFlash($"LOOK  {player.LookSensitivity:0.00}", new Color(0.75f, 0.85f, 1f));
+            }
+
             if (audioModule != null) audioModule.TickAmbience(Time.deltaTime);
             if (hud != null) hud.SetElapsed(ElapsedSeconds);
             ReportPursuit();

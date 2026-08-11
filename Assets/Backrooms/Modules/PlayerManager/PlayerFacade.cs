@@ -19,6 +19,7 @@ namespace Backrooms.PlayerManager
         [Header("Movement")]
         [SerializeField] private float walkSpeed = 3.2f;
         [SerializeField] private float sprintSpeed = 5.6f;
+        [Tooltip("Degrees turned per unit of look input. Adjustable in game with the wheel or +/-.")]
         [SerializeField] private float lookSensitivity = 0.12f;
 
         private CharacterController _controller;
@@ -48,6 +49,61 @@ namespace Backrooms.PlayerManager
         /// <summary>Whether a double tap landed on the look side this frame.</summary>
         public bool DoubleTappedLookSide
             => _router != null && _router.ReadInput().DoubleTapLookSide;
+
+        /// <summary>How far the camera turns per unit of look input.</summary>
+        public float LookSensitivity => lookSensitivity;
+
+        /// <summary>Whether the sensitivity changed this frame, so the game can say so.</summary>
+        public bool SensitivityChanged { get; private set; }
+
+        /// <summary>Smallest sensitivity the player can dial down to.</summary>
+        private const float MinSensitivity = 0.02f;
+
+        /// <summary>Largest sensitivity the player can dial up to.</summary>
+        private const float MaxSensitivity = 0.30f;
+
+        /// <summary>How much one wheel notch or key press moves it.</summary>
+        private const float SensitivityStep = 0.01f;
+
+        /// <summary>Where the player's chosen sensitivity is remembered between runs.</summary>
+        private const string SensitivityKey = "Backrooms.LookSensitivity";
+
+        /// <summary>
+        /// Applies any sensitivity adjustment asked for this frame.
+        /// </summary>
+        /// <remarks>
+        /// Saved immediately rather than on quit, because a browser tab is usually closed rather
+        /// than exited and there is no reliable moment later to write it.
+        /// </remarks>
+        private void ReadSensitivity()
+        {
+            SensitivityChanged = false;
+            if (_router == null) return;
+
+            int steps = _router.ReadInput().SensitivitySteps;
+            if (steps == 0) return;
+
+            float wanted = Mathf.Clamp(
+                lookSensitivity + steps * SensitivityStep, MinSensitivity, MaxSensitivity);
+
+            if (Mathf.Approximately(wanted, lookSensitivity)) return;
+
+            lookSensitivity = wanted;
+            ApplyTuning();
+            PlayerPrefs.SetFloat(SensitivityKey, lookSensitivity);
+            SensitivityChanged = true;
+        }
+
+        /// <summary>
+        /// Reads back the player's remembered sensitivity, if they have set one.
+        /// </summary>
+        private void LoadSensitivity()
+        {
+            if (!PlayerPrefs.HasKey(SensitivityKey)) return;
+
+            lookSensitivity = Mathf.Clamp(
+                PlayerPrefs.GetFloat(SensitivityKey), MinSensitivity, MaxSensitivity);
+        }
 
         /// <summary>
         /// Whether the player asked to blink this frame, by gesture or by key.
@@ -132,7 +188,20 @@ namespace Backrooms.PlayerManager
 
             EnsureHeadCamera();
             _router = new PlayerRouter(_controller, transform, HeadCamera.transform);
+
+            // Read here rather than in a field initializer: PlayerPrefs is not available during a
+            // MonoBehaviour's construction, and doing it there threw on every start once already.
+            LoadSensitivity();
             ApplyTuning();
+        }
+
+        /// <summary>
+        /// Turns the camera and picks up any sensitivity adjustment, once per rendered frame.
+        /// </summary>
+        private void Update()
+        {
+            if (MovementEnabled) _router?.TickLook();
+            ReadSensitivity();
         }
 
         /// <summary>
