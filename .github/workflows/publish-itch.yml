@@ -18,11 +18,15 @@ jobs:
           ref: gh-pages
 
       - name: Install butler
+        # Anywhere but the checkout. Installed alongside the game, butler ships itself: the first
+        # upload carried butler, butler.zip, 7z.so and libc7zip.so into the build, 54MiB across 10
+        # files against a 21MB payload of 6.
         run: |
-          curl -sL -o butler.zip https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default
-          unzip -q butler.zip
-          chmod +x butler
-          ./butler -V
+          mkdir -p "$RUNNER_TEMP/butler"
+          curl -sL -o "$RUNNER_TEMP/butler/butler.zip"             https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default
+          unzip -q "$RUNNER_TEMP/butler/butler.zip" -d "$RUNNER_TEMP/butler"
+          chmod +x "$RUNNER_TEMP/butler/butler"
+          "$RUNNER_TEMP/butler/butler" -V
 
       - name: Push the build to itch.io
         env:
@@ -38,16 +42,14 @@ jobs:
           version=$(grep -o '0\.1\.[0-9]*' index.html | head -1 || echo "0.0.0")
           echo "publishing $version to itch.io"
 
-          # Drop the checkout's own git data before pushing. --ignore did not exclude it and the
-          # first upload went out at 54MiB across 10 files against a 21MB payload of 6 — the repo's
-          # pack, riding along inside the game. The runner is thrown away, so deleting it is safe and
-          # is the only way to be certain of what ships.
+          # The runner is discarded after the job, so removing the git data here is free certainty
+          # about what ships.
           rm -rf .git
 
           echo "uploading:"
           find . -type f | sort
 
-          ./butler push . "${{ vars.ITCH_TARGET }}" --userversion "$version"
+          "$RUNNER_TEMP/butler/butler" push . "${{ vars.ITCH_TARGET }}" --userversion "$version"
 
       - name: Report
         run: echo "Published. It may take itch.io a minute to process the upload."
