@@ -205,8 +205,28 @@ namespace Backrooms.UIManager.Internal
         /// Announces that a relic was just picked up.
         /// </summary>
         /// <param name="total">How many the player now carries.</param>
+        /// <param name="message">What to say, or null for the default pickup line.</param>
+        /// <param name="colour">Colour to say it in, or null for the relic colour.</param>
+        public void ShowFlash(string message, Color colour)
+        {
+            FlashMessage = message;
+            FlashColour = colour;
+            RelicFlashRemaining = RelicFlashSeconds;
+        }
+
+        /// <summary>Text of the current flash, or null to use the pickup line.</summary>
+        public string FlashMessage { get; private set; }
+
+        /// <summary>Colour of the current flash.</summary>
+        public Color FlashColour { get; private set; } = Color.white;
+
+        /// <summary>
+        /// Shows the pickup flash for finding a relic.
+        /// </summary>
+        /// <param name="total">How many relics the player now carries.</param>
         public void ShowRelic(int total)
         {
+            FlashMessage = null;
             Relics = total;
             RelicFlashRemaining = RelicFlashSeconds;
         }
@@ -339,7 +359,7 @@ namespace Backrooms.UIManager.Internal
 
             _renderer.DrawStatus(ElapsedSeconds, Floor, Relics);
             if (BannerShown) _renderer.DrawFloorBanner(Floor, FloorName);
-            if (RelicFlashRemaining > 0f) _renderer.DrawRelicFlash(Relics);
+            if (RelicFlashRemaining > 0f) _renderer.DrawRelicFlash(Relics, FlashMessage, FlashColour);
         }
 
         /// <summary>

@@ -69,19 +69,47 @@
     <script src="Build/{{{ LOADER_FILENAME }}}"></script>
     <script>
       if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-        // Mobile device style: fill the whole browser client area with the game canvas.
         var meta = document.createElement('meta');
         meta.name = 'viewport';
         meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
         document.getElementsByTagName('head')[0].appendChild(meta);
+      }
 
+      // Fill the window on every platform, not just mobile. The canvas was pinned at its build
+      // dimensions, so going fullscreen made the *page* fullscreen and left the game the same size
+      // in the middle of a larger black rectangle — which reads as the button not working.
+      //
+      // Both the CSS size and the width/height attributes have to be set. The attributes are the
+      // render target: styling alone gave a 960x600 image stretched across 1920x911, so fullscreen
+      // bought more pixels of the same small, blurry, wrong-aspect picture. Unity is documented to
+      // follow the canvas, but with the attributes present in the markup it kept them.
+      //
+      // Sized in CSS pixels rather than device pixels on purpose: a phone at devicePixelRatio 3
+      // would otherwise render nine times the area, and the mobile quality tier is already at 0.8
+      // render scale precisely because it cannot afford that.
+      window.fitCanvasToWindow = function () {
         var canvas = document.querySelector("#unity-canvas");
+        canvas.style.position = "fixed";
+        canvas.style.top = "0";
+        canvas.style.left = "0";
         canvas.style.width = "100%";
         canvas.style.height = "100%";
-        canvas.style.position = "fixed";
+
+        var w = Math.max(1, Math.round(canvas.clientWidth));
+        var h = Math.max(1, Math.round(canvas.clientHeight));
+        if (canvas.width !== w || canvas.height !== h) {
+          canvas.width = w;
+          canvas.height = h;
+        }
 
         document.body.style.textAlign = "left";
-      }
+      };
+
+      window.fitCanvasToWindow();
+      window.addEventListener("resize", window.fitCanvasToWindow);
+      window.addEventListener("orientationchange", function () {
+        setTimeout(window.fitCanvasToWindow, 120);
+      });
 
       (function () {
         var button = document.querySelector("#fullscreen-button");
@@ -93,6 +121,12 @@
         // iPhone Safari has no Fullscreen API at all, so the button would do nothing. A control that
         // visibly does nothing is worse than no control — there, the answer is Add to Home Screen.
         if (!request) return;
+
+        // Inside an embed — itch.io and anywhere else the game is framed — the host already provides
+        // a fullscreen control. Two buttons doing the same thing, one of them nested inside the
+        // other's result, is where "is there a double layer of fullscreen?" comes from.
+        if (window.self !== window.top) return;
+
         button.style.display = "block";
 
         function isFullscreen() {
@@ -137,6 +171,17 @@
         productVersion: {{{ JSON.stringify(PRODUCT_VERSION) }}},
       }).then((unityInstance) => {
         window.unityInstance = unityInstance;
+
+        // Unity sizes its render target from the canvas, but only reacts to a resize event — the CSS
+        // fill above is applied before it starts, so without this it keeps the build's 960x600
+        // backing store and stretches it across the window. That is what made entering fullscreen
+        // look like nothing had happened: more pixels of the same small, blurry image.
+        // Entering or leaving fullscreen changes the window shape after the event fires, so the
+        // refit is deferred a frame rather than run immediately.
+        window.fitCanvasToWindow();
+        document.addEventListener("fullscreenchange", function () {
+          setTimeout(window.fitCanvasToWindow, 80);
+        });
       }).catch((message) => {
         alert(message);
       });

@@ -80,6 +80,7 @@ namespace Backrooms.Gameplay
             out RelicKind used)
         {
             used = RelicKind.Ward;
+            BanisherMissed = false;
             if (relics == null || player == null) return false;
 
             if (player.BlinkRequested && relics.Holds(RelicKind.BlinkShard)
@@ -94,19 +95,33 @@ namespace Backrooms.Gameplay
                 Vector3 forward = player.Forward;
                 forward.y = 0f;
 
-                // Only spend a charge if something actually dies. A shot into an empty corridor that
-                // still costs a charge reads as the relic being broken.
-                if (dwellers.TryBanishInFront(player.Position, forward.normalized, BanishMetres,
-                        BanishHalfAngle)
-                    && relics.Spend(RelicKind.Banisher))
+                bool killed = dwellers.TryBanishInFront(player.Position, forward.normalized,
+                    BanishMetres, BanishHalfAngle);
+
+                // The shot is drawn either way. Previously a miss did nothing whatsoever — no
+                // sound, no mark, no charge — so pressing the key read as the key being broken
+                // rather than as the shot going wide, and there was no way to learn to aim it.
+                ShotTracer.Fire(player.Position, forward, BanishMetres,
+                    RelicArchetypes.For(RelicKind.Banisher).Colour, killed);
+
+                // Still only spend a charge on a kill: a shot into an empty corridor that costs you
+                // one of five reads as the relic being broken in the other direction.
+                if (killed && relics.Spend(RelicKind.Banisher))
                 {
                     used = RelicKind.Banisher;
                     return true;
                 }
+
+                BanisherMissed = !killed;
             }
 
             return false;
         }
+
+        /// <summary>
+        /// Whether the last banish attempt fired and hit nothing, so the game can say so.
+        /// </summary>
+        public bool BanisherMissed { get; private set; }
 
         /// <summary>
         /// Slips the player forward through whatever is in the way.

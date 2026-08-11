@@ -31,6 +31,7 @@ namespace Backrooms.AudioManager.Internal
         private AudioClip _descend;
         private AudioClip _blink;
         private AudioClip _banish;
+        private AudioClip _banishMiss;
 
         private float _stepTimer;
         private int _stepIndex;
@@ -151,6 +152,10 @@ namespace Backrooms.AudioManager.Internal
             // "down".
             _blink = Clip("Blink", ToneGenerator.Descend(190f, 880f, 0.26f, 0.5f));
             _banish = Clip("Banish", ToneGenerator.Descend(760f, 80f, 0.45f, 0.6f));
+
+            // The same shot, shorter and stopping well short of the bottom: recognisably the weapon
+            // firing, recognisably nothing happening.
+            _banishMiss = Clip("BanishMiss", ToneGenerator.Descend(700f, 300f, 0.16f, 0.35f));
 
             ApplyFloorClip();
         }
@@ -427,6 +432,14 @@ namespace Backrooms.AudioManager.Internal
         public void PlayBanish()
         {
             if (_oneShot != null && _banish != null) _oneShot.PlayOneShot(_banish, 0.8f);
+        }
+
+        /// <summary>
+        /// Plays the sound for a Banisher shot that hit nothing.
+        /// </summary>
+        public void PlayBanishMiss()
+        {
+            if (_oneShot != null && _banishMiss != null) _oneShot.PlayOneShot(_banishMiss, 0.55f);
         }
 
         /// <summary>

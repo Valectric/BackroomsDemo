@@ -61,6 +61,16 @@ namespace Backrooms.RelicManager
         /// </remarks>
         public string Gesture { get; set; } = string.Empty;
 
+        /// <summary>
+        /// How to use it with a keyboard, shown instead of <see cref="Gesture"/> on desktop.
+        /// </summary>
+        /// <remarks>
+        /// Separate from the gesture rather than one combined string, because showing both taught
+        /// the wrong thing: "(F / double-tap right)" reads as though F also needs a double tap. Each
+        /// platform is shown only the control it actually has.
+        /// </remarks>
+        public string KeyHint { get; set; } = string.Empty;
+
         /// <summary>How many uses it carries, or 0 for something that is always on.</summary>
         public int Charges { get; }
 
@@ -118,12 +128,12 @@ namespace Backrooms.RelicManager
             new RelicArchetype(RelicKind.BlinkShard, "BLINK SHARD",
                 "Press F, or double-tap the right side, to slip through the walls",
                 new Color(0.55f, 0.78f, 1f), isCompass: false, charges: 0)
-            { Gesture = "(F / double-tap right)" },
+            { Gesture = "(double-tap right)", KeyHint = "(F)" },
 
             new RelicArchetype(RelicKind.Banisher, "BANISHER",
                 "Press G, or double-tap the left side, to unmake what you face",
                 new Color(1f, 0.62f, 0.25f), isCompass: false, charges: 5)
-            { Gesture = "(G / double-tap left)" },
+            { Gesture = "(double-tap left)", KeyHint = "(G)" },
 
             new RelicArchetype(RelicKind.SurveyorsLens, "SURVEYOR'S LENS",
                 "The rooms around you are drawn in the corner",

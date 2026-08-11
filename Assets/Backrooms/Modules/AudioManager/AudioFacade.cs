@@ -114,6 +114,11 @@ namespace Backrooms.AudioManager
         public void PlayBanish() => _router.PlayBanish();
 
         /// <summary>
+        /// Plays the sound for a Banisher shot that hit nothing.
+        /// </summary>
+        public void PlayBanishMiss() => _router.PlayBanishMiss();
+
+        /// <summary>
         /// Plays the falling tone for dropping a floor.
         /// </summary>
         public void PlayDescend() => _router.PlayDescend();

@@ -63,6 +63,13 @@ namespace Backrooms.UIManager
         /// <param name="total">How many the player now carries.</param>
         public void ShowRelic(int total) => Router.ShowRelic(total);
 
+        /// <summary>
+        /// Flashes an arbitrary line, for something other than finding a relic.
+        /// </summary>
+        /// <param name="message">What to say.</param>
+        /// <param name="colour">Colour to say it in.</param>
+        public void ShowFlash(string message, Color colour) => Router.ShowFlash(message, colour);
+
         /// <summary>How many relics the HUD is showing.</summary>
         public int Relics => Router.Relics;
 

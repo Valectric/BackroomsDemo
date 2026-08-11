@@ -159,7 +159,12 @@ namespace Backrooms.Gameplay
         /// </summary>
         private void UsePowers()
         {
-            if (!_powers.TryUsePowers(relics, player, _director, maze, out RelicKind used)) return;
+            if (!_powers.TryUsePowers(relics, player, _director, maze, out RelicKind used))
+            {
+                // A miss still gets a sound. Silence was indistinguishable from a broken key.
+                if (_powers.BanisherMissed && audioModule != null) audioModule.PlayBanishMiss();
+                return;
+            }
 
             // Each power gets its own sound. Every one of them used to play the pickup chime, so
             // using the shard sounded exactly like finding a relic that was not there. Chosen here
@@ -179,7 +184,14 @@ namespace Backrooms.Gameplay
                         break;
                 }
             }
-            if (hud != null) hud.ShowRelic(RelicsCollected);
+            // Naming what was spent, not the pickup line: using a relic announced "RELIC
+            // RECOVERED" and the carried total, so every blink read as having just found something.
+            if (hud != null)
+            {
+                RelicArchetype spent = RelicArchetypes.For(used);
+                hud.ShowFlash(spent.DisplayName, spent.Colour);
+            }
+
             Debug.Log($"[Gameplay] Used {RelicArchetypes.For(used).DisplayName}");
         }
 
@@ -204,7 +216,13 @@ namespace Backrooms.Gameplay
                     ? archetype.DisplayName
                     : $"{archetype.DisplayName}  x{charges}";
 
-                if (!string.IsNullOrEmpty(archetype.Gesture)) line += "  " + archetype.Gesture;
+                // Show the control this device actually has. A phone has no F key and a desktop
+                // has no screen halves worth double-tapping now that the pointer locks.
+                string how = Application.isMobilePlatform || !string.IsNullOrEmpty(archetype.KeyHint)
+                    ? (Application.isMobilePlatform ? archetype.Gesture : archetype.KeyHint)
+                    : archetype.Gesture;
+
+                if (!string.IsNullOrEmpty(how)) line += "  " + how;
                 _carriedLines.Add(line);
                 _carriedColours.Add(archetype.Colour);
             }

@@ -141,12 +141,19 @@ namespace Backrooms.UIManager.Internal
         /// Draws the flash confirming a relic was just picked up.
         /// </summary>
         /// <param name="relics">How many the player now carries.</param>
-        public void DrawRelicFlash(int relics)
+        /// <param name="message">What to say, or null for the pickup line.</param>
+        /// <param name="colour">Colour to say it in, used only with a message.</param>
+        public void DrawRelicFlash(int relics, string message = null, Color default_ = default)
         {
             int size = Mathf.Max(18, Mathf.RoundToInt(Screen.height * 0.05f));
             var rect = new Rect(0f, Screen.height * 0.62f, Screen.width, size * 2f);
-            DrawLabel(rect, $"{RelicMark} RELIC RECOVERED  ({relics})", size, TextAnchor.UpperCenter,
-                RelicColor);
+
+            string text = string.IsNullOrEmpty(message)
+                ? $"{RelicMark} RELIC RECOVERED  ({relics})"
+                : message;
+
+            DrawLabel(rect, text, size, TextAnchor.UpperCenter,
+                string.IsNullOrEmpty(message) ? RelicColor : default_);
         }
 
         /// <summary>

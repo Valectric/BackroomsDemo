@@ -49,6 +49,11 @@ namespace Backrooms.PlayerManager.Internal.Input
             _sampledFrame = Time.frameCount;
             FreshReads++;
 
+            // The browser can drop the lock without telling us — Escape, a tab switch, losing
+            // focus — and the cursor has to come back when it does, or the player is left with an
+            // invisible pointer over a game that no longer turns.
+            if (Cursor.lockState != CursorLockMode.Locked && !Cursor.visible) Cursor.visible = true;
+
             PlayerInputState state = PlayerInputState.None;
             ReadKeyboard(ref state);
             ReadMouse(ref state);
@@ -96,36 +101,63 @@ namespace Backrooms.PlayerManager.Internal.Input
             // asking them to do something a keyboard already does better.
             if (kb.fKey.wasPressedThisFrame) state.BlinkKey = true;
             if (kb.gKey.wasPressedThisFrame) state.BanishKey = true;
+
+            // Escape gives the cursor back. The browser also releases pointer lock on Escape by
+            // itself and that cannot be prevented, so this exists to keep the editor and any
+            // standalone build behaving the same way the web build already does.
+            if (kb.escapeKey.wasPressedThisFrame) ReleasePointer();
         }
 
         /// <summary>
-        /// Adds look input from a held-and-dragged mouse. Drag-to-look is used rather than pointer
-        /// lock because pointer lock is unreliable inside a WebGL canvas on some browsers.
+        /// Hands the cursor back to the player.
         /// </summary>
+        private static void ReleasePointer()
+        {
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+        }
+
+        /// <summary>
+        /// Adds look input from the mouse: free look while the pointer is locked, and
+        /// hold-and-drag when it is not.
+        /// </summary>
+        /// <remarks>
+        /// A click locks the pointer, and Escape releases it — the browser enforces that exit itself
+        /// and it cannot be suppressed, which is exactly why it is the right key to document.
+        /// <para>
+        /// Drag-to-look is kept as the fallback rather than removed. Pointer lock needs a user
+        /// gesture and can simply be refused — an iframe without <c>allow="pointer-lock"</c>, or a
+        /// browser that has had the permission denied for the site — and a game whose camera stops
+        /// working because a permission was declined is worse than one that quietly asks you to hold
+        /// the button.
+        /// </para>
+        /// </remarks>
         /// <param name="state">Input state being accumulated.</param>
         private void ReadMouse(ref PlayerInputState state)
         {
             Mouse mouse = Mouse.current;
             if (mouse == null) return;
 
+            bool locked = Cursor.lockState == CursorLockMode.Locked;
+
             if (mouse.leftButton.wasPressedThisFrame)
             {
                 state.Confirm = true;
 
-                // Desktop gets the same gestures as touch, split on the same halves, so a relic
-                // power is not something only phone players can use.
-                bool lookSide = mouse.position.ReadValue().x >= Screen.width * 0.5f;
-                if (lookSide)
+                if (!locked && !Application.isMobilePlatform)
                 {
-                    if (_lookSideTaps.Press(Time.unscaledTime)) state.DoubleTapLookSide = true;
+                    // The click that starts the run is also the gesture that earns the lock.
+                    Cursor.lockState = CursorLockMode.Locked;
+                    Cursor.visible = false;
                 }
-                else if (_moveSideTaps.Press(Time.unscaledTime))
-                {
-                    state.DoubleTapMoveSide = true;
-                }
+
+                // A mouse click deliberately does not fire the screen-half gestures any more. They
+                // exist because a touchscreen has nowhere to put a button; a desktop player has F
+                // and G, and having a stray click also spend a relic is a way to lose one by
+                // accident rather than a second way to use it.
             }
 
-            if (!mouse.leftButton.isPressed) return;
+            if (!locked && !mouse.leftButton.isPressed) return;
             state.Look += mouse.delta.ReadValue();
         }
 

@@ -164,10 +164,9 @@ namespace Backrooms.Gameplay
                 if (d == null || !d.IsActive) continue;
 
                 Vector3 at = d.transform.position;
-                Vector3 to = new Vector3(at.x, 0f, at.z) - flat;
-                float away = to.magnitude;
-                if (away > range || away >= best) continue;
-                if (Vector3.Angle(forward, to.normalized) > halfAngle) continue;
+                float away = (new Vector3(at.x, 0f, at.z) - flat).magnitude;
+                if (away >= best) continue;
+                if (!DwellerAim.IsInCone(origin, forward, at, range, halfAngle)) continue;
 
                 best = away;
                 hit = d;
