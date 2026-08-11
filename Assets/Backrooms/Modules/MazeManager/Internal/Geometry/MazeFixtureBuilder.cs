@@ -16,6 +16,15 @@ namespace Backrooms.MazeManager.Internal.Geometry
         /// </summary>
         /// <param name="layout">The maze, used for grid extents.</param>
         /// <param name="cellSize">World size of one cell in metres.</param>
+        /// <summary>How far below the ceiling a fixture hangs, in metres.</summary>
+        private const float CeilingGap = 0.45f;
+
+        /// <summary>Mount height the base intensity was tuned at — a 3m ceiling.</summary>
+        private const float ReferenceMount = 2.55f;
+
+        /// <summary>Intensity at the reference mount height.</summary>
+        private const float BaseIntensity = 7.5f;
+
         /// <param name="wallHeight">Wall height in metres.</param>
         /// <param name="spacingCells">Light spacing in cells on both axes.</param>
         /// <param name="theme">Palette, which supplies the light colour.</param>
@@ -43,12 +52,21 @@ namespace Backrooms.MazeManager.Internal.Geometry
                     var light = go.AddComponent<Light>();
                     light.type = LightType.Point;
                     light.color = theme.Light;
-                    light.intensity = 7.5f;
+
+                    // Intensity has to follow the mount height, because floors no longer share one
+                    // ceiling. A point light falls off with the square of distance, so the same 7.5
+                    // that lights a 2.6m laundromat arrives at the floor of a 6.8m carnival about six
+                    // times weaker — the tall floors would simply have been the dark ones, which is a
+                    // lighting bug wearing the costume of an art choice.
+                    float mount = wallHeight - CeilingGap;
+                    float ratio = mount / ReferenceMount;
+                    light.intensity = BaseIntensity * Mathf.Clamp(ratio * ratio, 0.6f, 7f);
 
                     // Range must cover at least three quarters of the fixture pitch or pools cannot
                     // meet: at 7.6m range on a 12m pitch, the point between four fixtures received no
-                    // direct light at all. Overshooting the other way lights through walls.
-                    light.range = cellSize * spacing * 0.92f;
+                    // direct light at all. Overshooting the other way lights through walls. It also
+                    // has to reach the floor from however high the fixture now hangs.
+                    light.range = Mathf.Max(cellSize * spacing * 0.92f, mount * 1.9f);
                     light.shadows = LightShadows.None;
 
                     CreateLightPanel(go.transform, theme);

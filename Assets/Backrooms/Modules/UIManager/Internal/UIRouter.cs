@@ -172,8 +172,11 @@ namespace Backrooms.UIManager.Internal
         /// <param name="relics">How many relics the player was carrying.</param>
         /// <param name="bestFloors">Deepest floor reached in any run.</param>
         /// <param name="bestRelics">Most relics carried in any run.</param>
-        public void ShowCaught(int floor, float finalSeconds, int relics, int bestFloors, int bestRelics)
+        /// <param name="seed">Seed the run was generated from, shown so a report can reproduce it.</param>
+        public void ShowCaught(int floor, float finalSeconds, int relics, int bestFloors,
+            int bestRelics, int seed = 0)
         {
+            Seed = seed;
             Floor = floor;
             ElapsedSeconds = finalSeconds;
             Relics = relics;
@@ -188,6 +191,9 @@ namespace Backrooms.UIManager.Internal
 
         /// <summary>Deepest floor reached in any run.</summary>
         public int BestFloors { get; private set; }
+
+        /// <summary>Seed the finished run was generated from, or 0 if unknown.</summary>
+        public int Seed { get; private set; }
 
         /// <summary>Most relics carried in any run.</summary>
         public int BestRelics { get; private set; }
@@ -306,7 +312,7 @@ namespace Backrooms.UIManager.Internal
 
             if (CaughtShown)
             {
-                _renderer.DrawCaught(Floor, ElapsedSeconds, Relics, BestFloors, BestRelics);
+                _renderer.DrawCaught(Floor, ElapsedSeconds, Relics, BestFloors, BestRelics, Seed);
                 return;
             }
 

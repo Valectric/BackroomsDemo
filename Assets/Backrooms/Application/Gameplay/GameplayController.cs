@@ -554,7 +554,8 @@ namespace Backrooms.Gameplay
                 if (hud != null)
                 {
                     hud.SetHunted(false, 0f, null);
-                    hud.ShowCaught(CurrentFloor, ElapsedSeconds, RelicsCollected, BestFloors, BestRelics);
+                    hud.ShowCaught(CurrentFloor, ElapsedSeconds, RelicsCollected, BestFloors,
+                        BestRelics, seed);
                 }
 
                 Debug.Log($"[Gameplay] Caught on floor {CurrentFloor} after {ElapsedSeconds:F1}s");

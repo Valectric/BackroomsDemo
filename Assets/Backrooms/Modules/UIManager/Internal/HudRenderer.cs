@@ -181,8 +181,9 @@ namespace Backrooms.UIManager.Internal
         /// <param name="relics">How many relics they were carrying.</param>
         /// <param name="bestFloors">Deepest floor reached in any run.</param>
         /// <param name="bestRelics">Most relics carried in any run.</param>
+        /// <param name="seed">Seed the run was generated from, or 0 to omit it.</param>
         public void DrawCaught(int floor, float elapsedSeconds, int relics, int bestFloors,
-            int bestRelics)
+            int bestRelics, int seed = 0)
         {
             int size = Mathf.Max(20, Mathf.RoundToInt(Screen.height * 0.07f));
             DrawLabel(new Rect(0f, Screen.height * 0.26f, Screen.width, size * 2f),
@@ -214,6 +215,16 @@ namespace Backrooms.UIManager.Internal
             int hint = Mathf.Max(14, Mathf.RoundToInt(Screen.height * 0.035f));
             DrawLabel(new Rect(0f, Screen.height * 0.70f, Screen.width, hint * 2f),
                 "TAP OR CLICK TO TRY AGAIN", hint, TextAnchor.UpperCenter);
+
+            // Every run draws its own seed, so without showing it a bug report describes a floor
+            // nobody can ever visit again. Dim and out of the way — it is for the one player in a
+            // hundred who reports something, not for the other ninety-nine.
+            if (seed == 0) return;
+
+            int small = Mathf.Max(11, Mathf.RoundToInt(Screen.height * 0.024f));
+            DrawLabel(new Rect(0f, Screen.height * 0.80f, Screen.width, small * 2f),
+                $"seed {seed}", small, TextAnchor.UpperCenter,
+                new Color(TextColor.r, TextColor.g, TextColor.b, 0.45f));
         }
 
         /// <summary>

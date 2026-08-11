@@ -52,8 +52,10 @@ namespace Backrooms.UIManager
         /// <param name="relics">How many relics they were carrying.</param>
         /// <param name="bestFloors">Deepest floor reached in any run.</param>
         /// <param name="bestRelics">Most relics carried in any run.</param>
-        public void ShowCaught(int floor, float finalSeconds, int relics, int bestFloors, int bestRelics)
-            => Router.ShowCaught(floor, finalSeconds, relics, bestFloors, bestRelics);
+        /// <param name="seed">Seed the run was generated from, shown so a report can reproduce it.</param>
+        public void ShowCaught(int floor, float finalSeconds, int relics, int bestFloors,
+            int bestRelics, int seed = 0)
+            => Router.ShowCaught(floor, finalSeconds, relics, bestFloors, bestRelics, seed);
 
         /// <summary>
         /// Announces that a relic was just picked up.

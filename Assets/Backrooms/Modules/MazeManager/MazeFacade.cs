@@ -21,6 +21,7 @@ namespace Backrooms.MazeManager
         [SerializeField] private float cellSize = 4f;
 
         [Header("Geometry")]
+        [Tooltip("Fallback ceiling height. Each floor theme overrides this with its own.")]
         [SerializeField] private float wallHeight = 3f;
         [SerializeField] private int lightSpacingCells = 3;
 
@@ -43,7 +44,12 @@ namespace Backrooms.MazeManager
         public FloorTheme CurrentTheme => _theme;
 
         /// <summary>Wall height in metres, used for camera and light placement.</summary>
-        public float WallHeight => wallHeight;
+        public float WallHeight => CeilingHeight;
+
+        /// <summary>The ceiling height this floor builds at: the theme's, or the inspector fallback.</summary>
+        private float CeilingHeight => _theme != null && _theme.CeilingHeight > 0.5f
+            ? _theme.CeilingHeight
+            : wallHeight;
 
         /// <summary>
         /// Initialises the module's internal router before any other component's Start runs.
@@ -91,7 +97,10 @@ namespace Backrooms.MazeManager
             if (theme != null) _theme = theme;
             CurrentLayout = _router.Generate(new MazeSettings(width, height, newSeed, cellSize)
             {
-                HasFloorAbove = hasFloorAbove
+                HasFloorAbove = hasFloorAbove,
+                RoomCount = _theme.RoomCount,
+                RoomMinSize = _theme.RoomMinSize,
+                RoomMaxSize = _theme.RoomMaxSize
             });
             RebuildGeometry();
             return CurrentLayout;
@@ -112,8 +121,10 @@ namespace Backrooms.MazeManager
                 else DestroyImmediate(_geometryRoot);
             }
 
+            // The theme owns the height, so a floor's proportions travel with its palette rather
+            // than being one number shared by every floor in the game.
             _geometryRoot = _router.BuildGeometry(
-                CurrentLayout, wallHeight, lightSpacingCells, transform, _theme);
+                CurrentLayout, CeilingHeight, lightSpacingCells, transform, _theme);
         }
 
         /// <summary>

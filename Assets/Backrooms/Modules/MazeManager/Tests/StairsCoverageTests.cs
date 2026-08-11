@@ -41,6 +41,52 @@ namespace Backrooms.MazeManager.Tests
         }
 
         /// <summary>
+        /// Floors must differ in proportion, not only in palette: their own ceiling height and their
+        /// own room sizes.
+        /// </summary>
+        /// <remarks>
+        /// Both reviewers landed on this independently — every floor being the same 3m box with a
+        /// different colour made the palette read as a filter over one room rather than as a
+        /// different place. Height is the strongest signal available, so it is the one asserted.
+        /// </remarks>
+        [Test]
+        public void EveryFloorTheme_HasItsOwnProportions()
+        {
+            var heights = new HashSet<float>();
+
+            for (int floor = 1; floor <= 5; floor++)
+            {
+                FloorTheme theme = FloorThemes.ForFloor(floor);
+                heights.Add(theme.CeilingHeight);
+
+                Assert.Greater(theme.CeilingHeight, 2f,
+                    $"{theme.Name}: below 2m the player cannot stand up in it");
+                Assert.Less(theme.CeilingHeight, 9f,
+                    $"{theme.Name}: above 9m the ceiling lights stop reaching the floor");
+                Assert.GreaterOrEqual(theme.RoomMaxSize, theme.RoomMinSize,
+                    $"{theme.Name}: room size range is inverted");
+                Assert.Greater(theme.RoomCount, 0, $"{theme.Name}: a floor of pure corridor");
+            }
+
+            Assert.GreaterOrEqual(heights.Count, 4,
+                "five floors sharing one or two ceiling heights is a palette swap, not five places");
+
+            // The two that are meant to feel big must actually be bigger than the two meant to feel
+            // tight, or the whole point of the change is lost while the test still passes.
+            float mall = FloorThemes.ForFloor(2).CeilingHeight;
+            float carnival = FloorThemes.ForFloor(4).CeilingHeight;
+            float office = FloorThemes.ForFloor(1).CeilingHeight;
+            float laundromat = FloorThemes.ForFloor(3).CeilingHeight;
+
+            MooseRunnerFacade.Log(
+                $"ceilings — office {office}m, mall {mall}m, laundromat {laundromat}m, "
+                + $"carnival {carnival}m, asylum {FloorThemes.ForFloor(5).CeilingHeight}m");
+
+            Assert.Greater(mall, office * 1.5f, "the mall should read as an atrium");
+            Assert.Greater(carnival, laundromat * 2f, "the carnival should dwarf the laundromat");
+        }
+
+        /// <summary>
         /// The first floor must carry no ways up, because there is nothing above it to climb to,
         /// while every floor below it emerges from one.
         /// </summary>
