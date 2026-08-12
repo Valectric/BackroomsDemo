@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Backrooms Demo</title>
+    <style>
+      html, body { padding: 0; border: 0; margin: 0; background: #231F20; }
+
+      /*
+        A real DOM button rather than something drawn inside the game. A tap on the canvas is game
+        input — the right half of the screen is the look control and a double tap there spends a
+        relic — so an in-game button would be pressed and *also* read as a gesture. A DOM element
+        over the canvas takes the tap for itself and the game never sees it.
+      */
+      #fullscreen-button, #feedback-button {
+        position: fixed;
+        top: max(10px, env(safe-area-inset-top));
+        width: 44px;
+        height: 44px;
+        z-index: 10;
+        display: none;
+        padding: 0;
+        border: 0;
+        border-radius: 8px;
+        background: rgba(12, 11, 9, 0.55);
+        color: #f5f2e6;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+      }
+
+      #fullscreen-button { right: max(10px, env(safe-area-inset-right)); }
+
+      /* Left of the fullscreen control, and always visible: a player who hits something broken
+         should not have to finish the run to report it. */
+      #feedback-button {
+        right: calc(max(10px, env(safe-area-inset-right)) + 52px);
+        display: block;
+        text-decoration: none;
+      }
+
+      #fullscreen-button:hover, #feedback-button:hover { background: rgba(12, 11, 9, 0.8); }
+      #fullscreen-button svg, #feedback-button svg {
+        width: 22px; height: 22px; display: block; margin: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="unity-canvas" width=960 height=600 tabindex="-1"
+            style="width: 960px; height: 600px; background: #231F20"></canvas>
+
+    <a id="feedback-button" title="Report a problem" aria-label="Report a problem"
+       target="_blank" rel="noopener"
+       href="https://github.com/Valectric/BackroomsDemo/issues/new?labels=playtest&template=&title=Playtest%20feedback&body=%23%23%20What%20happened%3F%0A%0A%0A%23%23%20Where%3F%0AFloor%20and%20seed%20are%20shown%20on%20the%20end%20screen%20%E2%80%94%20please%20paste%20them%20here%2C%20they%20make%20it%20reproducible.%0A%0AFloor%3A%20%0ASeed%3A%20%0A%0A%23%23%20Device%0APhone%2Ftablet%2Fdesktop%2C%20and%20which%20browser%3A%20">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.4 8.4 0 0 1 8.4-9 8.4 8.4 0 0 1 8.6 8.6z"/>
+      </svg>
+    </a>
+
+    <button id="fullscreen-button" title="Fullscreen" aria-label="Fullscreen">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>
+      </svg>
+    </button>
+
+    <script src="Build/Builds.loader.js"></script>
+    <script>
+      if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+        var meta = document.createElement('meta');
+        meta.name = 'viewport';
+        meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
+        document.getElementsByTagName('head')[0].appendChild(meta);
+      }
+
+      // Fill the window on every platform, not just mobile. The canvas was pinned at its build
+      // dimensions, so going fullscreen made the *page* fullscreen and left the game the same size
+      // in the middle of a larger black rectangle — which reads as the button not working.
+      //
+      // Both the CSS size and the width/height attributes have to be set. The attributes are the
+      // render target: styling alone gave a 960x600 image stretched across 1920x911, so fullscreen
+      // bought more pixels of the same small, blurry, wrong-aspect picture. Unity is documented to
+      // follow the canvas, but with the attributes present in the markup it kept them.
+      //
+      // Sized in CSS pixels rather than device pixels on purpose: a phone at devicePixelRatio 3
+      // would otherwise render nine times the area, and the mobile quality tier is already at 0.8
+      // render scale precisely because it cannot afford that.
+      window.fitCanvasToWindow = function () {
+        var canvas = document.querySelector("#unity-canvas");
+        canvas.style.position = "fixed";
+        canvas.style.top = "0";
+        canvas.style.left = "0";
+        canvas.style.width = "100%";
+        canvas.style.height = "100%";
+
+        // Cap the render resolution and let the browser upscale. Filling the window took the
+        // canvas from 960x600 to whatever the monitor is — on a 1920-wide screen that is three times
+        // the pixels for the same scene, which is most of where the frame rate went. The game is
+        // fogged, dim and has no fine detail to lose, so an upscaled 1280 is very hard to tell from
+        // a native one and costs about half as much to draw.
+        var MAX_WIDTH = 1280;
+
+        var cssW = Math.max(1, Math.round(canvas.clientWidth));
+        var cssH = Math.max(1, Math.round(canvas.clientHeight));
+
+        var scale = Math.min(1, MAX_WIDTH / cssW);
+        var w = Math.max(1, Math.round(cssW * scale));
+        var h = Math.max(1, Math.round(cssH * scale));
+
+        if (canvas.width !== w || canvas.height !== h) {
+          canvas.width = w;
+          canvas.height = h;
+        }
+
+        document.body.style.textAlign = "left";
+      };
+
+      window.fitCanvasToWindow();
+      window.addEventListener("resize", window.fitCanvasToWindow);
+      window.addEventListener("orientationchange", function () {
+        setTimeout(window.fitCanvasToWindow, 120);
+      });
+
+      (function () {
+        var button = document.querySelector("#fullscreen-button");
+        var root = document.documentElement;
+
+        var request = root.requestFullscreen || root.webkitRequestFullscreen;
+        var exit = document.exitFullscreen || document.webkitExitFullscreen;
+
+        // iPhone Safari has no Fullscreen API at all, so the button would do nothing. A control that
+        // visibly does nothing is worse than no control — there, the answer is Add to Home Screen.
+        if (!request) return;
+
+        // Inside an embed — itch.io and anywhere else the game is framed — the host already provides
+        // a fullscreen control. Two buttons doing the same thing, one of them nested inside the
+        // other's result, is where "is there a double layer of fullscreen?" comes from.
+        if (window.self !== window.top) return;
+
+        button.style.display = "block";
+
+        function isFullscreen() {
+          return document.fullscreenElement || document.webkitFullscreenElement;
+        }
+
+        button.addEventListener("click", function (event) {
+          // Belt and braces: the canvas must not also receive this as a look/tap gesture.
+          event.preventDefault();
+          event.stopPropagation();
+
+          if (isFullscreen()) {
+            exit.call(document);
+            return;
+          }
+
+          // Landscape can only be locked while fullscreen, and the request must come from this tap
+          // rather than from page load, which browsers refuse. The game already asks the player to
+          // rotate; this means it usually does not have to.
+          Promise.resolve(request.call(root)).then(function () {
+            if (screen.orientation && screen.orientation.lock) {
+              screen.orientation.lock("landscape").catch(function () { /* desktop, or refused */ });
+            }
+          }).catch(function () { /* refused; the page simply stays as it was */ });
+        });
+
+        // Fullscreen the page rather than the canvas element. Making the canvas itself fullscreen
+        // hides every sibling, which would take this button off screen and leave no way back out.
+        document.addEventListener("fullscreenchange", function () {
+          button.setAttribute("title", isFullscreen() ? "Exit fullscreen" : "Fullscreen");
+        });
+      })();
+
+      createUnityInstance(document.querySelector("#unity-canvas"), {
+        arguments: [],
+        dataUrl: "Build/Builds.data.unityweb",
+        frameworkUrl: "Build/Builds.framework.js.unityweb",
+        codeUrl: "Build/Builds.wasm.unityweb",
+        streamingAssetsUrl: "StreamingAssets",
+        companyName: "Valectric",
+        productName: "Backrooms Demo",
+        productVersion: "0.1.2608121844",
+      }).then((unityInstance) => {
+        window.unityInstance = unityInstance;
+
+        // Unity sizes its render target from the canvas, but only reacts to a resize event — the CSS
+        // fill above is applied before it starts, so without this it keeps the build's 960x600
+        // backing store and stretches it across the window. That is what made entering fullscreen
+        // look like nothing had happened: more pixels of the same small, blurry image.
+        // Entering or leaving fullscreen changes the window shape after the event fires, so the
+        // refit is deferred a frame rather than run immediately.
+        window.fitCanvasToWindow();
+        document.addEventListener("fullscreenchange", function () {
+          setTimeout(window.fitCanvasToWindow, 80);
+        });
+      }).catch((message) => {
+        alert(message);
+      });
+    </script>
+  </body>
+</html>
