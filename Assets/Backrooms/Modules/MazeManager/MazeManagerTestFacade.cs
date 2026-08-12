@@ -32,6 +32,22 @@ namespace Backrooms.MazeManager
         public MazeLayout Generate(MazeSettings settings) => _router.Generate(settings);
 
         /// <summary>
+        /// The wallpaper texture the walls are built from, unlit. Not intended for production use —
+        /// only for automated testing and for exporting the store page background.
+        /// </summary>
+        /// <remarks>
+        /// The texture itself rather than a photograph of a wall. A screenshot has the room's
+        /// lighting baked into it, so tiling one repeats the light and dark of wherever it was
+        /// standing — a gradient that bands visibly across the page. This has no lighting in it at
+        /// all, which is the whole reason it tiles in the game.
+        /// </remarks>
+        /// <param name="baseColour">Wall colour, normally the floor theme's.</param>
+        /// <param name="seed">Seed for the texture's noise.</param>
+        /// <returns>The generated wallpaper.</returns>
+        public Texture2D WallTexture(Color baseColour, int seed)
+            => Internal.Geometry.ProceduralTextures.Wall(baseColour, seed);
+
+        /// <summary>
         /// Plans the wall segments for a layout without building any scene geometry, so tests can
         /// assert wall placement directly.
         /// </summary>

@@ -65,12 +65,13 @@ ffmpeg -y -loglevel error -i "Screenshots/press/01-yellow-rooms.png" -vf "crop=1
 echo "wrote $BANNER"
 
 # ---------------------------------------------------------------------------------------------
-# Background tile — 800x800, set to REPEAT in the theme editor.
+# Background tile — the wallpaper texture itself, exported by PageBackground:
 #
-# Mirrored horizontally and vertically, so opposite edges are identical by construction and the
-# seams cannot show however it tiles. A single large image is not an option: the theme editor has
-# no background-size control, so an unstretched 1920x1080 simply sits in the corner.
+#   mooserunnerCli test --class Backrooms.MazeManager.Tests PageBackground
+#
+# Not derived from a screenshot. A photographed wall carries the lighting of the room it was taken
+# in, so tiling it repeats that light and dark as visible banding across the page. The texture has
+# no lighting in it at all, which is exactly why the game can tile it across every wall on a floor
+# without a seam.
 # ---------------------------------------------------------------------------------------------
-TILE="Screenshots/press/page-tile.png"
-ffmpeg -y -loglevel error -i "Screenshots/press/01-yellow-rooms.png" -filter_complex "[0:v]crop=300:340:950:190,scale=400:400[a];[a]split=2[a1][a2];[a2]hflip[a2f];[a1][a2f]hstack[top];[top]split=2[t1][t2];[t2]vflip[t2f];[t1][t2f]vstack[out]" -map "[out]" "$TILE"
-echo "wrote $TILE"
+echo "background tile: run the PageBackground test to export Screenshots/press/page-tile.png"
