@@ -108,8 +108,17 @@ namespace Backrooms.UIManager.Tests
             Advance(seam, 10.4f);
             await Capture("hud-caught-record", ct);
 
-            Assert.IsTrue(hud.CaughtShown, "the caught screen should be the one photographed last");
-            Assert.IsTrue(hud.RetryOffered, "the last two captures should show the retry offered");
+            // And the other ending, which most players will only ever see once.
+            hud.ShowVictory(floors: 6, finalSeconds: 412f, relics: 47, score: 13175,
+                floorPoints: 2000, relicPoints: 25);
+            Advance(seam, 4.4f);
+            await Capture("hud-victory-scoring", ct);
+
+            Advance(seam, 10.9f);
+            await Capture("hud-victory", ct);
+
+            Assert.IsTrue(hud.VictoryShown, "the victory screen should be the one photographed last");
+            Assert.IsTrue(hud.RetryOffered, "and should be showing its way out by now");
         }
 
         /// <summary>
@@ -122,7 +131,7 @@ namespace Backrooms.UIManager.Tests
         {
             // In small steps rather than one jump: the same path the running game takes, so a fade
             // that only behaves for a single large delta would not pass here either.
-            while (seam.CaughtSeconds < seconds) seam.TickBanner(0.05f);
+            while (seam.EndScreenSeconds < seconds) seam.TickBanner(0.05f);
         }
 
         /// <summary>

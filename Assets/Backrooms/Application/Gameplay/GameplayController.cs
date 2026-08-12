@@ -82,6 +82,12 @@ namespace Backrooms.Gameplay
         /// <summary>Whether a Dweller has caught the player and ended the run.</summary>
         public bool IsCaught { get; private set; }
 
+        /// <summary>Whether the player reached the bottom of the demo and finished it.</summary>
+        public bool HasWonDemo { get; private set; }
+
+        /// <summary>What the finished run scored.</summary>
+        public int Score => DemoRun.Score(CurrentFloor, RelicsCollected);
+
         /// <summary>
         /// Whether the game is sitting on the title screen waiting to be started.
         /// </summary>
@@ -421,6 +427,7 @@ namespace Backrooms.Gameplay
             ElapsedSeconds = 0f;
             CurrentFloor = 0;
             IsCaught = false;
+            HasWonDemo = false;
             player.MovementEnabled = true;
             if (relics != null) relics.ResetRun();
             if (hud != null) hud.ResetHud();
@@ -521,6 +528,33 @@ namespace Backrooms.Gameplay
         }
 
         /// <summary>
+        /// Ends the demo on a win: the player reached the bottom and walked out.
+        /// </summary>
+        /// <remarks>
+        /// Deliberately the same shape as being caught — movement off, record submitted, an end
+        /// screen that withholds its way out until it has been read. A demo that congratulates you
+        /// for two seconds and drops you back at the title has not ended, it has just looped, and
+        /// this is the one moment a player is willing to say what they thought of it.
+        /// </remarks>
+        private void WinDemo()
+        {
+            HasWonDemo = true;
+            player.MovementEnabled = false;
+            _record?.Submit(CurrentFloor, RelicsCollected);
+
+            if (audioModule != null) audioModule.Silence();
+            if (hud != null)
+            {
+                hud.SetHunted(false, 0f, null);
+                hud.ShowVictory(CurrentFloor, ElapsedSeconds, RelicsCollected, Score,
+                    DemoRun.FloorPoints, DemoRun.RelicPoints);
+            }
+
+            Debug.Log($"[Gameplay] Demo finished on floor {CurrentFloor} after "
+                + $"{ElapsedSeconds:F1}s with {RelicsCollected} relics, score {Score}");
+        }
+
+        /// <summary>
         /// The seed the next run should use: a fresh one unless the scene pins it.
         /// </summary>
         /// <remarks>
@@ -560,7 +594,7 @@ namespace Backrooms.Gameplay
                 return;
             }
 
-            if (IsCaught)
+            if (IsCaught || HasWonDemo)
             {
                 // A death screen you cannot leave is not a losing condition, it is a dead end — but
                 // one you can leave instantly is not a loss either. The same click that ends a run
@@ -596,7 +630,7 @@ namespace Backrooms.Gameplay
                 {
                     hud.SetHunted(false, 0f, null);
                     hud.ShowCaught(CurrentFloor, ElapsedSeconds, RelicsCollected, BestFloors,
-                        BestRelics, seed);
+                        BestRelics, seed, Score);
                 }
 
                 Debug.Log($"[Gameplay] Caught on floor {CurrentFloor} after {ElapsedSeconds:F1}s");
@@ -625,7 +659,11 @@ namespace Backrooms.Gameplay
             if (DistanceToStairs <= stairsRadius)
             {
                 HasEscaped = true;
-                DescendToNextFloor();
+
+                // The demo has a bottom. Walking into the last stairwell finishes it rather than
+                // generating a seventh floor the player would recognise as the first one repainted.
+                if (DemoRun.IsFinalFloor(CurrentFloor)) WinDemo();
+                else DescendToNextFloor();
                 return;
             }
 

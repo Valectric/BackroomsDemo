@@ -12,6 +12,7 @@ namespace Backrooms.UIManager.Internal
         private readonly HudRenderer _renderer = new HudRenderer();
         private readonly HudOverlays _overlays = new HudOverlays();
         private readonly DeathScreen _death = new DeathScreen();
+        private readonly VictoryScreen _victory = new VictoryScreen();
 
         /// <summary>Compass arrows to draw this frame.</summary>
         private IReadOnlyList<CompassMark> _compass = new CompassMark[0];
@@ -133,6 +134,7 @@ namespace Backrooms.UIManager.Internal
             BestRelics = bestRelics;
             TitleShown = true;
             CaughtShown = false;
+            VictoryShown = false;
         }
 
         /// <summary>
@@ -175,8 +177,9 @@ namespace Backrooms.UIManager.Internal
         /// <param name="bestRelics">Most relics carried in any run.</param>
         /// <param name="seed">Seed the run was generated from, shown so a report can reproduce it.</param>
         public void ShowCaught(int floor, float finalSeconds, int relics, int bestFloors,
-            int bestRelics, int seed = 0)
+            int bestRelics, int seed = 0, int score = 0)
         {
+            Score = score;
             Seed = seed;
             Floor = floor;
             ElapsedSeconds = finalSeconds;
@@ -184,20 +187,67 @@ namespace Backrooms.UIManager.Internal
             BestFloors = bestFloors;
             BestRelics = bestRelics;
             CaughtShown = true;
+            VictoryShown = false;
             BannerRemaining = 0f;
-            CaughtSeconds = 0f;
+            EndScreenSeconds = 0f;
         }
 
-        /// <summary>How long the end-of-run screen has been up, in seconds.</summary>
-        public float CaughtSeconds { get; private set; }
+        /// <summary>
+        /// How long whichever end screen is showing has been up, in seconds. Shared by both endings:
+        /// they are paced identically, so one clock serves them and cannot drift between them.
+        /// </summary>
+        public float EndScreenSeconds { get; private set; }
 
         /// <summary>How opaque the black covering the world is, 0 to 1.</summary>
-        public float CaughtFade => DeathScreen.Fade(CaughtSeconds);
+        public float EndScreenFade => EndScreenTiming.Fade(EndScreenSeconds);
+
+        /// <summary>Whether either end screen is showing.</summary>
+        public bool RunIsOver => CaughtShown || VictoryShown;
 
         /// <summary>
         /// Whether the end screen has been up long enough that the player may start another run.
         /// </summary>
-        public bool RetryOffered => CaughtShown && DeathScreen.RetryOffered(CaughtSeconds);
+        public bool RetryOffered => RunIsOver && EndScreenTiming.RetryOffered(EndScreenSeconds);
+
+        /// <summary>Whether the demo-completed screen is showing.</summary>
+        public bool VictoryShown { get; private set; }
+
+        /// <summary>How many floors the finished run cleared.</summary>
+        public int WonFloors { get; private set; }
+
+        /// <summary>What the finished run scored.</summary>
+        public int Score { get; private set; }
+
+        /// <summary>Points each floor was worth, shown so the score explains itself.</summary>
+        public int FloorPoints { get; private set; }
+
+        /// <summary>Points each relic was worth, shown so the score explains itself.</summary>
+        public int RelicPoints { get; private set; }
+
+        /// <summary>
+        /// Shows the screen for finishing the demo.
+        /// </summary>
+        /// <param name="floors">How many floors were cleared.</param>
+        /// <param name="finalSeconds">How long the run took.</param>
+        /// <param name="relics">How many relics were found.</param>
+        /// <param name="score">The run's score.</param>
+        /// <param name="floorPoints">Points each floor was worth.</param>
+        /// <param name="relicPoints">Points each relic was worth.</param>
+        public void ShowVictory(int floors, float finalSeconds, int relics, int score,
+            int floorPoints, int relicPoints)
+        {
+            WonFloors = floors;
+            Floor = floors;
+            ElapsedSeconds = finalSeconds;
+            Relics = relics;
+            Score = score;
+            FloorPoints = floorPoints;
+            RelicPoints = relicPoints;
+            VictoryShown = true;
+            CaughtShown = false;
+            BannerRemaining = 0f;
+            EndScreenSeconds = 0f;
+        }
 
         /// <summary>Relics the player is carrying.</summary>
         public int Relics { get; private set; }
@@ -301,7 +351,7 @@ namespace Backrooms.UIManager.Internal
 
             // The end screen counts up rather than down: it paces its own reveal, and the game asks
             // it whether the player is allowed to leave yet.
-            if (CaughtShown) CaughtSeconds += deltaTime;
+            if (RunIsOver) EndScreenSeconds += deltaTime;
         }
 
         /// <summary>
@@ -328,7 +378,8 @@ namespace Backrooms.UIManager.Internal
             ElapsedSeconds = 0f;
             EscapedShown = false;
             CaughtShown = false;
-            CaughtSeconds = 0f;
+            VictoryShown = false;
+            EndScreenSeconds = 0f;
             _idleSeconds = 0f;
             Relics = 0;
             RelicFlashRemaining = 0f;
@@ -359,10 +410,17 @@ namespace Backrooms.UIManager.Internal
                 return;
             }
 
+            if (VictoryShown)
+            {
+                _victory.Draw(WonFloors, Relics, ElapsedSeconds, FloorPoints, RelicPoints, Score,
+                    EndScreenSeconds);
+                return;
+            }
+
             if (CaughtShown)
             {
                 _death.Draw(Floor, ElapsedSeconds, Relics, BestFloors, BestRelics, Seed,
-                    CaughtSeconds);
+                    EndScreenSeconds, Score);
                 return;
             }
 

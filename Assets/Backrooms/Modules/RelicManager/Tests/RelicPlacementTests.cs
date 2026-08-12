@@ -319,23 +319,24 @@ namespace Backrooms.RelicManager.Tests
 
         /// <summary>
         /// Each floor must actually hand out the relic it is supposed to be about: a Ward on the
-        /// first floor, and the relic that finds relics on the fourth.
+        /// first floor and a Banisher on the last one of the demo.
         /// </summary>
         /// <remarks>
         /// Weights are only an intention — this measures what a player is actually offered, over
         /// many seeds, which is the thing that can silently disagree with the table.
         /// </remarks>
         [Test]
-        public void TheFirstFloorFavoursTheWard_AndTheFourthFavoursTheCharm()
+        public void TheFirstFloorFavoursTheWard_AndTheLastFavoursTheBanisher()
         {
             Assert.AreEqual(RelicKind.Ward, MostOfferedOn(1),
                 "the first floor should mostly hand out a Ward");
-            Assert.AreEqual(RelicKind.HoarderCharm, MostOfferedOn(4),
-                "the fourth floor should mostly hand out the relic that finds relics");
+            Assert.AreEqual(RelicKind.Banisher, MostOfferedOn(6),
+                "the last floor of the demo should mostly hand out the strongest relic there is");
 
-            // The roster is finite and the dungeon is not, so the pattern comes back around.
-            Assert.AreEqual(RelicKind.Ward, MostOfferedOn(8),
-                "floor 8 should read like floor 1 again");
+            // The roster is finite and the dungeon is not, so the pattern comes back around — now
+            // after six floors rather than seven, so that it fits inside the demo.
+            Assert.AreEqual(RelicKind.Ward, MostOfferedOn(7),
+                "floor 7 should read like floor 1 again");
         }
 
         /// <summary>

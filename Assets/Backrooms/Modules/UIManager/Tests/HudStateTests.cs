@@ -173,7 +173,7 @@ namespace Backrooms.UIManager.Tests
 
             // A tenth of a second short of the ten, which is where an off-by-one would hide.
             for (int i = 0; i < 99; i++) test.TickBanner(0.1f);
-            Assert.Less(test.CaughtSeconds, test.RetrySeconds, "still inside the ten seconds");
+            Assert.Less(test.EndScreenSeconds, test.RetrySeconds, "still inside the ten seconds");
             Assert.IsFalse(hud.RetryOffered, "nine and a bit seconds is not ten");
 
             for (int i = 0; i < 3; i++) test.TickBanner(0.1f);
@@ -190,16 +190,16 @@ namespace Backrooms.UIManager.Tests
             (HudFacade hud, UIManagerTestFacade test) = NewHud();
 
             hud.ShowCaught(2, 31f, relics: 0, bestFloors: 4, bestRelics: 2);
-            Assert.AreEqual(0f, hud.CaughtFade, 1e-3f, "the floor is still fully visible at the kill");
+            Assert.AreEqual(0f, hud.EndScreenFade, 1e-3f, "the floor is still fully visible at the kill");
 
             for (int i = 0; i < 25; i++) test.TickBanner(0.1f);
-            float half = hud.CaughtFade;
+            float half = hud.EndScreenFade;
             Assert.Greater(half, 0f, "the fade should be under way at two and a half seconds");
             Assert.Less(half, 1f, "and not finished");
 
             for (int i = 0; i < 25; i++) test.TickBanner(0.1f);
-            Assert.AreEqual(1f, hud.CaughtFade, 1e-3f, "black by five seconds");
-            Assert.AreEqual(test.FadeSeconds, test.CaughtSeconds, 1e-3f, "five seconds have passed");
+            Assert.AreEqual(1f, hud.EndScreenFade, 1e-3f, "black by five seconds");
+            Assert.AreEqual(test.FadeSeconds, test.EndScreenSeconds, 1e-3f, "five seconds have passed");
             Assert.IsFalse(hud.RetryOffered, "the fade finishing is only halfway through the wait");
         }
 
@@ -214,20 +214,70 @@ namespace Backrooms.UIManager.Tests
 
             // Nothing has died yet, so ticking the HUD must not accumulate anything.
             for (int i = 0; i < 200; i++) test.TickBanner(0.1f);
-            Assert.AreEqual(0f, test.CaughtSeconds, 1e-3f, "the clock does not run during a run");
+            Assert.AreEqual(0f, test.EndScreenSeconds, 1e-3f, "the clock does not run during a run");
 
             hud.ShowCaught(3, 42f, relics: 1, bestFloors: 3, bestRelics: 1);
             for (int i = 0; i < 200; i++) test.TickBanner(0.1f);
             Assert.IsTrue(hud.RetryOffered, "twenty seconds is well past the wait");
 
             hud.ResetHud();
-            Assert.AreEqual(0f, test.CaughtSeconds, 1e-3f, "a new run clears the clock");
+            Assert.AreEqual(0f, test.EndScreenSeconds, 1e-3f, "a new run clears the clock");
             Assert.IsFalse(hud.RetryOffered, "and with it the offer");
 
             // Dying a second time must wait all over again.
             hud.ShowCaught(1, 12f, relics: 0, bestFloors: 3, bestRelics: 1);
-            Assert.AreEqual(0f, test.CaughtSeconds, 1e-3f, "the second death starts from zero");
+            Assert.AreEqual(0f, test.EndScreenSeconds, 1e-3f, "the second death starts from zero");
             Assert.IsFalse(hud.RetryOffered, "and waits its own ten seconds");
+        }
+
+        /// <summary>
+        /// Finishing the demo shows the victory screen and withholds its way out exactly as a death
+        /// does, so the congratulation and the score can be read before anything can dismiss them.
+        /// </summary>
+        [Test]
+        public void VictoryScreen_HoldsJustAsLongAsTheDeathScreen()
+        {
+            (HudFacade hud, UIManagerTestFacade test) = NewHud();
+
+            hud.ShowVictory(floors: 6, finalSeconds: 412f, relics: 47, score: 13175,
+                floorPoints: 2000, relicPoints: 25);
+
+            Assert.IsTrue(hud.VictoryShown, "finishing should show the victory screen");
+            Assert.IsFalse(hud.CaughtShown, "and not the death screen");
+            Assert.AreEqual(13175, hud.Score, "the score is what it was given");
+            Assert.IsFalse(hud.RetryOffered, "the click that finished must not start the next run");
+
+            for (int i = 0; i < 99; i++) test.TickBanner(0.1f);
+            Assert.IsFalse(hud.RetryOffered, "nine and a bit seconds is not ten");
+
+            for (int i = 0; i < 3; i++) test.TickBanner(0.1f);
+            Assert.IsTrue(hud.RetryOffered, "past ten seconds the player may go again");
+            Assert.AreEqual(1f, hud.EndScreenFade, 1e-3f, "and the world has long since gone");
+        }
+
+        /// <summary>
+        /// The two endings are mutually exclusive, and a new run clears both. A victory screen left
+        /// standing behind a death would congratulate a player who had just been eaten.
+        /// </summary>
+        [Test]
+        public void TheTwoEndings_NeverShowTogether()
+        {
+            (HudFacade hud, UIManagerTestFacade test) = NewHud();
+
+            hud.ShowVictory(6, 412f, 47, 13175, 2000, 25);
+            hud.ShowCaught(3, 74f, relics: 2, bestFloors: 6, bestRelics: 47);
+
+            Assert.IsTrue(hud.CaughtShown, "the death is what just happened");
+            Assert.IsFalse(hud.VictoryShown, "so the victory screen must be gone");
+            Assert.AreEqual(0f, test.EndScreenSeconds, 1e-3f, "and its clock restarted");
+
+            hud.ShowVictory(6, 412f, 47, 13175, 2000, 25);
+            Assert.IsFalse(hud.CaughtShown, "and the reverse holds as well");
+
+            hud.ResetHud();
+            Assert.IsFalse(hud.VictoryShown, "a new run shows neither");
+            Assert.IsFalse(hud.CaughtShown, "a new run shows neither");
+            Assert.IsFalse(hud.RetryOffered, "and offers nothing to dismiss");
         }
 
         /// <summary>

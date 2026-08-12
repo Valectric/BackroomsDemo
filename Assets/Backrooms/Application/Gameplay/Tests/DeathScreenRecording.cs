@@ -146,8 +146,8 @@ namespace Backrooms.Gameplay.Tests
             await Photograph("caught", ct);
 
             await WaitOnDeathScreen(2.5f, ct);
-            Assert.Greater(_hud.CaughtFade, 0f, "the floor should be fading out by 2.5s");
-            Assert.Less(_hud.CaughtFade, 1f, "and should not have finished");
+            Assert.Greater(_hud.EndScreenFade, 0f, "the floor should be fading out by 2.5s");
+            Assert.Less(_hud.EndScreenFade, 1f, "and should not have finished");
             await Photograph("fading", ct);
 
             // The impatient click, which is the whole reason for the wait: press it, release it, and
@@ -158,7 +158,7 @@ namespace Backrooms.Gameplay.Tests
             Assert.IsTrue(_controller.IsCaught, "a click at 2.5s must not start another run");
 
             await WaitOnDeathScreen(5.5f, ct);
-            Assert.AreEqual(1f, _hud.CaughtFade, 1e-3f, "the floor should be gone by 5.5s");
+            Assert.AreEqual(1f, _hud.EndScreenFade, 1e-3f, "the floor should be gone by 5.5s");
             Assert.IsFalse(_hud.RetryOffered, "and the retry still withheld halfway through");
             await Photograph("black", ct);
 
@@ -226,7 +226,7 @@ namespace Backrooms.Gameplay.Tests
                 string path = Path.Combine(folder, $"death-{_still:00}-{name}.png");
                 File.WriteAllBytes(path, shot.EncodeToPNG());
                 MooseRunnerFacade.Log(
-                    $"{name} at {_hud.CaughtSeconds:F2}s, fade {_hud.CaughtFade:F2}, "
+                    $"{name} at {_hud.EndScreenSeconds:F2}s, fade {_hud.EndScreenFade:F2}, "
                     + $"retry {_hud.RetryOffered} -> {path}");
             }
             finally
@@ -244,7 +244,7 @@ namespace Backrooms.Gameplay.Tests
         {
             // Read from the HUD's own clock rather than a second one kept here: waiting on a
             // stopwatch this test owns would pass even if the HUD's clock had stopped.
-            while (_hud.CaughtSeconds < age && _controller.IsCaught)
+            while (_hud.EndScreenSeconds < age && _controller.IsCaught)
             {
                 await UniTask.WaitForFixedUpdate(ct);
             }

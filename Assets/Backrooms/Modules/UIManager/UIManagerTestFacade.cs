@@ -30,20 +30,23 @@ namespace Backrooms.UIManager
         /// <summary>Whether the caught-by-a-Dweller banner is showing.</summary>
         public bool CaughtShown => _router.CaughtShown;
 
-        /// <summary>How long the end-of-run screen has been up, in seconds.</summary>
-        public float CaughtSeconds => _router.CaughtSeconds;
+        /// <summary>How long whichever end screen is showing has been up, in seconds.</summary>
+        public float EndScreenSeconds => _router.EndScreenSeconds;
 
         /// <summary>How opaque the black covering the world is on the end screen, 0 to 1.</summary>
-        public float CaughtFade => _router.CaughtFade;
+        public float EndScreenFade => _router.EndScreenFade;
+
+        /// <summary>Whether the demo-completed screen is showing.</summary>
+        public bool VictoryShown => _router.VictoryShown;
 
         /// <summary>Whether the end screen is offering the player another run yet.</summary>
         public bool RetryOffered => _router.RetryOffered;
 
         /// <summary>Seconds the end screen takes to fade the world out completely.</summary>
-        public float FadeSeconds => Internal.DeathScreen.FadeSeconds;
+        public float FadeSeconds => Internal.EndScreenTiming.FadeSeconds;
 
         /// <summary>Seconds the end screen withholds the retry for.</summary>
-        public float RetrySeconds => Internal.DeathScreen.RetrySeconds;
+        public float RetrySeconds => Internal.EndScreenTiming.RetrySeconds;
 
         /// <summary>Floor number shown on the HUD.</summary>
         public int Floor => _router.Floor;

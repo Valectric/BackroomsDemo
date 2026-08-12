@@ -53,9 +53,29 @@ namespace Backrooms.UIManager
         /// <param name="bestFloors">Deepest floor reached in any run.</param>
         /// <param name="bestRelics">Most relics carried in any run.</param>
         /// <param name="seed">Seed the run was generated from, shown so a report can reproduce it.</param>
+        /// <param name="score">What the run scored, or 0 to omit the line.</param>
         public void ShowCaught(int floor, float finalSeconds, int relics, int bestFloors,
-            int bestRelics, int seed = 0)
-            => Router.ShowCaught(floor, finalSeconds, relics, bestFloors, bestRelics, seed);
+            int bestRelics, int seed = 0, int score = 0)
+            => Router.ShowCaught(floor, finalSeconds, relics, bestFloors, bestRelics, seed, score);
+
+        /// <summary>
+        /// Shows the screen for finishing the demo: the score, thanks, and where to leave feedback.
+        /// </summary>
+        /// <param name="floors">How many floors were cleared.</param>
+        /// <param name="finalSeconds">How long the run took.</param>
+        /// <param name="relics">How many relics were found.</param>
+        /// <param name="score">The run's score.</param>
+        /// <param name="floorPoints">Points each floor was worth.</param>
+        /// <param name="relicPoints">Points each relic was worth.</param>
+        public void ShowVictory(int floors, float finalSeconds, int relics, int score,
+            int floorPoints, int relicPoints)
+            => Router.ShowVictory(floors, finalSeconds, relics, score, floorPoints, relicPoints);
+
+        /// <summary>Whether the demo-completed screen is showing.</summary>
+        public bool VictoryShown => Router.VictoryShown;
+
+        /// <summary>Score shown on whichever end screen is up.</summary>
+        public int Score => Router.Score;
 
         /// <summary>
         /// Announces that a relic was just picked up.
@@ -83,11 +103,11 @@ namespace Backrooms.UIManager
         /// <summary>Whether the caught banner is showing.</summary>
         public bool CaughtShown => Router.CaughtShown;
 
-        /// <summary>How long the end-of-run screen has been up, in seconds.</summary>
-        public float CaughtSeconds => Router.CaughtSeconds;
+        /// <summary>How long whichever end screen is showing has been up, in seconds.</summary>
+        public float EndScreenSeconds => Router.EndScreenSeconds;
 
         /// <summary>How opaque the black covering the world is on the end screen, 0 to 1.</summary>
-        public float CaughtFade => Router.CaughtFade;
+        public float EndScreenFade => Router.EndScreenFade;
 
         /// <summary>
         /// Whether the end screen has been up long enough that the player may start another run.

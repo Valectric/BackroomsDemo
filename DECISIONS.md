@@ -914,3 +914,51 @@ have to choose is a weapon; unlimited shots that occasionally connect is a spray
 generous enough now that missing is expensive.
 **Note:** `PowerDirector` had **no tests at all** when this was reported, which is why it was
 reported by hand rather than caught. `BanisherChargeTests` now covers what a shot costs.
+
+## 2026-08-12 — D65. The demo is six floors long and ends on a win
+
+**Decided:** reaching a way down on **floor 6** finishes the game. The player gets a congratulation,
+a score, thanks, and a request for feedback, on a screen paced exactly like the death screen — same
+fade, same ten seconds before it can be dismissed.
+**Why:** six is the length of the authored content. There are five palettes and `FloorThemes.ForFloor`
+wraps, so floor 6 is already the Yellow Rooms again — that is precisely the moment a player works out
+that it repeats. Ending there means the last thing they see is a congratulation rather than the seam.
+It also gives the demo the one thing it did not have: a reason to say thank you, at the only moment a
+player is pleased enough to leave feedback.
+**Where it lives:** `Gameplay.DemoRun` — `FinalFloor`, `Score`, `IsFinalFloor` — plain rules with no
+Unity in them, so the scoring is asserted directly rather than played through.
+**Rules out:** an endless demo. The 999-floor dungeon is the book's, not this build's.
+**Wrong if:** players reach floor 6 and are annoyed to be stopped rather than pleased to have
+finished — the tell would be them replaying immediately, which the screen does allow after ten
+seconds.
+**Note:** the itch banner still reads "999 FLOORS", which is now the setting rather than the demo.
+
+## 2026-08-12 — D66. Score is floors and relics, weighted so depth wins
+
+**Decided:** `score = floors × 2000 + relics × 25`, and the victory screen prints the arithmetic
+rather than just the total.
+**Why:** the weights are the whole design. Floor 1 alone carries about forty relics, so at any
+generous per-relic rate the highest-scoring play would be to sweep the first floor and never descend
+— a score that rewards not playing the game. At these weights a full sweep of floor 1 scores 3,000
+and simply reaching floor 2 empty-handed scores 4,000, which is asserted rather than assumed
+(`TheScore_RewardsGoingDeeperMoreThanHoarding`). Relics still have to be worth the detour at a given
+depth, which is asserted too.
+**Why show the arithmetic:** a bare number at the end of a demo means nothing to someone seeing it
+once — there is no leaderboard and no previous run to beat. Printing `6 × 2,000` and `47 × 25` tells
+them, in the same glance, that going deeper is worth eighty relics.
+**Wrong if:** the numbers feel arbitrary, or players optimise for relics anyway.
+
+## 2026-08-12 — D67. The relic cycle is six floors, to match the demo
+
+**Decided:** `RelicOdds.Cycle` drops from 7 to 6, and floor 4 carries two peaks — Hoarder's Charm
+and Surveyor's Lens.
+**Why:** the cycle was seven floors long while the demo is six, which put the **Banisher** — the
+strongest relic in the game — on a floor that does not exist. Every individual weight was correct, so
+nothing failed; the roster simply did not fit in the building. The two that now share floor 4 are the
+two most alike: both answer "where is everything", one as an arrow and one as a map.
+**Measured:** floor 1 offers a Ward 145/240, floor 6 a Banisher 146/240, floor 7 loops back to Ward.
+**Rules out:** tuning the demo's length without checking the roster still fits.
+**Wrong if:** floor 4 feels like it hands out the same two things twice.
+**Note:** `EveryRelic_PeaksOnAFloorInsideTheDemo` now guards the coupling, and it lives in
+`Gameplay.Tests` because neither side can see the mismatch alone — the module does not know how long
+the demo is, and the demo does not know the odds table.

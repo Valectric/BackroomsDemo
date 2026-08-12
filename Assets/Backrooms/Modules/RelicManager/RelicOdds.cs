@@ -15,25 +15,30 @@ namespace Backrooms.RelicManager
     /// question becomes where the stairs are.</description></item>
     /// <item><description>3 — <b>Hunter's Eye</b>. Deep enough that Dwellers are a real threat, so
     /// knowing where one is starts to beat knowing where the exit is.</description></item>
-    /// <item><description>4 — <b>Hoarder's Charm</b>. By here a player is building a kit rather than
-    /// surviving, so the relic that finds relics is what compounds.</description></item>
-    /// <item><description>5 — <b>Surveyor's Lens</b>. Floors blur together by now; a map is
-    /// orientation rather than a single arrow.</description></item>
-    /// <item><description>6 — <b>Blink Shard</b>. Escape, for when avoidance has stopped
+    /// <item><description>4 — <b>Hoarder's Charm</b> and <b>Surveyor's Lens</b>, together. By here a
+    /// player is building a kit rather than surviving, and both of these answer the same question —
+    /// where is everything — one as an arrow and one as a map.</description></item>
+    /// <item><description>5 — <b>Blink Shard</b>. Escape, for when avoidance has stopped
     /// working.</description></item>
-    /// <item><description>7 — <b>Banisher</b>. The deepest answer, and the only one that removes a
+    /// <item><description>6 — <b>Banisher</b>. The deepest answer, and the only one that removes a
     /// Dweller rather than surviving it.</description></item>
     /// </list>
     /// <para>
-    /// The peaks then repeat, so floor 8 reads like floor 1 again. That is deliberate: the roster is
-    /// finite and the dungeon is not, and a player who has gone deep enough to lose their Ward should
-    /// be offered another one rather than a flat lottery for the rest of the run.
+    /// Six floors, not seven, because the demo is six floors long — see <c>DemoRun.FinalFloor</c>. A
+    /// seven-floor cycle put the Banisher's peak on a floor that no longer exists, so the strongest
+    /// relic in the game was one most players would never be offered. Doubling up floor 4 is what
+    /// makes seven kinds fit into six floors, and the two that share it are the two most alike.
+    /// </para>
+    /// <para>
+    /// The peaks still repeat past the end, so floor 7 would read like floor 1. That costs nothing
+    /// and keeps the maths total if the demo is ever lengthened.
     /// </para>
     /// </remarks>
     public static class RelicOdds
     {
         /// <summary>How many floors the pattern of peaks takes to come back around.</summary>
-        private const int Cycle = 7;
+        /// <remarks>Matches the length of the demo, so every relic peaks on a floor that exists.</remarks>
+        private const int Cycle = 6;
 
         /// <summary>Weight every kind carries regardless of floor, so nothing is ever impossible.</summary>
         private const float Floor = 1f;
@@ -51,16 +56,19 @@ namespace Backrooms.RelicManager
         /// </remarks>
         private const float PeakMultiplier = 4f;
 
-        /// <summary>The floor each kind peaks on, indexed to match the roster order.</summary>
-        private static readonly RelicKind[] PeakOrder =
+        /// <summary>
+        /// The floor each kind peaks on. A pair rather than an indexed array because floor 4 carries
+        /// two peaks, which an array indexed by floor cannot express.
+        /// </summary>
+        private static readonly (RelicKind Kind, int Floor)[] Peaks =
         {
-            RelicKind.Ward,             // floor 1
-            RelicKind.WayfinderStone,   // floor 2
-            RelicKind.HunterEye,        // floor 3
-            RelicKind.HoarderCharm,     // floor 4
-            RelicKind.SurveyorsLens,    // floor 5
-            RelicKind.BlinkShard,       // floor 6
-            RelicKind.Banisher          // floor 7
+            (RelicKind.Ward, 1),
+            (RelicKind.WayfinderStone, 2),
+            (RelicKind.HunterEye, 3),
+            (RelicKind.HoarderCharm, 4),
+            (RelicKind.SurveyorsLens, 4),
+            (RelicKind.BlinkShard, 5),
+            (RelicKind.Banisher, 6)
         };
 
         /// <summary>
@@ -90,9 +98,9 @@ namespace Backrooms.RelicManager
         /// <returns>A one-based floor number, or 0.</returns>
         public static int PeakFloorOf(RelicKind kind)
         {
-            for (int i = 0; i < PeakOrder.Length; i++)
+            foreach ((RelicKind peakKind, int floor) in Peaks)
             {
-                if (PeakOrder[i] == kind) return i + 1;
+                if (peakKind == kind) return floor;
             }
 
             return 0;
