@@ -243,22 +243,41 @@ namespace Backrooms.RelicManager.Internal
         /// <summary>
         /// Adds a relic to what the player carries. Unlimited relics are stored as -1 so they never
         /// run down; charged ones stack, so a second Banisher is five more shots rather than a
-        /// duplicate that does nothing.
+        /// duplicate that does nothing — unless the archetype says it does not stack.
         /// </summary>
         /// <param name="kind">Kind collected.</param>
         private void Take(RelicKind kind)
         {
-            int gained = RelicArchetypes.For(kind).Charges;
-            if (gained == 0)
+            RelicArchetype archetype = RelicArchetypes.For(kind);
+            bool alreadyHeld = Holds(kind);
+            LastWasSpare = alreadyHeld && (archetype.Charges == 0 || !archetype.Stacks);
+
+            if (archetype.Charges == 0)
             {
                 _held[kind] = -1;
                 return;
             }
 
-            _held[kind] = _held.TryGetValue(kind, out int existing) && existing > 0
-                ? existing + gained
-                : gained;
+            if (!alreadyHeld)
+            {
+                _held[kind] = archetype.Charges;
+                return;
+            }
+
+            if (archetype.Stacks) _held[kind] = _held[kind] + archetype.Charges;
         }
+
+        /// <summary>
+        /// Whether the last relic collected added nothing, because one was already carried and that
+        /// kind does not stack.
+        /// </summary>
+        /// <remarks>
+        /// A floor that hands out dozens of relics hands out plenty of duplicates, and a duplicate
+        /// announced as "RELIC RECOVERED" is the game claiming to have given you something it did
+        /// not. Naming it as a spare is the difference between the player thinking the pickup is
+        /// broken and the player understanding that the rest of the roster is further down.
+        /// </remarks>
+        public bool LastWasSpare { get; private set; }
 
         /// <summary>
         /// Whether a cell still holds an uncollected relic.

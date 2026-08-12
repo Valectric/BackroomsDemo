@@ -1,9 +1,11 @@
 using UnityEngine;
 
-namespace Backrooms.MazeManager.Internal.Geometry
+namespace Backrooms.MazeManager
 {
     /// <summary>
-    /// Keeps only the handful of ceiling lights near the player switched on.
+    /// Keeps only the handful of lights near the player switched on. Public because more than the
+    /// maze has lights to switch off — relics carry one each, and on the first floor there are forty
+    /// of them.
     /// </summary>
     /// <remarks>
     /// A floor carries dozens of fixtures, and the camera can see about 45 metres through fog that is
@@ -26,11 +28,16 @@ namespace Backrooms.MazeManager.Internal.Geometry
         /// worse: the ceiling above the player went dark, because a fixture behind or beside you
         /// still lights the surfaces you are looking at. A light's contribution depends on its range,
         /// not on where it sits relative to the view direction, and only a photograph showed it.
+        /// <para>
+        /// Settable because the right radius follows the range of the lights being managed. A ceiling
+        /// fixture reaches far enough to matter across a room; a relic's glow reaches seven metres,
+        /// so keeping one lit at thirty is paying for a light that cannot reach anything.
+        /// </para>
         /// </remarks>
-        private const float RadiusMetres = 30f;
+        public float RadiusMetres { get; set; } = 30f;
 
         /// <summary>Most lights allowed on at once, whatever the radius says.</summary>
-        private const int MaxActive = 20;
+        public int MaxActive { get; set; } = 20;
 
         /// <summary>Seconds between recalculations.</summary>
         private const float IntervalSeconds = 0.12f;

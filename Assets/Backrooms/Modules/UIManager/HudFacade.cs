@@ -64,6 +64,13 @@ namespace Backrooms.UIManager
         public void ShowRelic(int total) => Router.ShowRelic(total);
 
         /// <summary>
+        /// Updates the relic tally on the status line without announcing anything, for a pickup that
+        /// counts but is not worth celebrating.
+        /// </summary>
+        /// <param name="total">How many relics the player has found.</param>
+        public void SetRelics(int total) => Router.SetRelics(total);
+
+        /// <summary>
         /// Flashes an arbitrary line, for something other than finding a relic.
         /// </summary>
         /// <param name="message">What to say.</param>

@@ -76,7 +76,7 @@ namespace Backrooms.MazeManager.Internal.Geometry
             // Last, so it takes charge of every light the floor owns — ceiling fixtures and stairwell
             // signs alike. Nearly all of them illuminate somewhere the fog hides, and switching those
             // off costs nothing visually while being most of the frame rate.
-            root.AddComponent<LightCuller>().Collect();
+            root.AddComponent<Backrooms.MazeManager.LightCuller>().Collect();
 
             return root;
         }

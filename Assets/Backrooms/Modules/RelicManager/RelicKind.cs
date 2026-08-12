@@ -75,6 +75,17 @@ namespace Backrooms.RelicManager
         public int Charges { get; }
 
         /// <summary>
+        /// Whether a second one adds its charges to the first, or is a spare that does nothing.
+        /// </summary>
+        /// <remarks>
+        /// A second Banisher is five more shots, which is worth walking to. A second Ward would be a
+        /// second free death, and on a floor that hands out dozens of relics that is not generosity —
+        /// it is the game switching itself off. The one relic that cancels a mistake is the one that
+        /// has to stay at one.
+        /// </remarks>
+        public bool Stacks { get; }
+
+        /// <summary>
         /// Creates an archetype.
         /// </summary>
         /// <param name="kind">Which kind this describes.</param>
@@ -83,8 +94,9 @@ namespace Backrooms.RelicManager
         /// <param name="colour">Glow and arrow colour.</param>
         /// <param name="isCompass">Whether it shows a HUD arrow.</param>
         /// <param name="charges">Uses carried, or 0 for always on.</param>
+        /// <param name="stacks">Whether a second one adds to the first.</param>
         public RelicArchetype(RelicKind kind, string displayName, string effect, Color colour,
-            bool isCompass, int charges)
+            bool isCompass, int charges, bool stacks = true)
         {
             Kind = kind;
             DisplayName = displayName;
@@ -92,6 +104,7 @@ namespace Backrooms.RelicManager
             Colour = colour;
             IsCompass = isCompass;
             Charges = charges;
+            Stacks = stacks;
         }
     }
 
@@ -123,7 +136,7 @@ namespace Backrooms.RelicManager
 
             new RelicArchetype(RelicKind.Ward, "DEFENSE WARD",
                 "It will take one Dweller for you, once",
-                new Color(1f, 0.92f, 0.55f), isCompass: false, charges: 1),
+                new Color(1f, 0.92f, 0.55f), isCompass: false, charges: 1, stacks: false),
 
             new RelicArchetype(RelicKind.BlinkShard, "BLINK SHARD",
                 "Press F, or double-tap the right side, to slip through the walls",

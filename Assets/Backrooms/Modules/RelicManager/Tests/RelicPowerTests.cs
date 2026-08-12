@@ -237,5 +237,80 @@ namespace Backrooms.RelicManager.Tests
             Assert.IsFalse(relics.Spend(RelicKind.Ward), "and there is nothing left for a second");
             Assert.IsFalse(relics.Holds(RelicKind.Ward), "so it is no longer carried");
         }
+
+        /// <summary>
+        /// A second Ward is a spare, not a second life — however many are found. The first floor is
+        /// littered with relics and mostly hands out Wards, so without this a player who swept it
+        /// would descend carrying two dozen free deaths and nothing below could threaten them.
+        /// </summary>
+        [Test]
+        public void TheWard_DoesNotStack()
+        {
+            (RelicFacade _, RelicManagerTestFacade relics) = NewRelics();
+            var parent = new GameObject("RelicRoot").transform;
+
+            for (int i = 0; i < 5; i++)
+            {
+                MazeLayout layout = NewFloor(20 + i);
+                List<Vector2Int> placed = relics.PlaceKind(layout, RelicKind.Ward, 20 + i, parent);
+                Assert.IsTrue(relics.TryCollect(layout.CellCenterToWorld(placed[0]), 1.6f),
+                    $"ward {i + 1} should be collectable");
+
+                Assert.AreEqual(1, relics.ChargesOf(RelicKind.Ward),
+                    $"after {i + 1} wards the player should still hold exactly one");
+                Assert.AreEqual(i > 0, relics.LastWasSpare,
+                    i > 0 ? "every ward after the first is a spare" : "the first ward is not a spare");
+            }
+
+            // One catch still empties it, exactly as it did before any of the spares were picked up.
+            Assert.IsTrue(relics.Spend(RelicKind.Ward), "the one ward absorbs a Dweller");
+            Assert.IsFalse(relics.Holds(RelicKind.Ward), "and five wards do not become five lives");
+        }
+
+        /// <summary>
+        /// The Banisher still stacks: a second one is five more shots. The Ward is capped because it
+        /// cancels a mistake, not because duplicates are worthless in general — a rule applied to the
+        /// whole roster would quietly make every deep floor's second Banisher a dead pickup.
+        /// </summary>
+        [Test]
+        public void TheBanisher_StillStacks()
+        {
+            (RelicFacade _, RelicManagerTestFacade relics) = NewRelics();
+            var parent = new GameObject("RelicRoot").transform;
+
+            MazeLayout first = NewFloor(31);
+            List<Vector2Int> placed = relics.PlaceKind(first, RelicKind.Banisher, 31, parent);
+            relics.TryCollect(first.CellCenterToWorld(placed[0]), 1.6f);
+            Assert.AreEqual(5, relics.ChargesOf(RelicKind.Banisher), "one banisher is five shots");
+            Assert.IsFalse(relics.LastWasSpare, "the first one is not a spare");
+
+            MazeLayout second = NewFloor(32);
+            placed = relics.PlaceKind(second, RelicKind.Banisher, 32, parent);
+            relics.TryCollect(second.CellCenterToWorld(placed[0]), 1.6f);
+            Assert.AreEqual(10, relics.ChargesOf(RelicKind.Banisher), "a second is five more");
+            Assert.IsFalse(relics.LastWasSpare, "and is worth the walk, so not a spare");
+        }
+
+        /// <summary>
+        /// A duplicate of an always-on relic is a spare too. A second Wayfinder Stone cannot make the
+        /// arrow point harder, and the game should say so rather than announce a recovery.
+        /// </summary>
+        [Test]
+        public void ASecondCompass_IsASpare()
+        {
+            (RelicFacade _, RelicManagerTestFacade relics) = NewRelics();
+            var parent = new GameObject("RelicRoot").transform;
+
+            MazeLayout first = NewFloor(41);
+            List<Vector2Int> placed = relics.PlaceKind(first, RelicKind.WayfinderStone, 41, parent);
+            relics.TryCollect(first.CellCenterToWorld(placed[0]), 1.6f);
+            Assert.IsFalse(relics.LastWasSpare, "the first one is the one that does something");
+
+            MazeLayout second = NewFloor(42);
+            placed = relics.PlaceKind(second, RelicKind.WayfinderStone, 42, parent);
+            relics.TryCollect(second.CellCenterToWorld(placed[0]), 1.6f);
+            Assert.IsTrue(relics.LastWasSpare, "the second one adds nothing and must say so");
+            Assert.IsTrue(relics.Holds(RelicKind.WayfinderStone), "while still being carried");
+        }
     }
 }

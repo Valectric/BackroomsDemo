@@ -49,8 +49,8 @@ namespace Backrooms.MazeManager.Tests
 
                 // Stand where the player starts and let the culler decide what is worth lighting.
                 Vector3 viewer = maze.CurrentLayout.CellCenterToWorld(maze.CurrentLayout.Spawn);
-                foreach (Internal.Geometry.LightCuller culler in
-                         Object.FindObjectsByType<Internal.Geometry.LightCuller>(
+                foreach (LightCuller culler in
+                         Object.FindObjectsByType<LightCuller>(
                              FindObjectsSortMode.None))
                 {
                     culler.Apply(viewer);

@@ -41,10 +41,53 @@ namespace Backrooms.RelicManager
         /// <param name="floor">One-based floor number, which decides what the floor tends to offer.</param>
         /// <returns>The cells that received a relic.</returns>
         public List<Vector2Int> PlaceForFloor(MazeLayout layout, int seed, int floor = 1)
-            => _router.Place(layout, RelicsFor(layout), seed, floor, transform);
+        {
+            List<Vector2Int> placed =
+                _router.Place(layout, RelicsFor(layout, floor), seed, floor, transform);
+            CullGlows();
+            return placed;
+        }
 
         /// <summary>
-        /// How many relics a floor should carry: one per way down unless the scene pins a number.
+        /// Takes charge of the relic glows so only the ones near the player stay lit.
+        /// </summary>
+        /// <remarks>
+        /// Forty relics on the first floor is forty realtime lights, which is more than the whole
+        /// ceiling carries — the floor every player sees would have become the most expensive one in
+        /// the game. This costs nothing visually: a relic's glow has a range of seven metres, so one
+        /// twenty metres away is already lighting nothing, and switching it off is invisible by
+        /// construction rather than by judgement.
+        /// </remarks>
+        private void CullGlows()
+        {
+            if (_culler == null)
+            {
+                _culler = gameObject.AddComponent<LightCuller>();
+
+                // Comfortably past the glow's own seven-metre range, so a relic is lit before it can
+                // possibly light anything, and never the other way round.
+                _culler.RadiusMetres = GlowCullMetres;
+                _culler.MaxActive = MaxLitRelics;
+            }
+
+            _culler.Collect();
+        }
+
+        /// <summary>Keeps the relic glows near the player lit and the rest off.</summary>
+        private LightCuller _culler;
+
+        /// <summary>How far a relic glow stays lit, in metres. Its own range is seven.</summary>
+        private const float GlowCullMetres = 14f;
+
+        /// <summary>Most relic glows lit at once.</summary>
+        private const int MaxLitRelics = 6;
+
+        /// <summary>How many relic glows are currently lit.</summary>
+        public int LitGlows => _culler == null ? 0 : _culler.ActiveCount;
+
+        /// <summary>
+        /// How many relics a floor should carry: one per way down unless the scene pins a number,
+        /// and four times that on the first floor.
         /// </summary>
         /// <remarks>
         /// Tying the count to the stairwells keeps the two in step by construction rather than as two
@@ -52,18 +95,35 @@ namespace Backrooms.RelicManager
         /// the powers so hard that most of a run is spent carrying nothing: the roster is dealt out
         /// in turn and skips anything already held, so a floor with three relics offers three
         /// different ones.
+        /// <para>
+        /// The first floor is deliberately littered with them. A player who finds nothing in their
+        /// first two minutes has no reason to believe there is anything to find, and floor 1 is the
+        /// only floor every player sees. What it mostly hands out is Wards — that is what floor 1
+        /// favours, and a Ward does not stack — so the floor reads as generous without being
+        /// enriching, and the roster proper is somewhere below.
+        /// </para>
         /// </remarks>
         /// <param name="layout">The floor being placed on.</param>
+        /// <param name="floor">One-based floor number.</param>
         /// <returns>How many relics to place.</returns>
-        private int RelicsFor(MazeLayout layout)
+        private int RelicsFor(MazeLayout layout, int floor)
         {
+            // An explicit count means exactly that count, on every floor. It is how a test or a
+            // designer pins the number, and multiplying it behind their back would make the field lie.
             if (relicsPerFloor > 0) return relicsPerFloor;
 
             int waysDown = layout == null || layout.Stairs.Count == 0
                 ? DefaultWaysDown
                 : layout.Stairs.Count;
-            return Mathf.Max(1, Mathf.RoundToInt(waysDown * RelicsPerWayDown));
+            int baseline = Mathf.Max(1, Mathf.RoundToInt(waysDown * RelicsPerWayDown));
+
+            return floor <= 1 ? baseline * FirstFloorMultiplier : baseline;
         }
+
+        /// <summary>
+        /// How many times the usual number of relics the first floor carries.
+        /// </summary>
+        private const int FirstFloorMultiplier = 4;
 
         /// <summary>Ways down assumed when a floor somehow reports none.</summary>
         private const int DefaultWaysDown = 3;
@@ -92,6 +152,12 @@ namespace Backrooms.RelicManager
 
         /// <summary>The relic picked up by the most recent successful collect.</summary>
         public RelicKind LastCollected => _router.LastCollected;
+
+        /// <summary>
+        /// Whether the last relic collected added nothing, because one was already carried and that
+        /// kind does not stack. The game says so rather than claiming to have handed something over.
+        /// </summary>
+        public bool LastWasSpare => _router.LastWasSpare;
 
         /// <summary>
         /// Whether the player is carrying a kind of relic with uses left.

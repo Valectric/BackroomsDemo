@@ -16,7 +16,7 @@ namespace Backrooms.Gameplay
     /// needs the maze and the Dwellers, a blink needs the player, a banisher needs both. Keeping the
     /// wiring here leaves each module knowing only about itself.
     /// </remarks>
-    internal sealed class PowerDirector
+    public sealed class PowerDirector
     {
         /// <summary>How far a blink carries, in metres.</summary>
         private const float BlinkMetres = 9f;
@@ -107,15 +107,18 @@ namespace Backrooms.Gameplay
                 ShotTracer.Fire(player.Position, forward, BanishMetres,
                     RelicArchetypes.For(RelicKind.Banisher).Colour, killed);
 
-                // Still only spend a charge on a kill: a shot into an empty corridor that costs you
-                // one of five reads as the relic being broken in the other direction.
-                if (killed && relics.Spend(RelicKind.Banisher))
+                // A shot costs a charge whether or not it lands. Free misses meant the only correct
+                // way to play was to hold the key down and sweep, which is not aiming — it removed
+                // the decision the relic exists to create. Five shots you must choose is a weapon;
+                // unlimited shots that occasionally connect is a spray.
+                bool spent = relics.Spend(RelicKind.Banisher);
+                BanisherMissed = !killed;
+
+                if (killed && spent)
                 {
                     used = RelicKind.Banisher;
                     return true;
                 }
-
-                BanisherMissed = !killed;
             }
 
             return false;

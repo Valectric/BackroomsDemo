@@ -244,6 +244,17 @@ namespace Backrooms.UIManager.Internal
             RelicFlashRemaining = RelicFlashSeconds;
         }
 
+        /// <summary>
+        /// Updates the relic tally on the status line without announcing anything.
+        /// </summary>
+        /// <remarks>
+        /// For a pickup that is worth counting but not worth celebrating — a duplicate of something
+        /// already carried. Without this the tally would stop moving whenever the flash was
+        /// suppressed, and the status line would quietly disagree with the end screen.
+        /// </remarks>
+        /// <param name="total">How many relics the player has found.</param>
+        public void SetRelics(int total) => Relics = total;
+
         /// <summary>How long the relic-pickup flash stays on screen, in seconds.</summary>
         private const float RelicFlashSeconds = 1.8f;
 

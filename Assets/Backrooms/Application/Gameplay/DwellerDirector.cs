@@ -15,7 +15,7 @@ namespace Backrooms.Gameplay
     /// and this is composition — it holds module facades and puts them to work, but has no scene
     /// presence of its own.
     /// </remarks>
-    internal sealed class DwellerDirector
+    public sealed class DwellerDirector
     {
         /// <summary>Every Dweller currently roaming the floor.</summary>
         private readonly List<DwellerFacade> _dwellers = new List<DwellerFacade>();

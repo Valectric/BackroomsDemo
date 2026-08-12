@@ -854,3 +854,63 @@ Application layer. Which kinds exist at which depth is a property of the roster,
 module is also what makes it testable — `DwellerDirector` lives in `Backrooms.Gameplay`, whose only
 test assembly is the E2E one, where a white-box assertion about kind assignment would not belong.
 
+
+## 2026-08-12 — D61. The death screen holds for ten seconds before it will let you leave
+
+**Decided:** being caught opens a fixed ten-second sequence. The floor fades to black over the first
+five while the numbers arrive one row at a time; the second five are text on black; only then does
+TAP OR CLICK TO TRY AGAIN appear, and only then does a press do anything.
+**Why:** the retry used to be live from the first frame, so the same click that ended a run started
+the next one. The screen was gone before a line of it had been read, and dying registered as a
+stutter rather than as a loss. A run summary nobody can read is not a summary.
+**Where it lives:** `UIManager.Internal.DeathScreen` owns the clock *and* the drawing, because the
+gate on the retry and the fade have to agree about when the fade is over, and they only stay agreed
+while there is one set of numbers for both to read. `GameplayController` asks `hud.RetryOffered`
+rather than keeping a timer of its own.
+**Rules out:** dismissing the end screen early. There is deliberately no skip.
+**Wrong if:** players report the wait as punishment rather than as an ending — most likely on repeat
+deaths in quick succession, which is the case to watch.
+
+## 2026-08-12 — D62. The first floor is littered with relics; the roster is deeper
+
+**Decided:** floor 1 carries **four times** the usual count (about forty rather than ten); every
+floor below is unchanged. The odds table is untouched, so floor 1 still hands out mostly Wards
+(measured: 145 of 240 draws, ~60%).
+**Why:** a player who finds nothing in their first two minutes has no reason to believe there is
+anything to find, and floor 1 is the only floor every player sees. Measured, the first relic is now
+7.5 cells from the spawn on average and 9 at worst, against 17 on floor 2 — so the density actually
+reaches the player rather than merely existing. What the floor mostly hands over is the one relic
+that does not stack, so it reads as generous without being enriching, and the roster proper is below.
+**Supersedes:** part of D41 — the count is no longer uniform across floors.
+**Rules out:** treating relic count as a single constant.
+**Wrong if:** floor 1 reads as litter rather than as bounty, or players stop descending because the
+first floor already gave them everything.
+
+## 2026-08-12 — D63. A Ward does not stack; a spare says so
+
+**Decided:** collecting a Ward while carrying one leaves you with exactly one. Every relic that adds
+nothing on pickup — a second Ward, a second compass — is announced as `ALREADY CARRIED` rather than
+as a recovery, and still counts toward the run's tally.
+**Why:** charged relics stack, and floor 1 now hands out about twenty-four Wards. Stacking them
+would have been twenty-four free deaths carried down the dungeon: the first floor would have switched
+the game off. Expressed as `RelicArchetype.Stacks` so it is data in the roster table rather than a
+special case in the collect path — the Banisher still stacks, because five more shots is worth the
+walk.
+**Rules out:** treating "already held" as a reason not to place or not to count a relic. It is picked
+up, it is counted, it just does not compound.
+**Wrong if:** the duplicate flash reads as failure rather than as information.
+
+## 2026-08-12 — D64. A Banisher shot always costs a charge
+
+**Decided:** firing spends one of the five whether or not anything dies.
+**Supersedes:** D28, which spent a charge only on a kill on the grounds that "a shot into an empty
+corridor that still costs a charge reads as the relic being broken."
+**Why:** that reasoning was about legibility and it was answered by the tracer — the shot is drawn
+and a miss has its own sound, so a miss now reads as a miss. What free misses actually produced was a
+dominant strategy of holding the key and sweeping the corridor, which is not aiming. Five shots you
+have to choose is a weapon; unlimited shots that occasionally connect is a spray.
+**Rules out:** the Banisher as a scanning tool.
+**Wrong if:** players run dry without ever landing one — watch whether the cone (22 m, 32°) is
+generous enough now that missing is expensive.
+**Note:** `PowerDirector` had **no tests at all** when this was reported, which is why it was
+reported by hand rather than caught. `BanisherChargeTests` now covers what a shot costs.

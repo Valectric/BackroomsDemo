@@ -177,8 +177,8 @@ namespace Backrooms.RelicManager.Tests
         }
 
         /// <summary>
-        /// A floor must carry about ten relics, so a run is not long stretches of nothing between
-        /// exits, and more of them on a floor with more ways out.
+        /// A floor below the first must carry about ten relics, so a run is not long stretches of
+        /// nothing between exits, and more of them on a floor with more ways out.
         /// </summary>
         [Test]
         public void AFloor_CarriesAboutTenRelics()
@@ -190,7 +190,7 @@ namespace Backrooms.RelicManager.Tests
             {
                 MazeLayout layout = NewFloor(seed);
                 relics.ResetRun();
-                List<Vector2Int> placed = relics.PlaceForFloor(layout, seed, floor: 1);
+                List<Vector2Int> placed = relics.PlaceForFloor(layout, seed, floor: 2);
 
                 int expected = Mathf.RoundToInt(layout.Stairs.Count * (10f / 3f));
                 Assert.Greater(layout.Stairs.Count, 1,
@@ -200,6 +200,121 @@ namespace Backrooms.RelicManager.Tests
                 Assert.GreaterOrEqual(placed.Count, 9,
                     $"seed {seed}: the planner must actually find room for them all");
             }
+        }
+
+        /// <summary>
+        /// The first floor carries four times as many relics as any floor below it, and the planner
+        /// actually finds room for all of them rather than quietly placing fewer.
+        /// </summary>
+        /// <remarks>
+        /// A player who finds nothing in their first two minutes has no reason to believe there is
+        /// anything to find, and floor 1 is the only floor every player sees. The count is the whole
+        /// hook, so it is asserted rather than eyeballed — and the "room for them all" check is the
+        /// one that matters: the planner picks the cell furthest from the stairs and every relic it
+        /// places changes that answer, so forty is a real question about whether a floor has forty
+        /// distinct places to stand.
+        /// </remarks>
+        [Test]
+        public void TheFirstFloor_IsLitteredWithThem()
+        {
+            var go = new GameObject("Relics");
+            RelicFacade relics = go.AddComponent<RelicFacade>();
+
+            for (int seed = 0; seed < 8; seed++)
+            {
+                MazeLayout layout = NewFloor(seed);
+
+                relics.ResetRun();
+                List<Vector2Int> deeper = relics.PlaceForFloor(layout, seed, floor: 2);
+
+                relics.ResetRun();
+                List<Vector2Int> first = relics.PlaceForFloor(layout, seed, floor: 1);
+
+                Assert.AreEqual(deeper.Count * 4, first.Count,
+                    $"seed {seed}: the first floor should carry four times a normal floor");
+                Assert.GreaterOrEqual(first.Count, 36,
+                    $"seed {seed}: which on a three-exit floor is about forty");
+
+                // Distinct cells, not forty relics stacked in a corner of the floor.
+                Assert.AreEqual(first.Count, new HashSet<Vector2Int>(first).Count,
+                    $"seed {seed}: every relic should stand in its own cell");
+            }
+        }
+
+        /// <summary>
+        /// The first floor must put a relic within a short walk of where the player starts.
+        /// </summary>
+        /// <remarks>
+        /// This is the one that measures the actual goal. The count being four times higher is a
+        /// number; being hooked is finding something before you have decided the game is empty — and
+        /// those are not the same claim, because the planner deliberately places relics at the cell
+        /// <i>furthest</i> from the spawn and the stairs. A floor could carry forty and still open
+        /// with a two-minute walk through nothing. What makes the density work is that after the
+        /// first handful the planner runs out of far-away cells and starts filling in the near ones.
+        /// </remarks>
+        [Test]
+        public void TheFirstFloor_PutsARelicWithinAShortWalkOfTheSpawn()
+        {
+            var go = new GameObject("Relics");
+            RelicFacade relics = go.AddComponent<RelicFacade>();
+
+            int worstFirst = 0;
+            int totalFirst = 0;
+            int worstDeeper = 0;
+
+            for (int seed = 0; seed < 8; seed++)
+            {
+                MazeLayout layout = NewFloor(seed);
+
+                relics.ResetRun();
+                int first = NearestRelicCells(layout, relics.PlaceForFloor(layout, seed, floor: 1));
+                relics.ResetRun();
+                int deeper = NearestRelicCells(layout, relics.PlaceForFloor(layout, seed, floor: 2));
+
+                worstFirst = Mathf.Max(worstFirst, first);
+                totalFirst += first;
+                worstDeeper = Mathf.Max(worstDeeper, deeper);
+            }
+
+            MooseRunnerFacade.Log(
+                $"nearest relic to the spawn — floor 1: worst {worstFirst} cells, "
+                + $"mean {totalFirst / 8f:F1}; floor 2: worst {worstDeeper} cells");
+
+            Assert.LessOrEqual(worstFirst, 12,
+                $"the first relic on floor 1 is {worstFirst} cells away at worst; a player who "
+                + "walks that far through nothing has already decided the floor is empty");
+            Assert.Less(worstFirst, worstDeeper,
+                "a littered floor must put its first relic nearer than a normal floor does");
+        }
+
+        /// <summary>
+        /// Walking distance in cells from the spawn to the nearest relic.
+        /// </summary>
+        /// <param name="layout">The floor being measured.</param>
+        /// <param name="placed">Cells that received a relic.</param>
+        /// <returns>The distance in cells, or <see cref="int.MaxValue"/> if none is reachable.</returns>
+        private static int NearestRelicCells(MazeLayout layout, List<Vector2Int> placed)
+        {
+            var relicCells = new HashSet<Vector2Int>(placed);
+            var seen = new HashSet<Vector2Int> { layout.Spawn };
+            var queue = new Queue<(Vector2Int cell, int steps)>();
+            queue.Enqueue((layout.Spawn, 0));
+
+            while (queue.Count > 0)
+            {
+                (Vector2Int cell, int steps) = queue.Dequeue();
+                if (relicCells.Contains(cell)) return steps;
+
+                foreach (Direction dir in Directions.All)
+                {
+                    if (!layout.CanMove(cell.x, cell.y, dir)) continue;
+                    Vector2Int delta = Directions.Delta(dir);
+                    var next = new Vector2Int(cell.x + delta.x, cell.y + delta.y);
+                    if (seen.Add(next)) queue.Enqueue((next, steps + 1));
+                }
+            }
+
+            return int.MaxValue;
         }
 
         /// <summary>

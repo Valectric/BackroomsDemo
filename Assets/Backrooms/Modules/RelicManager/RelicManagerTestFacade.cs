@@ -78,6 +78,12 @@ namespace Backrooms.RelicManager
         public RelicKind LastCollected => _router.LastCollected;
 
         /// <summary>
+        /// Whether the last relic collected added nothing, because one was already carried and that
+        /// kind does not stack.
+        /// </summary>
+        public bool LastWasSpare => _router.LastWasSpare;
+
+        /// <summary>
         /// Whether the player is carrying a kind of relic with uses left.
         /// </summary>
         /// <param name="kind">Kind to test.</param>

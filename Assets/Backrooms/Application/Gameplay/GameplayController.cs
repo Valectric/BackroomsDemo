@@ -294,9 +294,28 @@ namespace Backrooms.Gameplay
         {
             if (relics == null || !relics.TryCollect(player.Position)) return;
             if (audioModule != null) audioModule.PlayRelic();
-            if (hud != null) hud.ShowRelic(RelicsCollected);
 
             RelicArchetype found = RelicArchetypes.For(relics.LastCollected);
+
+            // Floor 1 is littered with relics and most of them are Wards, so most of them are ones
+            // the player already has. Announcing every duplicate as "RELIC RECOVERED" would have the
+            // first floor claim to hand over thirty things and deliver about six.
+            if (hud != null)
+            {
+                if (relics.LastWasSpare)
+                {
+                    // Still counted — it was found — so the tally has to move even though the
+                    // announcement does not celebrate.
+                    hud.SetRelics(RelicsCollected);
+                    hud.ShowFlash($"{found.DisplayName}  —  ALREADY CARRIED",
+                        new Color(found.Colour.r, found.Colour.g, found.Colour.b, 0.6f));
+                }
+                else
+                {
+                    hud.ShowRelic(RelicsCollected);
+                }
+            }
+
             Debug.Log($"[Gameplay] Found {found.DisplayName}: {found.Effect}");
         }
 
