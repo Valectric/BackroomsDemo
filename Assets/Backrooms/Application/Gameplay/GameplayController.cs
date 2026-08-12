@@ -543,8 +543,12 @@ namespace Backrooms.Gameplay
 
             if (IsCaught)
             {
-                // A death screen you cannot leave is not a losing condition, it is a dead end.
-                if (player.ConfirmPressed)
+                // A death screen you cannot leave is not a losing condition, it is a dead end — but
+                // one you can leave instantly is not a loss either. The same click that ends a run
+                // used to start the next one, so the screen was gone before it had been read. The
+                // HUD holds the door shut while the floor fades out and the numbers arrive, and says
+                // when it opens; the game only has to ask.
+                if (player.ConfirmPressed && (hud == null || hud.RetryOffered))
                 {
                     StartRun(NextSeed());
                     BeginRun();

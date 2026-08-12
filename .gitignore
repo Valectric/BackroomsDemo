@@ -74,3 +74,9 @@ Thumbs.db
 /Builds/
 /docs/
 
+
+# Unity's performance-testing package writes these the first time the test runner starts. They are
+# test-run metadata rather than source, but they land under Assets/Resources — so without this they
+# get committed, and get built into the player.
+/Assets/Resources/PerformanceTestRun*.json
+/Assets/Resources/PerformanceTestRun*.json.meta

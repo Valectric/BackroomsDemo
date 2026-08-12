@@ -11,6 +11,7 @@ namespace Backrooms.UIManager.Internal
     {
         private readonly HudRenderer _renderer = new HudRenderer();
         private readonly HudOverlays _overlays = new HudOverlays();
+        private readonly DeathScreen _death = new DeathScreen();
 
         /// <summary>Compass arrows to draw this frame.</summary>
         private IReadOnlyList<CompassMark> _compass = new CompassMark[0];
@@ -184,7 +185,19 @@ namespace Backrooms.UIManager.Internal
             BestRelics = bestRelics;
             CaughtShown = true;
             BannerRemaining = 0f;
+            CaughtSeconds = 0f;
         }
+
+        /// <summary>How long the end-of-run screen has been up, in seconds.</summary>
+        public float CaughtSeconds { get; private set; }
+
+        /// <summary>How opaque the black covering the world is, 0 to 1.</summary>
+        public float CaughtFade => DeathScreen.Fade(CaughtSeconds);
+
+        /// <summary>
+        /// Whether the end screen has been up long enough that the player may start another run.
+        /// </summary>
+        public bool RetryOffered => CaughtShown && DeathScreen.RetryOffered(CaughtSeconds);
 
         /// <summary>Relics the player is carrying.</summary>
         public int Relics { get; private set; }
@@ -274,6 +287,10 @@ namespace Backrooms.UIManager.Internal
             {
                 RelicFlashRemaining = Mathf.Max(0f, RelicFlashRemaining - deltaTime);
             }
+
+            // The end screen counts up rather than down: it paces its own reveal, and the game asks
+            // it whether the player is allowed to leave yet.
+            if (CaughtShown) CaughtSeconds += deltaTime;
         }
 
         /// <summary>
@@ -300,6 +317,7 @@ namespace Backrooms.UIManager.Internal
             ElapsedSeconds = 0f;
             EscapedShown = false;
             CaughtShown = false;
+            CaughtSeconds = 0f;
             _idleSeconds = 0f;
             Relics = 0;
             RelicFlashRemaining = 0f;
@@ -332,7 +350,8 @@ namespace Backrooms.UIManager.Internal
 
             if (CaughtShown)
             {
-                _renderer.DrawCaught(Floor, ElapsedSeconds, Relics, BestFloors, BestRelics, Seed);
+                _death.Draw(Floor, ElapsedSeconds, Relics, BestFloors, BestRelics, Seed,
+                    CaughtSeconds);
                 return;
             }
 

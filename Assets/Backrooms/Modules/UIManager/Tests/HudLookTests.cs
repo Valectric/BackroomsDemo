@@ -85,16 +85,44 @@ namespace Backrooms.UIManager.Tests
             hud.SetHunted(true, 1f);
             await Capture("hud-hunted-close", ct);
 
+            // The end screen is now a ten-second sequence rather than one picture, so it is
+            // photographed at the three moments that define it: mid-fade with the floor still
+            // showing, fully black, and the moment the way out appears. A single capture at the
+            // instant of death would show an almost empty frame and prove nothing.
             hud.SetHunted(false, 0f);
+            UIManagerTestFacade seam = hud.GetTestFacade();
+
             hud.ShowCaught(3, 74f, relics: 2, bestFloors: 5, bestRelics: 4);
-            await Capture("hud-caught", ct);
+            Advance(seam, 2.5f);
+            await Capture("hud-caught-fading", ct);
+
+            Advance(seam, 5f);
+            await Capture("hud-caught-black", ct);
+
+            Advance(seam, 10.4f);
+            await Capture("hud-caught-retry", ct);
 
             // The other half of the end screen: a run that set the record must not restate its own
             // numbers under a "best" heading, which is what made it read as doubled.
             hud.ShowCaught(6, 132f, relics: 5, bestFloors: 6, bestRelics: 5);
+            Advance(seam, 10.4f);
             await Capture("hud-caught-record", ct);
 
             Assert.IsTrue(hud.CaughtShown, "the caught screen should be the one photographed last");
+            Assert.IsTrue(hud.RetryOffered, "the last two captures should show the retry offered");
+        }
+
+        /// <summary>
+        /// Winds the end screen's clock forward to a given age, so each moment of the death sequence
+        /// can be photographed without waiting for it in real time.
+        /// </summary>
+        /// <param name="seam">Test seam over the HUD being photographed.</param>
+        /// <param name="seconds">Age of the end screen to advance to, in seconds since the death.</param>
+        private static void Advance(UIManagerTestFacade seam, float seconds)
+        {
+            // In small steps rather than one jump: the same path the running game takes, so a fade
+            // that only behaves for a single large delta would not pass here either.
+            while (seam.CaughtSeconds < seconds) seam.TickBanner(0.05f);
         }
 
         /// <summary>

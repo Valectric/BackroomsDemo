@@ -14,10 +14,7 @@ namespace Backrooms.UIManager.Internal
     internal sealed class HudOverlays
     {
         /// <summary>Bone-white HUD text, slightly warm to match the level.</summary>
-        private static readonly Color TextColor = new Color(0.96f, 0.95f, 0.88f);
-
-        /// <summary>Dim backing so text stays readable against pale walls.</summary>
-        private static readonly Color ShadowColor = new Color(0f, 0f, 0f, 0.55f);
+        private static readonly Color TextColor = HudText.TextColor;
 
         /// <summary>
         /// Draws one arrow per compass relic, laid along a strip under the top of the screen.
@@ -158,20 +155,6 @@ namespace Backrooms.UIManager.Internal
         /// <param name="colour">Text colour.</param>
         private static void DrawLabel(Rect rect, string text, int fontSize, TextAnchor anchor,
             Color colour)
-        {
-            var style = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = fontSize,
-                alignment = anchor,
-                wordWrap = false
-            };
-
-            style.normal.textColor = new Color(ShadowColor.r, ShadowColor.g, ShadowColor.b,
-                ShadowColor.a * colour.a);
-            GUI.Label(new Rect(rect.x + 2f, rect.y + 2f, rect.width, rect.height), text, style);
-
-            style.normal.textColor = colour;
-            GUI.Label(rect, text, style);
-        }
+            => HudText.DrawLabel(rect, text, fontSize, anchor, colour);
     }
 }

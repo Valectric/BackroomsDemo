@@ -159,6 +159,78 @@ namespace Backrooms.UIManager.Tests
         }
 
         /// <summary>
+        /// The end screen withholds the retry for its full ten seconds, so a run cannot be ended and
+        /// restarted by the same reflex click. This is the whole behaviour: the screen exists to be
+        /// read, and before this it was routinely dismissed before a single line had been.
+        /// </summary>
+        [Test]
+        public void DeathScreen_WithholdsTheRetryUntilTheScreenHasBeenRead()
+        {
+            (HudFacade hud, UIManagerTestFacade test) = NewHud();
+
+            hud.ShowCaught(4, 96f, relics: 2, bestFloors: 6, bestRelics: 3);
+            Assert.IsFalse(hud.RetryOffered, "the click that ended the run must not start the next");
+
+            // A tenth of a second short of the ten, which is where an off-by-one would hide.
+            for (int i = 0; i < 99; i++) test.TickBanner(0.1f);
+            Assert.Less(test.CaughtSeconds, test.RetrySeconds, "still inside the ten seconds");
+            Assert.IsFalse(hud.RetryOffered, "nine and a bit seconds is not ten");
+
+            for (int i = 0; i < 3; i++) test.TickBanner(0.1f);
+            Assert.IsTrue(hud.RetryOffered, "past ten seconds the player may go again");
+        }
+
+        /// <summary>
+        /// The world fades out under the numbers over the first five seconds, and is completely gone
+        /// by the end of them — leaving the second half of the wait as text on black.
+        /// </summary>
+        [Test]
+        public void DeathScreen_FadesTheWorldOutOverTheFirstFiveSeconds()
+        {
+            (HudFacade hud, UIManagerTestFacade test) = NewHud();
+
+            hud.ShowCaught(2, 31f, relics: 0, bestFloors: 4, bestRelics: 2);
+            Assert.AreEqual(0f, hud.CaughtFade, 1e-3f, "the floor is still fully visible at the kill");
+
+            for (int i = 0; i < 25; i++) test.TickBanner(0.1f);
+            float half = hud.CaughtFade;
+            Assert.Greater(half, 0f, "the fade should be under way at two and a half seconds");
+            Assert.Less(half, 1f, "and not finished");
+
+            for (int i = 0; i < 25; i++) test.TickBanner(0.1f);
+            Assert.AreEqual(1f, hud.CaughtFade, 1e-3f, "black by five seconds");
+            Assert.AreEqual(test.FadeSeconds, test.CaughtSeconds, 1e-3f, "five seconds have passed");
+            Assert.IsFalse(hud.RetryOffered, "the fade finishing is only halfway through the wait");
+        }
+
+        /// <summary>
+        /// The end screen's clock only runs while that screen is up: it starts at zero on each death,
+        /// and a new run clears it. A clock left running would offer the next death's retry instantly.
+        /// </summary>
+        [Test]
+        public void DeathScreen_ClockRunsOnlyWhileTheScreenIsUp()
+        {
+            (HudFacade hud, UIManagerTestFacade test) = NewHud();
+
+            // Nothing has died yet, so ticking the HUD must not accumulate anything.
+            for (int i = 0; i < 200; i++) test.TickBanner(0.1f);
+            Assert.AreEqual(0f, test.CaughtSeconds, 1e-3f, "the clock does not run during a run");
+
+            hud.ShowCaught(3, 42f, relics: 1, bestFloors: 3, bestRelics: 1);
+            for (int i = 0; i < 200; i++) test.TickBanner(0.1f);
+            Assert.IsTrue(hud.RetryOffered, "twenty seconds is well past the wait");
+
+            hud.ResetHud();
+            Assert.AreEqual(0f, test.CaughtSeconds, 1e-3f, "a new run clears the clock");
+            Assert.IsFalse(hud.RetryOffered, "and with it the offer");
+
+            // Dying a second time must wait all over again.
+            hud.ShowCaught(1, 12f, relics: 0, bestFloors: 3, bestRelics: 1);
+            Assert.AreEqual(0f, test.CaughtSeconds, 1e-3f, "the second death starts from zero");
+            Assert.IsFalse(hud.RetryOffered, "and waits its own ten seconds");
+        }
+
+        /// <summary>
         /// The rotate prompt tracks the screen shape. A phone held upright cannot play this — the
         /// level is built around a wide field of view and a HUD anchored to the corners — so the game
         /// asks rather than letting someone judge it sideways.

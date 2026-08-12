@@ -15,10 +15,7 @@ namespace Backrooms.UIManager.Internal
     internal sealed class HudRenderer
     {
         /// <summary>Bone-white HUD text, slightly warm to match the level.</summary>
-        private static readonly Color TextColor = new Color(0.96f, 0.95f, 0.88f);
-
-        /// <summary>Dim backing so text stays readable against pale walls.</summary>
-        private static readonly Color ShadowColor = new Color(0f, 0f, 0f, 0.55f);
+        private static readonly Color TextColor = HudText.TextColor;
 
         /// <summary>
         /// Draws the persistent status line — time survived and how deep the player has gone.
@@ -36,7 +33,7 @@ namespace Backrooms.UIManager.Internal
         }
 
         /// <summary>Colour relics are shown in, matching the violet they glow in the world.</summary>
-        private static readonly Color RelicColor = new Color(0.78f, 0.55f, 1f);
+        private static readonly Color RelicColor = HudText.RelicColor;
 
         /// <summary>
         /// Symbol standing in for a relic. A four-pointed star is in every font the browser will
@@ -181,79 +178,6 @@ namespace Backrooms.UIManager.Internal
         }
 
         /// <summary>
-        /// Draws the end-of-run banner for being caught by a Dweller.
-        /// </summary>
-        /// <param name="floor">Floor the player died on.</param>
-        /// <param name="elapsedSeconds">How long they lasted.</param>
-        /// <param name="relics">How many relics they were carrying.</param>
-        /// <param name="bestFloors">Deepest floor reached in any run.</param>
-        /// <param name="bestRelics">Most relics carried in any run.</param>
-        /// <param name="seed">Seed the run was generated from, or 0 to omit it.</param>
-        public void DrawCaught(int floor, float elapsedSeconds, int relics, int bestFloors,
-            int bestRelics, int seed = 0)
-        {
-            int size = Mathf.Max(20, Mathf.RoundToInt(Screen.height * 0.07f));
-            DrawLabel(new Rect(0f, Screen.height * 0.26f, Screen.width, size * 2f),
-                "A DWELLER FOUND YOU", size, TextAnchor.UpperCenter);
-
-            // Each figure gets its own labelled row. Three bare numbers on one line — "3  2  01:14"
-            // — never said which was which, and the relic glyph explained nothing on its own.
-            int row = Mathf.Max(15, Mathf.RoundToInt(Screen.height * 0.040f));
-            float top = Screen.height * 0.40f;
-            float step = row * 1.65f;
-            DrawStatRow(top, row, "REACHED", $"FLOOR {floor}");
-            DrawStatRow(top + step, row, "RELICS FOUND", relics.ToString());
-            DrawStatRow(top + step * 2f, row, "SURVIVED", FormatTime(elapsedSeconds));
-
-            // The record is submitted before this screen is drawn, so on a best run the "best" line
-            // repeated the run's own numbers and read as the same thing printed twice. When the run
-            // IS the record, say that instead of restating it.
-            bool runIsTheRecord = bestFloors <= floor && bestRelics <= relics;
-            int best = Mathf.Max(13, Mathf.RoundToInt(Screen.height * 0.032f));
-            DrawLabel(new Rect(0f, top + step * 3.3f, Screen.width, best * 2f),
-                runIsTheRecord
-                    ? "NEW BEST"
-                    : $"BEST SO FAR    FLOOR {bestFloors}    {bestRelics} RELICS",
-                best, TextAnchor.UpperCenter,
-                runIsTheRecord
-                    ? RelicColor
-                    : new Color(TextColor.r, TextColor.g, TextColor.b, 0.65f));
-
-            int hint = Mathf.Max(14, Mathf.RoundToInt(Screen.height * 0.035f));
-            DrawLabel(new Rect(0f, Screen.height * 0.70f, Screen.width, hint * 2f),
-                "TAP OR CLICK TO TRY AGAIN", hint, TextAnchor.UpperCenter);
-
-            // Every run draws its own seed, so without showing it a bug report describes a floor
-            // nobody can ever visit again. Dim and out of the way — it is for the one player in a
-            // hundred who reports something, not for the other ninety-nine.
-            if (seed == 0) return;
-
-            int small = Mathf.Max(11, Mathf.RoundToInt(Screen.height * 0.024f));
-            DrawLabel(new Rect(0f, Screen.height * 0.80f, Screen.width, small * 2f),
-                $"seed {seed}", small, TextAnchor.UpperCenter,
-                new Color(TextColor.r, TextColor.g, TextColor.b, 0.45f));
-        }
-
-        /// <summary>
-        /// Draws one statistic as a centred two-column row: a dim label on the left of the middle,
-        /// its value on the right, so the pairing is unambiguous.
-        /// </summary>
-        /// <param name="y">Top of the row in pixels.</param>
-        /// <param name="size">Font size for the row.</param>
-        /// <param name="label">What the number means.</param>
-        /// <param name="value">The number itself.</param>
-        private static void DrawStatRow(float y, int size, string label, string value)
-        {
-            float gap = size * 0.7f;
-            float half = Screen.width * 0.5f;
-
-            DrawLabel(new Rect(0f, y, half - gap, size * 1.5f), label, size, TextAnchor.UpperRight,
-                new Color(TextColor.r, TextColor.g, TextColor.b, 0.6f));
-            DrawLabel(new Rect(half + gap, y, half - gap, size * 1.5f), value, size,
-                TextAnchor.UpperLeft);
-        }
-
-        /// <summary>
         /// Draws the title screen the game waits on before a run begins.
         /// </summary>
         /// <remarks>
@@ -353,19 +277,6 @@ namespace Backrooms.UIManager.Internal
         /// <param name="colour">Text colour, or <c>null</c> for the standard HUD white.</param>
         private static void DrawLabel(Rect rect, string text, int fontSize, TextAnchor anchor,
             Color? colour = null)
-        {
-            var style = new GUIStyle(GUI.skin.label)
-            {
-                fontSize = fontSize,
-                alignment = anchor,
-                wordWrap = false
-            };
-
-            style.normal.textColor = ShadowColor;
-            GUI.Label(new Rect(rect.x + 2f, rect.y + 2f, rect.width, rect.height), text, style);
-
-            style.normal.textColor = colour ?? TextColor;
-            GUI.Label(rect, text, style);
-        }
+            => HudText.DrawLabel(rect, text, fontSize, anchor, colour);
     }
 }

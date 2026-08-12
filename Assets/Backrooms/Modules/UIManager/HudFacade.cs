@@ -76,6 +76,18 @@ namespace Backrooms.UIManager
         /// <summary>Whether the caught banner is showing.</summary>
         public bool CaughtShown => Router.CaughtShown;
 
+        /// <summary>How long the end-of-run screen has been up, in seconds.</summary>
+        public float CaughtSeconds => Router.CaughtSeconds;
+
+        /// <summary>How opaque the black covering the world is on the end screen, 0 to 1.</summary>
+        public float CaughtFade => Router.CaughtFade;
+
+        /// <summary>
+        /// Whether the end screen has been up long enough that the player may start another run.
+        /// The game asks before acting on a tap, so the screen cannot be clicked away unread.
+        /// </summary>
+        public bool RetryOffered => Router.RetryOffered;
+
         /// <summary>Whether the game is waiting on the title screen.</summary>
         public bool TitleShown => Router.TitleShown;
 
