@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Regenerates the itch.io cover image, reproducibly.
+# Regenerates every itch.io page image, reproducibly: cover, banner and background tile.
 #
 # The picture is not artwork — it is a real frame from the game, so it cannot misrepresent what a
 # player gets. Everything that decides what it looks like is recorded here:
@@ -29,8 +29,12 @@ if [ ! -f "$SOURCE" ]; then
   exit 1
 fi
 
-FONT_BOLD='C\:/Windows/Fonts/arialbd.ttf'
-FONT_PLAIN='C\:/Windows/Fonts/arial.ttf'
+# Bahnschrift: wide, slightly technical letterforms that read as signage, which suits a building
+# that should not exist. The page font itself cannot be changed — itch only allows that through
+# custom CSS, which is granted per account on request — so the only typography under our control is
+# what is baked into these images. That makes the choice matter more than it normally would.
+FONT_BOLD='C\:/Windows/Fonts/bahnschrift.ttf'
+FONT_PLAIN='C\:/Windows/Fonts/bahnschrift.ttf'
 
 # A stack of increasingly opaque bands, standing in for a gradient. A single dark box left a hard
 # horizontal seam across the middle of the picture, which looked like a mistake rather than a design.
@@ -52,3 +56,21 @@ drawtext=fontfile='${FONT_PLAIN}':text='Find the stairs. Something else is alrea
   "$OUT"
 
 echo "wrote $OUT ($(ffprobe -v error -select_streams v -show_entries stream=width,height -of csv=p=0 "$OUT"))"
+
+# ---------------------------------------------------------------------------------------------
+# Banner — 960x400, shown across the top of the page (Edit theme > Banner).
+# ---------------------------------------------------------------------------------------------
+BANNER="Screenshots/press/banner.png"
+ffmpeg -y -loglevel error -i "Screenshots/press/01-yellow-rooms.png" -vf "crop=1280:534:0:100,scale=960:400,drawbox=y=250:w=iw:h=150:color=black@0.45:t=fill,drawtext=fontfile='${FONT_BOLD}':text='${TITLE_TOP} ${TITLE_BOTTOM}':fontcolor=0xF7F4E8:fontsize=58:x=(w-tw)/2:y=h-116:shadowcolor=black@0.85:shadowx=2:shadowy=2,drawtext=fontfile='${FONT_PLAIN}':text='999 FLOORS  ·  SOMETHING IS ALREADY HERE':fontcolor=0xE8C34A:fontsize=20:x=(w-tw)/2:y=h-46"   "$BANNER"
+echo "wrote $BANNER"
+
+# ---------------------------------------------------------------------------------------------
+# Background tile — 800x800, set to REPEAT in the theme editor.
+#
+# Mirrored horizontally and vertically, so opposite edges are identical by construction and the
+# seams cannot show however it tiles. A single large image is not an option: the theme editor has
+# no background-size control, so an unstretched 1920x1080 simply sits in the corner.
+# ---------------------------------------------------------------------------------------------
+TILE="Screenshots/press/page-tile.png"
+ffmpeg -y -loglevel error -i "Screenshots/press/01-yellow-rooms.png" -filter_complex "[0:v]crop=300:340:950:190,scale=400:400[a];[a]split=2[a1][a2];[a2]hflip[a2f];[a1][a2f]hstack[top];[top]split=2[t1][t2];[t2]vflip[t2f];[t1][t2f]vstack[out]" -map "[out]" "$TILE"
+echo "wrote $TILE"
